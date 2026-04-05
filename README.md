@@ -104,3 +104,27 @@ N-03,사용성,모바일 환경에서도 최적화된 반응형 레이아웃 제
 2. **레뷰 JWT 토큰 만료 문제 (Token Expiration):**
    - 레뷰 API는 유효한 세션(Bearer Token)을 요구함. 현재는 `.env`에 수동으로 토큰을 발급받아 넣었으나, 향후 크론잡(Cron Job) 등 자동화 시 토큰 만료 에러(401)가 발생할 것임.
    - **해결 아이디어:** 크롤링 실행 시 Playwright를 Headless로 띄워 자동 로그인 후 토큰만 탈취해 오거나, `/tokens/refresh` API를 호출하는 갱신 모듈 설계 필요.
+
+3. git config --global core.autocrlf true
+
+
+# 2026 04 05 업데이트
+
+## 4. 진행 상황
+- [x] 강남맛집 크롤링 스크립트 작성 및 Supabase DB 저장 완료
+- [x] Next.js 프론트엔드 연동 및 Tailwind CSS 기반 카드 UI 렌더링 완료
+- [x] 레뷰(Revu) 크롤러 연동 완료 
+  - 숨겨진 백엔드 API(XHR) 분석 및 JWT 토큰 기반 데이터 수집
+  - `while`문을 활용한 무한 스크롤(Pagination) 전체 데이터 적재 로직 구현
+- [x] 리뷰노트(ReviewNote) 크롤러 연동 완료
+  - Next.js의 `__NEXT_DATA__`에서 동적 Build ID를 추출하여 API 엔드포인트 우회 및 데이터 수집
+- [ ] 키워드 검색 및 매체별(블로그/인스타/숏폼)/타입별 필터링 기능 구현 (Next.js)
+
+## 💡 주요 기술 적용 및 트러블슈팅 (Tech Notes)
+1. **API 다이렉트 호출로 크롤링 성능 최적화**
+   - Playwright/Selenium 등 무거운 브라우저 자동화 도구 대신, 브라우저 네트워크 탭(HAR)을 분석해 백엔드 API를 직접 호출(requests)하는 방식으로 속도 및 안정성 극대화.
+2. **Next.js 동적 라우팅/빌드 ID 파훼 (리뷰노트)**
+   - 리뷰노트의 경우 Next.js 기반으로 구축되어 배포마다 API 주소(Build ID)가 변경되는 문제 발생.
+   - 첫 페이지의 HTML 최하단 `<script id="__NEXT_DATA__">` 태그를 파싱해 실시간으로 Build ID를 알아낸 뒤 API를 찌르는 '무적 크롤러' 패턴 적용.
+3. **레뷰 JWT 토큰 만료 이슈 (Token Expiration)**
+   - 현재 레뷰 API는 유효한 세션(Bearer Token)을 요구하여 `.env`에 토큰을 관리 중. 향후 크론잡(Cron Job) 자동화 시 갱신 API(`/tokens/refresh`) 연동 등 로그인 세션 자동화 고도화 필요.
