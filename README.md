@@ -128,3 +128,20 @@ N-03,사용성,모바일 환경에서도 최적화된 반응형 레이아웃 제
    - 첫 페이지의 HTML 최하단 `<script id="__NEXT_DATA__">` 태그를 파싱해 실시간으로 Build ID를 알아낸 뒤 API를 찌르는 '무적 크롤러' 패턴 적용.
 3. **레뷰 JWT 토큰 만료 이슈 (Token Expiration)**
    - 현재 레뷰 API는 유효한 세션(Bearer Token)을 요구하여 `.env`에 토큰을 관리 중. 향후 크론잡(Cron Job) 자동화 시 갱신 API(`/tokens/refresh`) 연동 등 로그인 세션 자동화 고도화 필요.
+
+   ## 💡 트러블슈팅 및 겪었던 에러 (Troubleshooting)
+1. **Next.js Hydration Error (`Hydration failed...`)**
+   - **원인:** 서버사이드(SSR)에서 렌더링된 HTML 뼈대와 클라이언트(브라우저)에서 그린 결과물이 일치하지 않아 발생. (크롬 확장 프로그램의 DOM 조작 또는 이미지 주소 파싱 오류로 인한 태그 깨짐이 주원인)
+   - **해결:** 시크릿 창 테스트를 통해 확장 프로그램 간섭을 배제하고, 크롤러에서 파이어베이스 이미지 URL을 정상적으로 인코딩(`%2F`)하여 태그 렌더링 정합성을 맞춤.
+2. **Supabase 중복 데이터 적재 및 프론트엔드 렌더링 지연**
+   - **원인:** 크롤러 반복 테스트 중 기존 데이터가 덮어씌워지지 않고(Upsert 실패) 중복 Insert 되어 데이터가 수천 개로 증식함. 이로 인해 프론트엔드 렌더링 시 심각한 렉 발생.
+   - **해결 계획:** Supabase `campaigns` 테이블의 캠페인 고유 ID에 `Unique` 제약 조건을 걸어 중복 적재를 원천 차단하고 `Upsert` 로직을 안정화할 예정.
+
+## 🛠️ 체험단 사이트별 크롤링 적용 기술 (Tech Strategy)
+각 플랫폼의 아키텍처 특성에 맞춰 최적화된 크롤링 전략을 적용했습니다.
+
+| 플랫폼 | 사이트 구조 | 크롤링 전략 및 적용 기술 |
+| :--- | :--- | :--- |
+| **강남맛집** | 전통적인 정적 웹 페이지 (SSR/SSG) | - `requests` + `BeautifulSoup4`를 활용한 직관적인 DOM 셀렉터 파싱 |
+| **레뷰(Revu)** | 백엔드 API 분리형 (CSR) | - 네트워크 HAR 분석을 통한 숨겨진 XHR API 엔드포인트 도출<br>- JWT Bearer 토큰 인증 우회 및 API 다이렉트 호출<br>- API `total` 값을 활용한 `while`문 무한 스크롤(Pagination) 자동화 |
+| **리뷰노트** | Next.js 기반 동적 라우팅 앱 | - 배포 시마다 변경되는 Build ID 에러(404) 방어 로직 구현<br>- HTML 최하단 `<script id="__NEXT_DATA__">` 파싱으로 실시간 Build ID 추출 및 우회<br>- Firebase Storage 원본 이미지 URL 인코딩(`%2F`) 변환 |
