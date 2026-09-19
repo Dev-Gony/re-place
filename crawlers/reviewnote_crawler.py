@@ -1,16 +1,11 @@
-import os
-import time
-import random
 import json
+import random
+import time
+
 import requests
 from bs4 import BeautifulSoup
-from supabase import create_client, Client
-from dotenv import load_dotenv
 
-load_dotenv()
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+from common import Campaign, get_supabase_client, upsert_campaigns
 
 
 def get_reviewnote_data():
@@ -33,6 +28,7 @@ def get_reviewnote_data():
     build_id = next_data.get("buildId")
     print(f"동적 Build ID 추출 완료: {build_id}")
 
+    client = get_supabase_client()
     page = 0
     total_saved = 0
 
@@ -56,7 +52,7 @@ def get_reviewnote_data():
             print("더 이상 수집할 데이터가 없습니다.")
             break
 
-        extracted_data = []
+        campaigns: list[Campaign] = []
 
         for item in items:
             source_id = item.get("id")
@@ -71,42 +67,37 @@ def get_reviewnote_data():
                 "BLOG_CLIP": "블로그+숏폼",
                 "YOUTUBE": "유튜브",
             }
-            media_type = media_map.get(channel, channel)
 
             image_key = item.get("imageKey", "")
+            image_url = ""
             if image_key:
                 encoded_key = image_key.replace("/", "%2F")
                 image_url = f"https://firebasestorage.googleapis.com/v0/b/reviewnote-e92d9.appspot.com/o/{encoded_key}?alt=media"
-            else:
-                image_url = ""
 
-            campaign = {
-                "platform": "리뷰노트",
-                "source_campaign_id": str(source_id),
-                "title": item.get("title", "제목 없음"),
-                "link": f"https://www.reviewnote.co.kr/campaigns/{source_id}",
-                "image_url": image_url,
-                "media_type": media_type,
-                "reward": item.get("offer", "제공 내역 없음"),
-                "is_points": item.get("infPoint", 0) > 0,
-                "apply_count": item.get("applicantCount", 0),
-                "recruit_count": item.get("infNum", 0),
-            }
-            extracted_data.append(campaign)
-
-        if extracted_data:
-            try:
-                supabase.table("campaigns").upsert(
-                    extracted_data,
-                    on_conflict="platform,source_campaign_id",
-                ).execute()
-                total_saved += len(extracted_data)
-                print(
-                    f"{page + 1}페이지 {len(extracted_data)}개 DB 동기화 완료! "
-                    f"(누적: {total_saved}개 / 전체 {total_pages}페이지)"
+            campaigns.append(
+                Campaign(
+                    platform="리뷰노트",
+                    source_campaign_id=str(source_id),
+                    title=item.get("title", "제목 없음"),
+                    link=f"https://www.reviewnote.co.kr/campaigns/{source_id}",
+                    image_url=image_url,
+                    media_type=media_map.get(channel, channel),
+                    reward=item.get("offer", "제공 내역 없음"),
+                    is_points=item.get("infPoint", 0) > 0,
+                    apply_count=item.get("applicantCount", 0),
+                    recruit_count=item.get("infNum", 0),
                 )
-            except Exception as db_error:
-                print(f"DB 저장 실패! (이유: {db_error})")
+            )
+
+        try:
+            saved = upsert_campaigns(client, campaigns)
+            total_saved += saved
+            print(
+                f"{page + 1}페이지 {saved}개 DB 동기화 완료! "
+                f"(누적: {total_saved}개 / 전체 {total_pages}페이지)"
+            )
+        except Exception as exc:
+            print(f"DB 저장 실패! (이유: {exc})")
 
         if page >= total_pages - 1:
             print("\n마지막 페이지에 도달했습니다. 전체 크롤링을 마칩니다!")

@@ -1,21 +1,19 @@
 import os
-import time
 import random
+import time
+
 import requests
-from supabase import create_client, Client
 from dotenv import load_dotenv
 
-load_dotenv()
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+from common import Campaign, get_supabase_client, upsert_campaigns
 
+
+load_dotenv()
 REVU_TOKEN = os.getenv("REVU_BEARER_TOKEN")
 
 
 def get_revu_data():
     api_url = "https://api.weble.net/v1/campaigns"
-
     headers = {
         "Authorization": f"Bearer {REVU_TOKEN}",
         "Origin": "https://www.revu.net",
@@ -23,6 +21,7 @@ def get_revu_data():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
     }
 
+    client = get_supabase_client()
     page = 1
     total_saved = 0
 
@@ -42,12 +41,7 @@ def get_revu_data():
         print(f"\n[{page}페이지] 데이터를 요청합니다...")
 
         try:
-            response = requests.get(
-                api_url,
-                params=params,
-                headers=headers,
-                timeout=20,
-            )
+            response = requests.get(api_url, params=params, headers=headers, timeout=20)
 
             if response.status_code != 200:
                 print(f"API 접근 실패 (상태 코드: {response.status_code})")
@@ -62,7 +56,7 @@ def get_revu_data():
                 print("더 이상 수집할 데이터가 없습니다. 크롤링을 종료합니다.")
                 break
 
-            extracted_data = []
+            campaigns: list[Campaign] = []
 
             for item in items:
                 source_id = item.get("id")
@@ -76,49 +70,43 @@ def get_revu_data():
                     "youtube": "유튜브",
                     "clip": "숏폼",
                 }
-                media_type = media_map.get(media_raw, media_raw)
 
                 thumb_url = item.get("thumbnail", "")
                 if thumb_url:
                     thumb_url = thumb_url.replace("\\/", "/")
 
-                campaign = {
-                    "platform": "레뷰",
-                    "source_campaign_id": str(source_id),
-                    "title": item.get("item", "제목 없음"),
-                    "link": f"https://www.revu.net/campaign/detail/{source_id}",
-                    "image_url": thumb_url,
-                    "media_type": media_type,
-                    "reward": item.get("campaignData", {}).get("reward", "제공 내역 없음"),
-                    "is_points": False,
-                    "apply_count": item.get("campaignStats", {}).get("requestCount", 0),
-                    "recruit_count": item.get("reviewerLimit", 0),
-                }
-                extracted_data.append(campaign)
-
-            if extracted_data:
-                supabase.table("campaigns").upsert(
-                    extracted_data,
-                    on_conflict="platform,source_campaign_id",
-                ).execute()
-                total_saved += len(extracted_data)
-                print(
-                    f"{page}페이지 {len(extracted_data)}개 DB 동기화 완료! "
-                    f"(누적: {total_saved}/{total_count}개)"
+                campaigns.append(
+                    Campaign(
+                        platform="레뷰",
+                        source_campaign_id=str(source_id),
+                        title=item.get("item", "제목 없음"),
+                        link=f"https://www.revu.net/campaign/detail/{source_id}",
+                        image_url=thumb_url,
+                        media_type=media_map.get(media_raw, media_raw),
+                        reward=item.get("campaignData", {}).get("reward", "제공 내역 없음"),
+                        apply_count=item.get("campaignStats", {}).get("requestCount", 0),
+                        recruit_count=item.get("reviewerLimit", 0),
+                    )
                 )
+
+            saved = upsert_campaigns(client, campaigns)
+            total_saved += saved
+            print(
+                f"{page}페이지 {saved}개 DB 동기화 완료! "
+                f"(누적: {total_saved}/{total_count}개)"
+            )
 
             if page * 35 >= total_count:
                 print("\n마지막 페이지에 도달했습니다. 전체 크롤링을 성공적으로 마쳤습니다!")
                 break
 
             page += 1
-
             sleep_time = random.uniform(1.5, 3.5)
             print(f"차단 방지: 다음 요청 전 {sleep_time:.2f}초 대기 중...")
             time.sleep(sleep_time)
 
-        except Exception as e:
-            print(f"크롤링 중 에러 발생: {e}")
+        except Exception as exc:
+            print(f"크롤링 중 에러 발생: {exc}")
             break
 
 

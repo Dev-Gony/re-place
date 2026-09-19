@@ -1,13 +1,7 @@
-import os
 import requests
 from bs4 import BeautifulSoup
-from supabase import create_client, Client
-from dotenv import load_dotenv
 
-load_dotenv()
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+from common import Campaign, get_supabase_client, upsert_campaigns
 
 
 def get_gangnam_data():
@@ -24,7 +18,7 @@ def get_gangnam_data():
     items = soup.find_all("li", class_="list_item")
     print(f"총 {len(items)}개의 캠페인을 찾았습니다. 데이터 추출을 시작합니다.")
 
-    extracted_data = []
+    campaigns: list[Campaign] = []
 
     for item in items:
         title_tag = item.find("dt", class_="tit")
@@ -38,7 +32,6 @@ def get_gangnam_data():
             continue
 
         link = base_url + href if href.startswith("/") else href
-        source_campaign_id = href
 
         img_tag = item.find("img", class_="thumb_img")
         image_url = "https:" + img_tag["src"] if img_tag and img_tag.get("src", "").startswith("//") else ""
@@ -59,33 +52,29 @@ def get_gangnam_data():
                 apply_count = int(apply_str) if apply_str.isdigit() else 0
                 recruit_count = int(recruit_str) if recruit_str.isdigit() else 0
 
-        extracted_data.append(
-            {
-                "platform": "강남맛집",
-                "source_campaign_id": source_campaign_id,
-                "title": title,
-                "link": link,
-                "image_url": image_url,
-                "media_type": media_type,
-                "reward": reward,
-                "is_points": False,
-                "apply_count": apply_count,
-                "recruit_count": recruit_count,
-            }
+        campaigns.append(
+            Campaign(
+                platform="강남맛집",
+                source_campaign_id=href,
+                title=title,
+                link=link,
+                image_url=image_url,
+                media_type=media_type,
+                reward=reward,
+                apply_count=apply_count,
+                recruit_count=recruit_count,
+            )
         )
 
-    if extracted_data:
-        try:
-            print("데이터베이스에 저장을 시도합니다...")
-            supabase.table("campaigns").upsert(
-                extracted_data,
-                on_conflict="platform,source_campaign_id",
-            ).execute()
-            print("성공적으로 DB에 저장되었습니다!")
-        except Exception as e:
-            print(f"DB 저장 중 에러 발생: {e}")
-    else:
+    if not campaigns:
         print("추출된 데이터가 없습니다.")
+        return
+
+    try:
+        saved = upsert_campaigns(get_supabase_client(), campaigns)
+        print(f"{saved}개 캠페인을 DB에 동기화했습니다.")
+    except Exception as exc:
+        print(f"DB 저장 중 에러 발생: {exc}")
 
 
 if __name__ == "__main__":
