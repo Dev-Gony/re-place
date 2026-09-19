@@ -2,6 +2,13 @@ name: Collect campaigns
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "crawlers/**"
+      - "requirements.txt"
+      - ".github/workflows/collect-campaigns.yml"
   schedule:
     - cron: "17 */6 * * *"
 
