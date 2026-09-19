@@ -45,6 +45,11 @@ function buildHref(filters: ActiveFilters, page: number) {
   return suffix ? `/?${suffix}` : "/";
 }
 
+function buildPlatformHref(platform: string) {
+  const query = new URLSearchParams({ platform });
+  return `/?${query.toString()}`;
+}
+
 function formatDate(value: string | null) {
   if (!value) return null;
 
@@ -55,6 +60,42 @@ function formatDate(value: string | null) {
     month: "numeric",
     day: "numeric",
   }).format(date);
+}
+
+function compactNumber(value: number | null) {
+  if (!value) return "0";
+  return new Intl.NumberFormat("ko-KR", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function FilterSelect({
+  id,
+  name,
+  value,
+  label,
+  options,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  options: string[];
+}) {
+  return (
+    <label className="filter-field" htmlFor={id}>
+      <span>{label}</span>
+      <select id={id} name={name} defaultValue={value}>
+        <option value="">전체</option>
+        {options.map((item) => (
+          <option key={item} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 export default async function Home({
@@ -93,27 +134,17 @@ export default async function Home({
     query = query.order("id", { ascending: false });
   }
 
-  if (q) {
-    query = query.ilike("title", `%${q}%`);
-  }
+  if (q) query = query.ilike("title", `%${q}%`);
+  if (platform) query = query.eq("platform", platform);
+  if (media) query = query.eq("media_type", media);
+  if (region) query = query.ilike("region", `%${region}%`);
+  if (campaignType) query = query.eq("campaign_type", campaignType);
 
-  if (platform) {
-    query = query.eq("platform", platform);
-  }
+  const [{ data, count, error }, { count: totalCampaigns }] = await Promise.all([
+    query,
+    supabase.from("campaigns").select("id", { count: "exact", head: true }),
+  ]);
 
-  if (media) {
-    query = query.eq("media_type", media);
-  }
-
-  if (region) {
-    query = query.ilike("region", `%${region}%`);
-  }
-
-  if (campaignType) {
-    query = query.eq("campaign_type", campaignType);
-  }
-
-  const { data, count, error } = await query;
   const totalCount = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const filters: ActiveFilters = {
@@ -124,212 +155,257 @@ export default async function Home({
     campaignType,
     sort,
   };
+  const hasActiveFilters = Boolean(q || platform || media || region || campaignType || sort === "deadline");
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <p className="mb-2 text-sm font-semibold text-blue-600">Re:Place</p>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            체험단 통합 검색
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            여러 플랫폼의 캠페인을 한곳에서 검색하고 조건별로 비교하세요.
-          </p>
+    <main className="site-shell">
+      <header className="site-header">
+        <div className="header-inner">
+          <Link href="/" className="brand" aria-label="Re:Place 홈">
+            <span className="brand-mark">R</span>
+            <span className="brand-text">Re:Place</span>
+          </Link>
+
+          <nav className="header-nav" aria-label="주요 메뉴">
+            <a href="#campaigns">캠페인</a>
+            <a href="#how-it-works">서비스 소개</a>
+          </nav>
+
+          <div className="header-status">
+            <span className="status-dot" />
+            6시간 주기 업데이트
+          </div>
+        </div>
+      </header>
+
+      <section className="hero">
+        <div className="hero-orb hero-orb-left" />
+        <div className="hero-orb hero-orb-right" />
+
+        <div className="hero-inner">
+          <div className="hero-copy">
+            <span className="eyebrow">CREATOR CAMPAIGN SEARCH</span>
+            <h1>
+              체험단 찾느라
+              <br />
+              <strong>사이트 여러 개 열지 마세요.</strong>
+            </h1>
+            <p>
+              흩어진 체험단 캠페인을 한곳에서 검색하고 비교하세요.
+              플랫폼보다 캠페인 자체에 집중할 수 있게 정리했습니다.
+            </p>
+          </div>
+
+          <form action="/" method="get" className="hero-search">
+            <div className="hero-search-main">
+              <div className="search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </div>
+              <input
+                id="q"
+                name="q"
+                defaultValue={q}
+                placeholder="예: 강남 카페, 제주 숙소, 화장품"
+                aria-label="캠페인 검색"
+              />
+              <button type="submit">검색</button>
+            </div>
+
+            <div className="hero-search-meta">
+              <span>추천 검색</span>
+              <Link href="/?region=서울">서울</Link>
+              <Link href="/?region=강남">강남</Link>
+              <Link href="/?type=배송형">배송형</Link>
+              <Link href="/?sort=deadline">마감 임박</Link>
+            </div>
+          </form>
+
+          <div className="hero-stats" id="how-it-works">
+            <div>
+              <span>통합 캠페인</span>
+              <strong>{compactNumber(totalCampaigns ?? 0)}+</strong>
+            </div>
+            <div>
+              <span>연결 플랫폼</span>
+              <strong>{PLATFORMS.length}</strong>
+            </div>
+            <div>
+              <span>업데이트</span>
+              <strong>6시간</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="content-wrap" id="campaigns">
+        <div className="platform-strip">
+          <div className="platform-strip-copy">
+            <span>플랫폼 바로가기</span>
+            <strong>원하는 곳만 빠르게 보기</strong>
+          </div>
+          <div className="platform-links">
+            <Link href="/" className={!platform ? "active" : ""}>
+              전체
+            </Link>
+            {PLATFORMS.map((item) => (
+              <Link
+                key={item}
+                href={buildPlatformHref(item)}
+                className={platform === item ? "active" : ""}
+              >
+                {item}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <form
-          action="/"
-          method="get"
-          className="mb-6 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-4"
-        >
-          <label className="sr-only" htmlFor="q">
-            캠페인 검색
-          </label>
-          <input
-            id="q"
-            name="q"
-            defaultValue={q}
-            placeholder="업체명, 상품명"
-            className="h-11 rounded-xl border border-gray-300 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-900"
-          />
+        <form action="/" method="get" className="filter-panel">
+          <input type="hidden" name="q" value={q} />
 
-          <label className="sr-only" htmlFor="region">
-            지역
+          <label className="filter-field filter-region" htmlFor="region">
+            <span>지역</span>
+            <input
+              id="region"
+              name="region"
+              defaultValue={region}
+              placeholder="서울, 강남, 성수..."
+            />
           </label>
-          <input
-            id="region"
-            name="region"
-            defaultValue={region}
-            placeholder="지역 검색 (예: 서울, 강남)"
-            className="h-11 rounded-xl border border-gray-300 px-4 text-sm text-gray-900 outline-none transition focus:border-gray-900"
-          />
 
-          <label className="sr-only" htmlFor="platform">
-            플랫폼
-          </label>
-          <select
+          <FilterSelect
             id="platform"
             name="platform"
-            defaultValue={platform}
-            className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-gray-900"
-          >
-            <option value="">모든 플랫폼</option>
-            {PLATFORMS.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-
-          <label className="sr-only" htmlFor="media">
-            매체 유형
-          </label>
-          <select
+            value={platform}
+            label="플랫폼"
+            options={PLATFORMS}
+          />
+          <FilterSelect
             id="media"
             name="media"
-            defaultValue={media}
-            className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-gray-900"
-          >
-            <option value="">모든 매체</option>
-            {MEDIA_TYPES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-
-          <label className="sr-only" htmlFor="type">
-            캠페인 유형
-          </label>
-          <select
+            value={media}
+            label="매체"
+            options={MEDIA_TYPES}
+          />
+          <FilterSelect
             id="type"
             name="type"
-            defaultValue={campaignType}
-            className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-gray-900"
-          >
-            <option value="">모든 유형</option>
-            {CAMPAIGN_TYPES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+            value={campaignType}
+            label="유형"
+            options={CAMPAIGN_TYPES}
+          />
 
-          <label className="sr-only" htmlFor="sort">
-            정렬
+          <label className="filter-field" htmlFor="sort">
+            <span>정렬</span>
+            <select id="sort" name="sort" defaultValue={sort}>
+              <option value="latest">최신순</option>
+              <option value="deadline">마감임박순</option>
+            </select>
           </label>
-          <select
-            id="sort"
-            name="sort"
-            defaultValue={sort}
-            className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-gray-900"
-          >
-            <option value="latest">최신순</option>
-            <option value="deadline">마감임박순</option>
-          </select>
 
-          <button
-            type="submit"
-            className="h-11 rounded-xl bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-gray-700"
-          >
-            검색
+          <button type="submit" className="filter-submit">
+            조건 적용
           </button>
 
-          <Link
-            href="/"
-            className="flex h-11 items-center justify-center rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-          >
-            조건 초기화
-          </Link>
+          {hasActiveFilters && (
+            <Link href="/" className="filter-reset">
+              초기화
+            </Link>
+          )}
         </form>
 
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
-          <span>
-            검색 결과 <strong className="text-gray-900">{totalCount}</strong>개
-          </span>
-          <span>
-            {currentPage} / {totalPages} 페이지
-          </span>
+        <div className="results-head">
+          <div>
+            <span className="results-kicker">CAMPAIGNS</span>
+            <h2>
+              {q ? `“${q}” 검색 결과` : "지금 확인할 수 있는 캠페인"}
+            </h2>
+          </div>
+          <div className="results-count">
+            <strong>{totalCount.toLocaleString("ko-KR")}</strong>
+            <span>개의 결과</span>
+          </div>
         </div>
 
         {error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-            캠페인 데이터를 불러오지 못했습니다. 데이터베이스 스키마와 연결 상태를 확인해주세요.
+          <div className="state-box state-error">
+            <strong>캠페인을 불러오지 못했습니다.</strong>
+            <p>잠시 후 다시 시도해주세요.</p>
           </div>
         ) : data && data.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="campaign-grid">
               {data.map((campaign) => {
                 const deadline = formatDate(campaign.deadline_at);
+                const ratio =
+                  campaign.recruit_count && campaign.recruit_count > 0
+                    ? Math.round((campaign.apply_count / campaign.recruit_count) * 10) / 10
+                    : null;
 
                 return (
-                  <article
-                    key={campaign.id}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    {campaign.image_url ? (
-                      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+                  <article key={campaign.id} className="campaign-card">
+                    <a
+                      href={campaign.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="card-image-wrap"
+                      aria-label={`${campaign.title} 캠페인 보러가기`}
+                    >
+                      {campaign.image_url ? (
                         <Image
                           src={campaign.image_url}
-                          alt={campaign.title}
+                          alt=""
                           fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 25vw"
-                          className="object-cover"
+                          sizes="(max-width: 720px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="card-image"
                         />
-                      </div>
-                    ) : (
-                      <div className="flex h-48 w-full items-center justify-center bg-gray-100 text-sm text-gray-400">
-                        이미지 없음
-                      </div>
-                    )}
+                      ) : (
+                        <div className="card-image-fallback">Re:Place</div>
+                      )}
 
-                    <div className="flex flex-1 flex-col p-5">
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600">
-                          {campaign.platform}
-                        </span>
-                        {campaign.media_type && (
-                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
-                            {campaign.media_type}
-                          </span>
-                        )}
-                        {campaign.campaign_type && (
-                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
-                            {campaign.campaign_type}
-                          </span>
-                        )}
+                      <div className="card-platform">{campaign.platform}</div>
+                      {deadline && <div className="card-deadline">마감 {deadline}</div>}
+                    </a>
+
+                    <div className="card-body">
+                      <div className="card-tags">
+                        {campaign.media_type && <span>{campaign.media_type}</span>}
+                        {campaign.campaign_type && <span>{campaign.campaign_type}</span>}
+                        {campaign.region && <span>{campaign.region}</span>}
                       </div>
 
-                      <h2 className="mb-2 line-clamp-2 text-lg font-bold text-gray-900">
-                        {campaign.title}
-                      </h2>
+                      <h3>{campaign.title}</h3>
+                      <p className="card-reward">{campaign.reward || "제공 내역 없음"}</p>
 
-                      {(campaign.region || deadline) && (
-                        <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-                          {campaign.region && <span>{campaign.region}</span>}
-                          {deadline && <span>마감 {deadline}</span>}
+                      <div className="card-metrics">
+                        <div>
+                          <span>신청</span>
+                          <strong>{compactNumber(campaign.apply_count)}</strong>
                         </div>
-                      )}
-
-                      <p className="mb-4 line-clamp-2 flex-1 text-sm leading-6 text-gray-600">
-                        {campaign.reward || "제공 내역 없음"}
-                      </p>
-
-                      {(campaign.apply_count || campaign.recruit_count) && (
-                        <p className="mb-4 text-xs text-gray-500">
-                          신청 {campaign.apply_count ?? 0}명 · 모집{" "}
-                          {campaign.recruit_count ?? 0}명
-                        </p>
-                      )}
+                        <div>
+                          <span>모집</span>
+                          <strong>{compactNumber(campaign.recruit_count)}</strong>
+                        </div>
+                        {ratio !== null && (
+                          <div>
+                            <span>경쟁률</span>
+                            <strong>{ratio}:1</strong>
+                          </div>
+                        )}
+                      </div>
 
                       <a
                         href={campaign.link}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-auto block w-full rounded-xl bg-gray-900 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-gray-700"
+                        className="card-cta"
                       >
-                        캠페인 보러가기
+                        캠페인 자세히 보기
+                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                          <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
                       </a>
                     </div>
                   </article>
@@ -337,50 +413,42 @@ export default async function Home({
               })}
             </div>
 
-            <nav
-              className="mt-10 flex items-center justify-center gap-3"
-              aria-label="페이지 이동"
-            >
+            <nav className="pagination" aria-label="페이지 이동">
               {currentPage > 1 ? (
-                <Link
-                  href={buildHref(filters, currentPage - 1)}
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  이전
-                </Link>
+                <Link href={buildHref(filters, currentPage - 1)}>이전</Link>
               ) : (
-                <span className="cursor-not-allowed rounded-xl border border-gray-200 bg-gray-100 px-4 py-2 text-sm text-gray-400">
-                  이전
-                </span>
+                <span className="disabled">이전</span>
               )}
 
-              <span className="px-2 text-sm font-medium text-gray-700">
-                {currentPage} / {totalPages}
+              <span className="pagination-current">
+                <strong>{currentPage}</strong>
+                <span>/</span>
+                <span>{totalPages}</span>
               </span>
 
               {currentPage < totalPages ? (
-                <Link
-                  href={buildHref(filters, currentPage + 1)}
-                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  다음
-                </Link>
+                <Link href={buildHref(filters, currentPage + 1)}>다음</Link>
               ) : (
-                <span className="cursor-not-allowed rounded-xl border border-gray-200 bg-gray-100 px-4 py-2 text-sm text-gray-400">
-                  다음
-                </span>
+                <span className="disabled">다음</span>
               )}
             </nav>
           </>
         ) : (
-          <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
-            <p className="font-semibold text-gray-900">검색 결과가 없습니다.</p>
-            <p className="mt-2 text-sm text-gray-500">
-              검색어나 필터 조건을 바꿔보세요.
-            </p>
+          <div className="state-box">
+            <strong>조건에 맞는 캠페인이 없습니다.</strong>
+            <p>검색어나 필터 조건을 조금 넓혀보세요.</p>
+            <Link href="/">전체 캠페인 보기</Link>
           </div>
         )}
-      </div>
+      </section>
+
+      <footer className="site-footer">
+        <div>
+          <strong>Re:Place</strong>
+          <p>여러 플랫폼의 체험단 캠페인을 한곳에서 더 빠르게 찾는 방법.</p>
+        </div>
+        <span>Campaign discovery, simplified.</span>
+      </footer>
     </main>
   );
 }
