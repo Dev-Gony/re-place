@@ -34,9 +34,8 @@ jobs:
       - name: Install crawler dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Run all collectors
+      - name: Run active collectors
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: https://axsyupslmpdsatlxoliq.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          REVU_BEARER_TOKEN: ${{ secrets.REVU_BEARER_TOKEN }}
         run: python crawlers/run_all.py
