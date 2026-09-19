@@ -105,7 +105,7 @@ def normalize_campaign_type(
     title: str = "",
     region: str | None = None,
 ) -> str | None:
-    source = (raw_value or "").strip().lower()
+    source = f"{raw_value or ''} {title}".strip().lower()
 
     if any(token in source for token in ("visit", "play", "방문")):
         return "방문형"
