@@ -119,7 +119,7 @@ def normalize_campaign_type(
     if region == "재택" or title.strip().startswith("[재택]"):
         return "배송형"
 
-    return raw_value.strip() if raw_value and raw_value.strip() else None
+    return None
 
 
 def normalize_datetime(value: Any) -> str | None:
