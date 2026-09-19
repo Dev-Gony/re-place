@@ -5,7 +5,17 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from common import Campaign, get_supabase_client, upsert_campaigns
+from common import (
+    Campaign,
+    extract_region_from_title,
+    first_datetime,
+    first_text,
+    get_supabase_client,
+    nested_datetime,
+    nested_text,
+    normalize_campaign_type,
+    upsert_campaigns,
+)
 
 
 def get_reviewnote_data():
@@ -59,6 +69,7 @@ def get_reviewnote_data():
             if source_id is None:
                 continue
 
+            title = item.get("title", "제목 없음")
             channel = item.get("channel", "")
             media_map = {
                 "BLOG": "블로그",
@@ -74,11 +85,78 @@ def get_reviewnote_data():
                 encoded_key = image_key.replace("/", "%2F")
                 image_url = f"https://firebasestorage.googleapis.com/v0/b/reviewnote-e92d9.appspot.com/o/{encoded_key}?alt=media"
 
+            region = first_text(
+                item,
+                (
+                    "region",
+                    "area",
+                    "location",
+                    "district",
+                    "sigungu",
+                    "address",
+                ),
+            ) or nested_text(
+                item,
+                (
+                    ("region", "name"),
+                    ("area", "name"),
+                    ("location", "name"),
+                    ("address", "region"),
+                ),
+            )
+            if not region:
+                region = extract_region_from_title(title)
+
+            raw_campaign_type = first_text(
+                item,
+                (
+                    "campaignType",
+                    "campaign_type",
+                    "visitType",
+                    "visit_type",
+                    "type",
+                ),
+            ) or nested_text(
+                item,
+                (
+                    ("campaign", "type"),
+                    ("category", "type"),
+                ),
+            )
+            campaign_type = normalize_campaign_type(
+                raw_campaign_type,
+                title=title,
+                region=region,
+            )
+
+            deadline_at = first_datetime(
+                item,
+                (
+                    "recruitEndAt",
+                    "recruit_end_at",
+                    "applyEndAt",
+                    "apply_end_at",
+                    "deadlineAt",
+                    "deadline_at",
+                    "endAt",
+                    "end_at",
+                    "deadline",
+                ),
+            ) or nested_datetime(
+                item,
+                (
+                    ("campaign", "recruitEndAt"),
+                    ("campaign", "deadlineAt"),
+                    ("schedule", "applyEndAt"),
+                    ("schedule", "endAt"),
+                ),
+            )
+
             campaigns.append(
                 Campaign(
                     platform="리뷰노트",
                     source_campaign_id=str(source_id),
-                    title=item.get("title", "제목 없음"),
+                    title=title,
                     link=f"https://www.reviewnote.co.kr/campaigns/{source_id}",
                     image_url=image_url,
                     media_type=media_map.get(channel, channel),
@@ -86,6 +164,9 @@ def get_reviewnote_data():
                     is_points=item.get("infPoint", 0) > 0,
                     apply_count=item.get("applicantCount", 0),
                     recruit_count=item.get("infNum", 0),
+                    region=region,
+                    campaign_type=campaign_type,
+                    deadline_at=deadline_at,
                 )
             )
 
