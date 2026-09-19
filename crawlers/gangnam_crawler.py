@@ -82,14 +82,10 @@ def get_gangnam_data():
         )
 
     if not campaigns:
-        print("추출된 데이터가 없습니다.")
-        return
+        raise RuntimeError("강남맛집에서 수집할 캠페인을 찾지 못했습니다.")
 
-    try:
-        saved = upsert_campaigns(get_supabase_client(), campaigns)
-        print(f"{saved}개 캠페인을 DB에 동기화했습니다.")
-    except Exception as exc:
-        print(f"DB 저장 중 에러 발생: {exc}")
+    saved = upsert_campaigns(get_supabase_client(), campaigns)
+    print(f"{saved}개 캠페인을 DB에 동기화했습니다.")
 
 
 if __name__ == "__main__":

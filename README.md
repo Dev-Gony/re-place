@@ -32,7 +32,7 @@ Supabase
 Next.js App Router
         |
         v
-Unified Campaign List
+Unified Campaign Search
 ```
 
 ## Platform-specific Collection
@@ -45,37 +45,54 @@ Unified Campaign List
 | 레뷰 | 별도 데이터 요청을 사용하는 SPA | 브라우저 네트워크 요청을 분석해 데이터 요청 구조 파악, 페이지네이션 처리 |
 | 리뷰노트 | Next.js 기반 페이지 | HTML의 `__NEXT_DATA__`에서 현재 Build ID를 확인해 동적 데이터 경로 구성 |
 
-수집한 데이터는 플랫폼별 원본 형태를 그대로 프론트엔드에 넘기지 않고, 공통 `campaigns` 구조로 저장하는 방향으로 설계했습니다.
+수집한 데이터는 플랫폼별 원본 형태를 그대로 프론트엔드에 넘기지 않고, 공통 `campaigns` 구조로 정규화합니다.
 
 ## What Is Implemented
 
 ### Data collection
 
 - 강남맛집 캠페인 수집
-- 레뷰 데이터 수집
-- 레뷰 전체 페이지네이션 처리
-- 리뷰노트 데이터 수집
-- Next.js Build ID 변경 대응
+- 레뷰 전체 페이지네이션 수집
+- 리뷰노트 동적 Build ID 대응 수집
 - 이미지 URL 정규화
+- 공통 `Campaign` 모델
+- 지역 / 캠페인 유형 / 마감일 / 수집 시각 메타데이터
+- GitHub Actions 기반 6시간 주기 자동 수집
+- 플랫폼별 실패 감지 및 배치 실패 처리
 
 ### Data storage
 
 - Supabase `campaigns` 테이블 연동
-- 수집 데이터 저장
-- 플랫폼 정보를 포함한 공통 캠페인 구조 사용
+- `(platform, source_campaign_id)` 기준 Unique + Upsert
+- 반복 수집 시 중복 데이터 방지
+- 검색 / 정렬용 메타데이터 인덱스
 
 ### Frontend
 
-Next.js App Router 기반으로 Supabase 데이터를 조회해 카드 형태로 출력합니다.
+Next.js App Router 기반으로 Supabase 데이터를 서버에서 조회합니다.
 
-현재 카드에 표시되는 정보:
+현재 제공 기능:
 
-- 플랫폼
-- 매체 유형
-- 캠페인 제목
-- 제공 내역
-- 썸네일
-- 원문 링크
+- 키워드 검색
+- 지역 검색
+- 플랫폼 필터
+- 매체 유형 필터
+- 캠페인 유형 필터
+- 최신순 / 마감임박순 정렬
+- 24개 단위 서버 페이지네이션
+- 플랫폼 / 매체 / 유형 / 지역 / 마감일 / 제공 내역 / 신청·모집 인원 표시
+
+## Collection Automation
+
+`.github/workflows/collect-campaigns.yml`에서 6시간마다 전체 수집기를 실행합니다.
+
+필요한 GitHub Actions repository secret:
+
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `REVU_BEARER_TOKEN`
+
+수동 실행도 `workflow_dispatch`로 지원합니다. 세 플랫폼 중 하나라도 인증, API, 파싱 또는 DB 저장 단계에서 실패하면 workflow 전체를 실패 처리해 조용히 데이터가 끊기는 상황을 줄였습니다.
 
 ## Technical Problems I Worked On
 
@@ -99,15 +116,21 @@ Next.js App Router 기반으로 Supabase 데이터를 조회해 카드 형태로
 
 ### 4. Duplicate data
 
-반복 수집 과정에서 동일 캠페인이 여러 번 저장되면 프론트엔드 성능과 데이터 신뢰도가 떨어집니다.
+반복 수집 시 동일 캠페인이 계속 추가되던 구조를 `source_campaign_id` 기반 Unique Constraint와 Upsert로 변경했습니다.
 
-현재 이 문제를 확인했고, 캠페인 고유 식별자와 Unique Constraint / Upsert를 이용해 저장 계층에서 중복을 방지하는 방향으로 개선 중입니다.
+플랫폼별 원본 ID를 공통 키로 정규화해 반복 실행에도 같은 캠페인을 갱신하도록 구성했습니다.
 
-### 5. Hydration mismatch
+### 5. Metadata normalization
 
-Next.js 화면에서 서버 렌더링 결과와 브라우저 결과가 달라지는 문제를 확인했습니다.
+플랫폼마다 지역, 캠페인 유형, 마감일 필드 이름이 다르거나 일부 값이 없는 문제가 있습니다.
 
-이미지 URL과 브라우저 확장 프로그램 영향을 분리해 확인하면서 원인을 좁혔고, URL 인코딩 문제를 수정했습니다.
+원본 필드를 우선 사용하고, 명시적인 표시 문자열이 있는 경우에만 fallback 파싱합니다. 상대적인 문구만 보고 임의의 마감 시각을 생성하지 않도록 해 데이터 품질을 우선했습니다.
+
+### 6. Silent crawler failures
+
+기존에는 일부 네트워크 / 인증 / DB 오류가 로그만 남기고 프로세스는 정상 종료될 수 있었습니다.
+
+현재는 수집 실패를 예외로 전달하고, 배치 runner가 세 플랫폼 결과를 모아 하나라도 실패하면 non-zero exit code를 반환합니다.
 
 ## Tech Stack
 
@@ -118,29 +141,34 @@ Next.js 화면에서 서버 렌더링 결과와 브라우저 결과가 달라지
 - TypeScript
 - Tailwind CSS
 
-### Data
+### Data / Collection
 
 - Supabase
 - Python
 - requests
 - BeautifulSoup4
+- GitHub Actions
 
 ## Current Status
 
 완료:
 
-- 3개 플랫폼 데이터 수집 흐름 구현
-- Supabase 저장
-- Next.js 목록 화면 연동
-- 플랫폼별 데이터 수집 방식 분리
+- 3개 플랫폼 데이터 수집
+- 공통 데이터 모델 및 Upsert
+- 중복 데이터 방지
+- 키워드 / 지역 / 플랫폼 / 매체 / 유형 검색·필터
+- 서버 페이지네이션
+- 마감임박 정렬
+- 정기 수집 workflow
+- 수집 실패 감지
 
-진행 중:
+다음 단계:
 
-- 중복 데이터 저장 안정화
-- 키워드 검색
-- 지역 검색
-- 매체 / 캠페인 유형 필터
-- 정기 수집 자동화
+- 실제 운영 DB migration 적용 및 데이터 재수집
+- 프론트엔드 UI / 접근성 / 이미지 최적화
+- 크롤러 fixture 기반 테스트
+- 배포 화면 검증
+- 관심 캠페인 저장 / 마감 알림 등 사용자 기능
 
 ## Why This Project Matters
 
@@ -152,8 +180,10 @@ Next.js 화면에서 서버 렌더링 결과와 브라우저 결과가 달라지
 source analysis
 -> collection strategy
 -> normalization
+-> deduplication
 -> database
--> frontend
+-> search UI
+-> scheduled operation
 ```
 
 까지 연결해 본 프로젝트라는 점에 의미를 두고 있습니다.

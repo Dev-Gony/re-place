@@ -31,11 +31,13 @@ def get_reviewnote_data():
 
     next_data_tag = soup.find("script", id="__NEXT_DATA__")
     if not next_data_tag:
-        print("Build ID를 찾을 수 없습니다. (사이트 구조 변경 의심)")
-        return
+        raise RuntimeError("리뷰노트 Build ID를 찾을 수 없습니다.")
 
     next_data = json.loads(next_data_tag.string)
     build_id = next_data.get("buildId")
+    if not build_id:
+        raise RuntimeError("리뷰노트 Build ID가 비어 있습니다.")
+
     print(f"동적 Build ID 추출 완료: {build_id}")
 
     client = get_supabase_client()
@@ -48,10 +50,7 @@ def get_reviewnote_data():
 
         print(f"\n[{page + 1}페이지] 데이터를 요청합니다...")
         res = requests.get(api_url, params=params, headers=headers, timeout=20)
-
-        if res.status_code != 200:
-            print(f"API 접근 실패 (상태 코드: {res.status_code})")
-            break
+        res.raise_for_status()
 
         data = res.json()
         page_props = data.get("pageProps", {}).get("data", {})
@@ -59,6 +58,8 @@ def get_reviewnote_data():
         total_pages = page_props.get("total_pages", 1)
 
         if not items:
+            if page == 0:
+                raise RuntimeError("리뷰노트에서 수집할 캠페인을 찾지 못했습니다.")
             print("더 이상 수집할 데이터가 없습니다.")
             break
 
@@ -87,14 +88,7 @@ def get_reviewnote_data():
 
             region = first_text(
                 item,
-                (
-                    "region",
-                    "area",
-                    "location",
-                    "district",
-                    "sigungu",
-                    "address",
-                ),
+                ("region", "area", "location", "district", "sigungu", "address"),
             ) or nested_text(
                 item,
                 (
@@ -109,19 +103,10 @@ def get_reviewnote_data():
 
             raw_campaign_type = first_text(
                 item,
-                (
-                    "campaignType",
-                    "campaign_type",
-                    "visitType",
-                    "visit_type",
-                    "type",
-                ),
+                ("campaignType", "campaign_type", "visitType", "visit_type", "type"),
             ) or nested_text(
                 item,
-                (
-                    ("campaign", "type"),
-                    ("category", "type"),
-                ),
+                (("campaign", "type"), ("category", "type")),
             )
             campaign_type = normalize_campaign_type(
                 raw_campaign_type,
@@ -170,15 +155,12 @@ def get_reviewnote_data():
                 )
             )
 
-        try:
-            saved = upsert_campaigns(client, campaigns)
-            total_saved += saved
-            print(
-                f"{page + 1}페이지 {saved}개 DB 동기화 완료! "
-                f"(누적: {total_saved}개 / 전체 {total_pages}페이지)"
-            )
-        except Exception as exc:
-            print(f"DB 저장 실패! (이유: {exc})")
+        saved = upsert_campaigns(client, campaigns)
+        total_saved += saved
+        print(
+            f"{page + 1}페이지 {saved}개 DB 동기화 완료! "
+            f"(누적: {total_saved}개 / 전체 {total_pages}페이지)"
+        )
 
         if page >= total_pages - 1:
             print("\n마지막 페이지에 도달했습니다. 전체 크롤링을 마칩니다!")
