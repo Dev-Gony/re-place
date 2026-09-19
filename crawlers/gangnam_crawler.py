@@ -1,5 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from common import (
     Campaign,
@@ -10,6 +12,22 @@ from common import (
 )
 
 
+def build_session() -> requests.Session:
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=2,
+        status=2,
+        backoff_factor=2,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("http://", HTTPAdapter(max_retries=retry))
+    return session
+
+
 def get_gangnam_data():
     base_url = "https://xn--939au0g4vj8sq.net"
     headers = {
@@ -17,7 +35,12 @@ def get_gangnam_data():
     }
 
     print("강남맛집 사이트에 접속 중...")
-    response = requests.get(base_url, headers=headers, timeout=20)
+    with build_session() as session:
+        response = session.get(
+            base_url,
+            headers=headers,
+            timeout=(10, 30),
+        )
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
 
