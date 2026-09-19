@@ -1,3 +1,4 @@
+import os
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -43,8 +44,8 @@ class Campaign:
 
 def get_supabase_client() -> Client:
     load_dotenv()
-    url = __import__("os").getenv("SUPABASE_URL")
-    key = __import__("os").getenv("SUPABASE_KEY")
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_KEY")
 
     if not url or not key:
         raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be configured")
