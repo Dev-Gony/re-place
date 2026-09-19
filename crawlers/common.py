@@ -45,10 +45,10 @@ class Campaign:
 def get_supabase_client() -> Client:
     load_dotenv()
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not key:
-        raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be configured")
+        raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured")
 
     return create_client(url, key)
 

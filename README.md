@@ -89,10 +89,10 @@ Next.js App Router 기반으로 Supabase 데이터를 서버에서 조회합니�
 필요한 GitHub Actions repository secret:
 
 - `SUPABASE_URL`
-- `SUPABASE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `REVU_BEARER_TOKEN`
 
-수동 실행도 `workflow_dispatch`로 지원합니다. 세 플랫폼 중 하나라도 인증, API, 파싱 또는 DB 저장 단계에서 실패하면 workflow 전체를 실패 처리해 조용히 데이터가 끊기는 상황을 줄였습니다.
+수동 실행도 `workflow_dispatch`로 지원합니다. 세 플랫폼 중 하나라도 인증, API, 파싱 또는 DB 저장 단계에서 실패하면 workflow 전체를 실패 처리해 조용히 데이터가 끊기는 상황을 줄였습니다. 크롤러 쓰기 권한은 브라우저에 노출되지 않는 `SUPABASE_SERVICE_ROLE_KEY`로 분리합니다.
 
 ## Technical Problems I Worked On
 
