@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
@@ -268,11 +269,13 @@ export default async function Home({
                     className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     {campaign.image_url ? (
-                      <div className="h-48 w-full bg-gray-100">
-                        <img
+                      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+                        <Image
                           src={campaign.image_url}
                           alt={campaign.title}
-                          className="h-full w-full object-cover"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 25vw"
+                          className="object-cover"
                         />
                       </div>
                     ) : (
