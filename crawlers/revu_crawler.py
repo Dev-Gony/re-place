@@ -3,10 +3,12 @@ import random
 import time
 
 import requests
+from dotenv import load_dotenv
 
 from common import Campaign, get_supabase_client, upsert_campaigns
 
 
+load_dotenv()
 REVU_TOKEN = os.getenv("REVU_BEARER_TOKEN")
 
 
