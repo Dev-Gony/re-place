@@ -26,9 +26,17 @@ type ActiveFilters = {
   sort: string;
 };
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://axsyupslmpdsatlxoliq.supabase.co";
+
+const supabaseKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  "sb_publishable_xr-jck5ekpiwlVNnmAaZEw_Zx5K1OtN";
+
+function getSupabaseClient() {
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 function buildHref(filters: ActiveFilters, page: number) {
   const query = new URLSearchParams();
@@ -117,6 +125,8 @@ export default async function Home({
 
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
+
+  const supabase = getSupabaseClient();
 
   let query = supabase
     .from("campaigns")
