@@ -5,7 +5,17 @@ import time
 import requests
 from dotenv import load_dotenv
 
-from common import Campaign, get_supabase_client, upsert_campaigns
+from common import (
+    Campaign,
+    extract_region_from_title,
+    first_datetime,
+    first_text,
+    get_supabase_client,
+    nested_datetime,
+    nested_text,
+    normalize_campaign_type,
+    upsert_campaigns,
+)
 
 
 load_dotenv()
@@ -63,6 +73,7 @@ def get_revu_data():
                 if source_id is None:
                     continue
 
+                title = item.get("item", "제목 없음")
                 media_raw = item.get("media", "")
                 media_map = {
                     "blog": "블로그",
@@ -75,17 +86,79 @@ def get_revu_data():
                 if thumb_url:
                     thumb_url = thumb_url.replace("\\/", "/")
 
+                campaign_data = item.get("campaignData", {})
+                region = first_text(
+                    item,
+                    ("region", "area", "location", "district", "address"),
+                ) or nested_text(
+                    item,
+                    (
+                        ("region", "name"),
+                        ("area", "name"),
+                        ("location", "name"),
+                        ("campaignData", "region"),
+                        ("campaignData", "area"),
+                        ("campaignData", "location"),
+                    ),
+                )
+                if not region:
+                    region = extract_region_from_title(title)
+
+                raw_campaign_type = first_text(
+                    item,
+                    ("campaignType", "campaign_type", "type"),
+                ) or nested_text(
+                    item,
+                    (
+                        ("campaignData", "type"),
+                        ("campaignData", "campaignType"),
+                    ),
+                )
+
+                # This collector explicitly requests Revu's "play" campaign type,
+                # so an absent per-item type still safely maps to 방문형.
+                campaign_type = normalize_campaign_type(
+                    raw_campaign_type or "play",
+                    title=title,
+                    region=region,
+                )
+
+                deadline_at = first_datetime(
+                    item,
+                    (
+                        "recruitEndAt",
+                        "recruit_end_at",
+                        "applyEndAt",
+                        "apply_end_at",
+                        "deadlineAt",
+                        "deadline_at",
+                        "endAt",
+                        "end_at",
+                    ),
+                ) or nested_datetime(
+                    item,
+                    (
+                        ("campaignData", "recruitEndAt"),
+                        ("campaignData", "applyEndAt"),
+                        ("campaignData", "deadlineAt"),
+                        ("campaignData", "endAt"),
+                    ),
+                )
+
                 campaigns.append(
                     Campaign(
                         platform="레뷰",
                         source_campaign_id=str(source_id),
-                        title=item.get("item", "제목 없음"),
+                        title=title,
                         link=f"https://www.revu.net/campaign/detail/{source_id}",
                         image_url=thumb_url,
                         media_type=media_map.get(media_raw, media_raw),
-                        reward=item.get("campaignData", {}).get("reward", "제공 내역 없음"),
+                        reward=campaign_data.get("reward", "제공 내역 없음"),
                         apply_count=item.get("campaignStats", {}).get("requestCount", 0),
                         recruit_count=item.get("reviewerLimit", 0),
+                        region=region,
+                        campaign_type=campaign_type,
+                        deadline_at=deadline_at,
                     )
                 )
 

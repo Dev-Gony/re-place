@@ -1,7 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 
-from common import Campaign, get_supabase_client, upsert_campaigns
+from common import (
+    Campaign,
+    extract_region_from_title,
+    get_supabase_client,
+    normalize_campaign_type,
+    upsert_campaigns,
+)
 
 
 def get_gangnam_data():
@@ -52,6 +58,13 @@ def get_gangnam_data():
                 apply_count = int(apply_str) if apply_str.isdigit() else 0
                 recruit_count = int(recruit_str) if recruit_str.isdigit() else 0
 
+        region = extract_region_from_title(title)
+        campaign_type = normalize_campaign_type(
+            None,
+            title=f"{title} {reward}",
+            region=region,
+        )
+
         campaigns.append(
             Campaign(
                 platform="강남맛집",
@@ -63,6 +76,8 @@ def get_gangnam_data():
                 reward=reward,
                 apply_count=apply_count,
                 recruit_count=recruit_count,
+                region=region,
+                campaign_type=campaign_type,
             )
         )
 
