@@ -6,6 +6,7 @@ from reviewnote_crawler import get_reviewnote_data
 from dinnerqueen_crawler import get_dinnerqueen_data
 from mible_crawler import get_mible_data
 from reviewplace_crawler import get_reviewplace_data
+from reviewus_crawler import get_reviewus_data
 
 
 Collector = tuple[str, Callable[[], None]]
@@ -15,6 +16,7 @@ COLLECTORS: list[Collector] = [
     ("디너의여왕", get_dinnerqueen_data),
     ("미블", get_mible_data),
     ("리뷰플레이스", get_reviewplace_data),
+    ("리뷰어스", get_reviewus_data),
 ]
 
 
