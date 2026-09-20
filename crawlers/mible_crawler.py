@@ -4,7 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 
 
-BASE_URL = "https://www.mrblog.net/"
+BASE_URL = "https://www.mrblog.net"
+LIST_URL = f"{BASE_URL}/campaigns"
 CAMPAIGN_RE = re.compile(r"^/campaigns/(\d+)$")
 
 
@@ -26,7 +27,7 @@ def get_mible_data():
     print("미블(Mible) 구조 확인을 시작합니다...")
 
     with build_session() as session:
-        response = session.get(BASE_URL, timeout=(10, 30))
+        response = session.get(LIST_URL, timeout=(10, 30))
         response.raise_for_status()
 
     html = response.text
@@ -38,6 +39,26 @@ def get_mible_data():
         match = CAMPAIGN_RE.match(href)
         if match:
             campaign_links.append((match.group(1), href, " ".join(anchor.stripped_strings)[:180]))
+
+    pagination_links = [
+        anchor.get("href", "")
+        for anchor in soup.find_all("a", href=True)
+        if "page=" in anchor.get("href", "")
+    ][:60]
+
+    card_classes = []
+    for anchor in soup.find_all("a", href=True):
+        href = anchor.get("href", "").strip()
+        if not CAMPAIGN_RE.match(href):
+            continue
+        parent = anchor.parent
+        for _ in range(4):
+            if parent is None:
+                break
+            classes = parent.get("class", []) if hasattr(parent, "get") else []
+            if classes:
+                card_classes.append((href, classes, " ".join(parent.stripped_strings)[:260]))
+            parent = parent.parent
 
     script_srcs = [
         script.get("src", "")
@@ -52,6 +73,8 @@ def get_mible_data():
 
     print(f"[MIBLE DEBUG] status={response.status_code} length={len(html)}")
     print(f"[MIBLE DEBUG] campaign links={campaign_links[:40]}")
+    print(f"[MIBLE DEBUG] pagination links={pagination_links}")
+    print(f"[MIBLE DEBUG] card classes={card_classes[:30]}")
     print(f"[MIBLE DEBUG] script srcs={script_srcs}")
     print(f"[MIBLE DEBUG] snippets={snippets}")
     print("[MIBLE DEBUG] diagnostic complete")
