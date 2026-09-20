@@ -4,7 +4,7 @@ from time import perf_counter
 
 from reviewnote_crawler import get_reviewnote_data
 from dinnerqueen_crawler import get_dinnerqueen_data
-from poblog_crawler import get_poblog_data
+from mible_crawler import get_mible_data
 
 
 Collector = tuple[str, Callable[[], None]]
