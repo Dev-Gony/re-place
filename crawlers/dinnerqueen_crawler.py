@@ -2,7 +2,7 @@ import random
 import re
 import time
 from datetime import datetime
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
 
 import requests
@@ -71,8 +71,13 @@ def find_card(anchor):
     return anchor.parent
 
 
-def extract_title(card, href: str) -> str | None:
-    for same_link in card.find_all("a", href=href):
+def extract_title(card, source_id: str) -> str | None:
+    for same_link in card.find_all("a", href=True):
+        parsed = urlparse(urljoin(BASE_URL, same_link.get("href", "")))
+        match = CAMPAIGN_PATH_RE.match(parsed.path)
+        if not match or match.group(1) != source_id:
+            continue
+
         text = " ".join(same_link.stripped_strings).strip()
         if text and len(text) <= 180:
             return text
@@ -102,9 +107,10 @@ def extract_listing_campaigns(html: str) -> list[dict]:
     results: list[dict] = []
     seen_ids: set[str] = set()
 
-    for anchor in soup.find_all("a", href=CAMPAIGN_LINK_RE):
-        href = anchor.get("href", "")
-        match = CAMPAIGN_LINK_RE.match(href)
+    for anchor in soup.find_all("a", href=True):
+        href = anchor.get("href", "").strip()
+        parsed = urlparse(urljoin(BASE_URL, href))
+        match = CAMPAIGN_PATH_RE.match(parsed.path)
         if not match:
             continue
 
@@ -121,7 +127,7 @@ def extract_listing_campaigns(html: str) -> list[dict]:
         if not apply_match:
             continue
 
-        title = extract_title(card, href)
+        title = extract_title(card, source_id)
         if not title:
             continue
 
@@ -150,7 +156,7 @@ def extract_listing_campaigns(html: str) -> list[dict]:
             {
                 "source_id": source_id,
                 "title": title,
-                "link": urljoin(BASE_URL, href),
+                "link": f"{BASE_URL}/taste/{source_id}",
                 "media_type": media_type,
                 "campaign_type": normalize_campaign_type(
                     raw_type,
