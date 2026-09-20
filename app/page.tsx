@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 const PAGE_SIZE = 24;
 const PLATFORMS = ["강남맛집", "레뷰", "리뷰노트"];
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
