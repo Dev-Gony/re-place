@@ -5,6 +5,7 @@ from time import perf_counter
 from reviewnote_crawler import get_reviewnote_data
 from dinnerqueen_crawler import get_dinnerqueen_data
 from mible_crawler import get_mible_data
+from reviewplace_crawler import get_reviewplace_data
 
 
 Collector = tuple[str, Callable[[], None]]
@@ -13,6 +14,7 @@ COLLECTORS: list[Collector] = [
     ("리뷰노트", get_reviewnote_data),
     ("디너의여왕", get_dinnerqueen_data),
     ("미블", get_mible_data),
+    ("리뷰플레이스", get_reviewplace_data),
 ]
 
 
