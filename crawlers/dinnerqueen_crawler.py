@@ -20,7 +20,7 @@ from common import (
 BASE_URL = "https://dinnerqueen.net"
 LIST_URL = f"{BASE_URL}/taste?ct=%EC%A0%84%EC%B2%B4"
 CAMPAIGN_PATH_RE = re.compile(r"^/taste/(\d+)$")
-APPLY_RE = re.compile(r"신청\s*([\d,]+)\s*/\s*모집\s*([\d,]+)")
+APPLY_RE = re.compile(r"신청\s*([\d,]+)\s*/\s*(?:모집\s*)?([\d,]+)")
 DETAIL_APPLY_RE = re.compile(r"([\d,]+)\s*/\s*([\d,]+)명")
 PERIOD_RE = re.compile(
     r"(\d{2}\.\d{2}\.\d{2})\s*[–~-]\s*(\d{2}\.\d{2}\.\d{2})"
@@ -83,7 +83,7 @@ def extract_title(card, source_id: str) -> str | None:
 
         title_attr = same_link.get("title", "").strip()
         if title_attr:
-            return re.sub(r"\\s*신청하기$", "", title_attr).strip()
+            return re.sub(r"\s*신청하기$", "", title_attr).strip()
 
         image = same_link.find("img", alt=True)
         if image and image.get("alt", "").strip():
