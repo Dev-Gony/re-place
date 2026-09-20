@@ -26,6 +26,8 @@ class Campaign:
     region: str | None = None
     campaign_type: str | None = None
     deadline_at: str | None = None
+    reward_amount: int | None = None
+    reward_kind: str | None = None
     collected_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -39,7 +41,14 @@ class Campaign:
             raise ValueError("title is required")
         if not self.link.strip():
             raise ValueError("link is required")
-        return asdict(self)
+
+        record = asdict(self)
+        amount, kind = parse_reward(self.reward, self.is_points)
+        if record["reward_amount"] is None:
+            record["reward_amount"] = amount
+        if record["reward_kind"] is None:
+            record["reward_kind"] = kind
+        return record
 
 
 def get_supabase_client() -> Client:
@@ -121,6 +130,28 @@ def normalize_campaign_type(
 
     return None
 
+
+
+def parse_reward(reward: str, is_points: bool = False) -> tuple[int | None, str]:
+    text = (reward or "").strip()
+
+    if is_points or "포인트" in text:
+        return None, "points"
+
+    if "%" in text:
+        return None, "discount"
+
+    man_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*만\s*원", text)
+    if man_match:
+        amount = round(float(man_match.group(1)) * 10000)
+        return amount, "amount"
+
+    won_match = re.search(r"([0-9][0-9,]*)\s*원", text)
+    if won_match:
+        amount = int(won_match.group(1).replace(",", ""))
+        return amount, "amount"
+
+    return None, "provided"
 
 def normalize_datetime(value: Any) -> str | None:
     if value is None or value == "":
