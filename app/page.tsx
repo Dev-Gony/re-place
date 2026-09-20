@@ -1,30 +1,23 @@
-import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 40;
 const PLATFORMS = ["강남맛집", "레뷰", "리뷰노트"];
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
 const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
 
-type SearchParams = Promise<{
-  q?: string;
-  platform?: string;
-  media?: string;
-  region?: string;
-  type?: string;
-  sort?: string;
-  page?: string;
-}>;
+type SearchValue = string | string[] | undefined;
+type SearchParams = Promise<Record<string, SearchValue>>;
 
 type ActiveFilters = {
   q: string;
-  platform: string;
+  platforms: string[];
   media: string;
   region: string;
   campaignType: string;
+  reward: string;
   sort: string;
 };
 
@@ -40,24 +33,29 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+function firstValue(value: SearchValue) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function listValue(value: SearchValue) {
+  if (!value) return [];
+  return Array.isArray(value) ? value.filter(Boolean) : [value];
+}
+
 function buildHref(filters: ActiveFilters, page: number) {
   const query = new URLSearchParams();
 
   if (filters.q) query.set("q", filters.q);
-  if (filters.platform) query.set("platform", filters.platform);
+  filters.platforms.forEach((item) => query.append("platform", item));
   if (filters.media) query.set("media", filters.media);
   if (filters.region) query.set("region", filters.region);
   if (filters.campaignType) query.set("type", filters.campaignType);
+  if (filters.reward) query.set("reward", filters.reward);
   if (filters.sort !== "latest") query.set("sort", filters.sort);
   if (page > 1) query.set("page", String(page));
 
   const suffix = query.toString();
   return suffix ? `/?${suffix}` : "/";
-}
-
-function buildPlatformHref(platform: string) {
-  const query = new URLSearchParams({ platform });
-  return `/?${query.toString()}`;
 }
 
 function formatDate(value: string | null) {
@@ -72,40 +70,26 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
-function compactNumber(value: number | null) {
-  if (!value) return "0";
-  return new Intl.NumberFormat("ko-KR", {
-    notation: value >= 1000 ? "compact" : "standard",
-    maximumFractionDigits: 1,
-  }).format(value);
+function formatAmount(value: number | null) {
+  if (!value) return null;
+
+  if (value >= 10000 && value % 10000 === 0) {
+    return `${value / 10000}만원`;
+  }
+
+  return `${value.toLocaleString("ko-KR")}원`;
 }
 
-function FilterSelect({
-  id,
-  name,
-  value,
-  label,
-  options,
-}: {
-  id: string;
-  name: string;
-  value: string;
-  label: string;
-  options: string[];
-}) {
-  return (
-    <label className="filter-field" htmlFor={id}>
-      <span>{label}</span>
-      <select id={id} name={name} defaultValue={value}>
-        <option value="">전체</option>
-        {options.map((item) => (
-          <option key={item} value={item}>
-            {item}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+function rewardBadge(kind: string | null, amount: number | null) {
+  if (kind === "amount" && amount) return formatAmount(amount);
+  if (kind === "points") return "포인트";
+  if (kind === "discount") return "할인형";
+  return "제공형";
+}
+
+function competitionRatio(apply: number | null, recruit: number | null) {
+  if (!apply || !recruit || recruit <= 0) return null;
+  return Math.round((apply / recruit) * 10) / 10;
 }
 
 export default async function Home({
@@ -114,26 +98,28 @@ export default async function Home({
   searchParams: SearchParams;
 }) {
   const resolved = await searchParams;
-  const q = resolved.q?.trim() ?? "";
-  const platform = resolved.platform?.trim() ?? "";
-  const media = resolved.media?.trim() ?? "";
-  const region = resolved.region?.trim() ?? "";
-  const campaignType = resolved.type?.trim() ?? "";
-  const sort = resolved.sort === "deadline" ? "deadline" : "latest";
+  const q = firstValue(resolved.q).trim();
+  const platforms = listValue(resolved.platform).filter((item) =>
+    PLATFORMS.includes(item),
+  );
+  const media = firstValue(resolved.media).trim();
+  const region = firstValue(resolved.region).trim();
+  const campaignType = firstValue(resolved.type).trim();
+  const reward = firstValue(resolved.reward).trim();
+  const sort = firstValue(resolved.sort) === "deadline" ? "deadline" : "latest";
 
-  const requestedPage = Number.parseInt(resolved.page ?? "1", 10);
+  const requestedPage = Number.parseInt(firstValue(resolved.page) || "1", 10);
   const currentPage =
     Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
-
   const supabase = getSupabaseClient();
 
   let query = supabase
     .from("campaigns")
     .select(
-      "id, platform, title, link, image_url, media_type, reward, apply_count, recruit_count, region, campaign_type, deadline_at, collected_at",
+      "id, platform, title, link, media_type, reward, reward_amount, reward_kind, apply_count, recruit_count, region, campaign_type, deadline_at, collected_at",
       { count: "exact" },
     )
     .range(from, to);
@@ -147,10 +133,16 @@ export default async function Home({
   }
 
   if (q) query = query.ilike("title", `%${q}%`);
-  if (platform) query = query.eq("platform", platform);
+  if (platforms.length) query = query.in("platform", platforms);
   if (media) query = query.eq("media_type", media);
   if (region) query = query.ilike("region", `%${region}%`);
   if (campaignType) query = query.eq("campaign_type", campaignType);
+
+  if (reward === "30000") query = query.gte("reward_amount", 30000);
+  if (reward === "50000") query = query.gte("reward_amount", 50000);
+  if (reward === "100000") query = query.gte("reward_amount", 100000);
+  if (reward === "provided") query = query.eq("reward_kind", "provided");
+  if (reward === "points") query = query.eq("reward_kind", "points");
 
   const [{ data, count, error }, { count: totalCampaigns }] = await Promise.all([
     query,
@@ -161,13 +153,22 @@ export default async function Home({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const filters: ActiveFilters = {
     q,
-    platform,
+    platforms,
     media,
     region,
     campaignType,
+    reward,
     sort,
   };
-  const hasActiveFilters = Boolean(q || platform || media || region || campaignType || sort === "deadline");
+  const hasActiveFilters = Boolean(
+    q ||
+      platforms.length ||
+      media ||
+      region ||
+      campaignType ||
+      reward ||
+      sort === "deadline",
+  );
 
   return (
     <main className="site-shell">
@@ -180,7 +181,7 @@ export default async function Home({
 
           <nav className="header-nav" aria-label="주요 메뉴">
             <a href="#campaigns">캠페인</a>
-            <a href="#how-it-works">서비스 소개</a>
+            <a href="#filters">필터</a>
           </nav>
 
           <div className="header-status">
@@ -204,7 +205,7 @@ export default async function Home({
             </h1>
             <p>
               흩어진 체험단 캠페인을 한곳에서 검색하고 비교하세요.
-              플랫폼보다 캠페인 자체에 집중할 수 있게 정리했습니다.
+              사진보다 신청에 필요한 정보를 더 빠르게 보여드립니다.
             </p>
           </div>
 
@@ -227,18 +228,18 @@ export default async function Home({
             </div>
 
             <div className="hero-search-meta">
-              <span>추천 검색</span>
+              <span>빠른 탐색</span>
               <Link href="/?region=서울">서울</Link>
-              <Link href="/?region=강남">강남</Link>
               <Link href="/?type=배송형">배송형</Link>
+              <Link href="/?reward=50000">5만원 이상</Link>
               <Link href="/?sort=deadline">마감 임박</Link>
             </div>
           </form>
 
-          <div className="hero-stats" id="how-it-works">
+          <div className="hero-stats">
             <div>
               <span>통합 캠페인</span>
-              <strong>{compactNumber(totalCampaigns ?? 0)}+</strong>
+              <strong>{(totalCampaigns ?? 0).toLocaleString("ko-KR")}+</strong>
             </div>
             <div>
               <span>연결 플랫폼</span>
@@ -253,87 +254,116 @@ export default async function Home({
       </section>
 
       <section className="content-wrap" id="campaigns">
-        <div className="platform-strip">
-          <div className="platform-strip-copy">
-            <span>플랫폼 바로가기</span>
-            <strong>원하는 곳만 빠르게 보기</strong>
-          </div>
-          <div className="platform-links">
-            <Link href="/" className={!platform ? "active" : ""}>
-              전체
-            </Link>
-            {PLATFORMS.map((item) => (
-              <Link
-                key={item}
-                href={buildPlatformHref(item)}
-                className={platform === item ? "active" : ""}
-              >
-                {item}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <form action="/" method="get" className="filter-panel">
+        <form action="/" method="get" className="filter-panel" id="filters">
           <input type="hidden" name="q" value={q} />
 
-          <label className="filter-field filter-region" htmlFor="region">
-            <span>지역</span>
-            <input
-              id="region"
-              name="region"
-              defaultValue={region}
-              placeholder="서울, 강남, 성수..."
-            />
-          </label>
+          <div className="filter-row filter-platforms">
+            <div className="filter-label">
+              <span>플랫폼</span>
+              <small>여러 개 선택 가능</small>
+            </div>
+            <div className="chip-group">
+              {PLATFORMS.map((item) => (
+                <label className="check-chip" key={item}>
+                  <input
+                    type="checkbox"
+                    name="platform"
+                    value={item}
+                    defaultChecked={platforms.includes(item)}
+                  />
+                  <span>{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-          <FilterSelect
-            id="platform"
-            name="platform"
-            value={platform}
-            label="플랫폼"
-            options={PLATFORMS}
-          />
-          <FilterSelect
-            id="media"
-            name="media"
-            value={media}
-            label="매체"
-            options={MEDIA_TYPES}
-          />
-          <FilterSelect
-            id="type"
-            name="type"
-            value={campaignType}
-            label="유형"
-            options={CAMPAIGN_TYPES}
-          />
+          <div className="filter-row reward-filter">
+            <div className="filter-label">
+              <span>제공내역</span>
+              <small>금액 확인 가능한 캠페인 기준</small>
+            </div>
+            <div className="chip-group">
+              {[
+                ["", "전체"],
+                ["30000", "3만원+"],
+                ["50000", "5만원+"],
+                ["100000", "10만원+"],
+                ["provided", "제공형"],
+                ["points", "포인트"],
+              ].map(([value, label]) => (
+                <label className="radio-chip" key={label}>
+                  <input
+                    type="radio"
+                    name="reward"
+                    value={value}
+                    defaultChecked={reward === value}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-          <label className="filter-field" htmlFor="sort">
-            <span>정렬</span>
-            <select id="sort" name="sort" defaultValue={sort}>
-              <option value="latest">최신순</option>
-              <option value="deadline">마감임박순</option>
-            </select>
-          </label>
+          <div className="filter-grid">
+            <label className="filter-field" htmlFor="region">
+              <span>지역</span>
+              <input
+                id="region"
+                name="region"
+                defaultValue={region}
+                placeholder="서울, 강남, 성수..."
+              />
+            </label>
 
-          <button type="submit" className="filter-submit">
-            조건 적용
-          </button>
+            <label className="filter-field" htmlFor="media">
+              <span>매체</span>
+              <select id="media" name="media" defaultValue={media}>
+                <option value="">전체</option>
+                {MEDIA_TYPES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          {hasActiveFilters && (
-            <Link href="/" className="filter-reset">
-              초기화
-            </Link>
-          )}
+            <label className="filter-field" htmlFor="type">
+              <span>유형</span>
+              <select id="type" name="type" defaultValue={campaignType}>
+                <option value="">전체</option>
+                {CAMPAIGN_TYPES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="filter-field" htmlFor="sort">
+              <span>정렬</span>
+              <select id="sort" name="sort" defaultValue={sort}>
+                <option value="latest">최신순</option>
+                <option value="deadline">마감임박순</option>
+              </select>
+            </label>
+
+            <button type="submit" className="filter-submit">
+              조건 적용
+            </button>
+
+            {hasActiveFilters && (
+              <Link href="/" className="filter-reset">
+                초기화
+              </Link>
+            )}
+          </div>
         </form>
 
         <div className="results-head">
           <div>
             <span className="results-kicker">CAMPAIGNS</span>
-            <h2>
-              {q ? `“${q}” 검색 결과` : "지금 확인할 수 있는 캠페인"}
-            </h2>
+            <h2>{q ? `“${q}” 검색 결과` : "캠페인 한눈에 보기"}</h2>
+            <p>이미지는 덜어내고, 신청 결정에 필요한 정보만 압축했습니다.</p>
           </div>
           <div className="results-count">
             <strong>{totalCount.toLocaleString("ko-KR")}</strong>
@@ -348,78 +378,88 @@ export default async function Home({
           </div>
         ) : data && data.length > 0 ? (
           <>
-            <div className="campaign-grid">
+            <div className="campaign-list">
+              <div className="campaign-list-head" aria-hidden="true">
+                <span>플랫폼 / 캠페인</span>
+                <span>지역 · 유형</span>
+                <span>제공내역</span>
+                <span>신청 현황</span>
+                <span>마감</span>
+                <span />
+              </div>
+
               {data.map((campaign) => {
                 const deadline = formatDate(campaign.deadline_at);
-                const ratio =
-                  campaign.recruit_count && campaign.recruit_count > 0
-                    ? Math.round((campaign.apply_count / campaign.recruit_count) * 10) / 10
-                    : null;
+                const ratio = competitionRatio(
+                  campaign.apply_count,
+                  campaign.recruit_count,
+                );
 
                 return (
-                  <article key={campaign.id} className="campaign-card">
+                  <article key={campaign.id} className="campaign-row">
+                    <div className="campaign-main">
+                      <div className="campaign-meta-line">
+                        <span className="platform-badge">{campaign.platform}</span>
+                        {campaign.media_type && (
+                          <span className="sub-badge">{campaign.media_type}</span>
+                        )}
+                      </div>
+                      <h3>{campaign.title}</h3>
+                    </div>
+
+                    <div className="campaign-cell">
+                      <span className="mobile-cell-label">지역 · 유형</span>
+                      <strong>{campaign.region || "지역 미지정"}</strong>
+                      <small>{campaign.campaign_type || "유형 미지정"}</small>
+                    </div>
+
+                    <div className="campaign-cell reward-cell">
+                      <span className="mobile-cell-label">제공내역</span>
+                      <strong className="reward-value">
+                        {rewardBadge(campaign.reward_kind, campaign.reward_amount)}
+                      </strong>
+                      <small title={campaign.reward || ""}>
+                        {campaign.reward || "상세페이지 확인"}
+                      </small>
+                    </div>
+
+                    <div className="campaign-cell">
+                      <span className="mobile-cell-label">신청 현황</span>
+                      {campaign.apply_count || campaign.recruit_count ? (
+                        <>
+                          <strong>
+                            {campaign.apply_count ?? 0}
+                            <span className="metric-divider"> / </span>
+                            {campaign.recruit_count ?? 0}
+                          </strong>
+                          <small>{ratio !== null ? `경쟁률 ${ratio}:1` : "경쟁률 집계 중"}</small>
+                        </>
+                      ) : (
+                        <>
+                          <strong className="muted-value">정보 없음</strong>
+                          <small>원문에서 확인</small>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="campaign-cell deadline-cell">
+                      <span className="mobile-cell-label">마감</span>
+                      <strong>{deadline || "미정"}</strong>
+                      <small>{deadline ? "마감일" : "원문 확인"}</small>
+                    </div>
+
                     <a
                       href={campaign.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="card-image-wrap"
-                      aria-label={`${campaign.title} 캠페인 보러가기`}
+                      className="row-cta"
+                      aria-label={`${campaign.title} 원문 보기`}
                     >
-                      {campaign.image_url ? (
-                        <Image
-                          src={campaign.image_url}
-                          alt=""
-                          fill
-                          sizes="(max-width: 720px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="card-image"
-                        />
-                      ) : (
-                        <div className="card-image-fallback">Re:Place</div>
-                      )}
-
-                      <div className="card-platform">{campaign.platform}</div>
-                      {deadline && <div className="card-deadline">마감 {deadline}</div>}
+                      원문 보기
+                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </a>
-
-                    <div className="card-body">
-                      <div className="card-tags">
-                        {campaign.media_type && <span>{campaign.media_type}</span>}
-                        {campaign.campaign_type && <span>{campaign.campaign_type}</span>}
-                        {campaign.region && <span>{campaign.region}</span>}
-                      </div>
-
-                      <h3>{campaign.title}</h3>
-                      <p className="card-reward">{campaign.reward || "제공 내역 없음"}</p>
-
-                      <div className="card-metrics">
-                        <div>
-                          <span>신청</span>
-                          <strong>{compactNumber(campaign.apply_count)}</strong>
-                        </div>
-                        <div>
-                          <span>모집</span>
-                          <strong>{compactNumber(campaign.recruit_count)}</strong>
-                        </div>
-                        {ratio !== null && (
-                          <div>
-                            <span>경쟁률</span>
-                            <strong>{ratio}:1</strong>
-                          </div>
-                        )}
-                      </div>
-
-                      <a
-                        href={campaign.link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="card-cta"
-                      >
-                        캠페인 자세히 보기
-                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                          <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </a>
-                    </div>
                   </article>
                 );
               })}
