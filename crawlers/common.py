@@ -167,6 +167,9 @@ def normalize_campaign_type(
 def parse_reward(reward: str, is_points: bool = False) -> tuple[int | None, str]:
     text = (reward or "").strip()
 
+    if not text:
+        return None, "unknown"
+
     if is_points or "포인트" in text:
         return None, "points"
 
