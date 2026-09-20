@@ -96,7 +96,8 @@ function rewardBadge(kind: string | null, amount: number | null) {
   if (kind === "amount" && amount) return formatAmount(amount);
   if (kind === "points") return "포인트";
   if (kind === "discount") return "할인";
-  return "제공형";
+  if (kind === "provided") return "제공형";
+  return "상세확인";
 }
 
 function competitionRatio(apply: number | null, recruit: number | null) {
