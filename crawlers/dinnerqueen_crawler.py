@@ -19,7 +19,7 @@ from common import (
 
 BASE_URL = "https://dinnerqueen.net"
 LIST_URL = f"{BASE_URL}/taste?ct=%EC%A0%84%EC%B2%B4"
-CAMPAIGN_LINK_RE = re.compile(r"^/taste/(\d+)$")
+CAMPAIGN_PATH_RE = re.compile(r"^/taste/(\d+)$")
 APPLY_RE = re.compile(r"신청\s*([\d,]+)\s*/\s*모집\s*([\d,]+)")
 DETAIL_APPLY_RE = re.compile(r"([\d,]+)\s*/\s*([\d,]+)명")
 PERIOD_RE = re.compile(
