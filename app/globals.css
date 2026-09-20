@@ -507,7 +507,7 @@ select {
 .campaign-list-head,
 .campaign-row {
   display: grid;
-  grid-template-columns: minmax(280px, 2.1fr) minmax(120px, 0.8fr) minmax(150px, 1fr) minmax(110px, 0.7fr) 80px 88px;
+  grid-template-columns: minmax(340px, 2.5fr) minmax(170px, 1.15fr) minmax(130px, 0.9fr) minmax(130px, 0.9fr) 72px;
   gap: 14px;
   align-items: center;
 }
@@ -524,8 +524,8 @@ select {
 }
 
 .campaign-row {
-  min-height: 92px;
-  padding: 13px 16px;
+  min-height: 78px;
+  padding: 11px 16px;
   border-bottom: 1px solid #eff1f4;
   transition: background 0.16s ease;
 }
@@ -576,8 +576,9 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #20242d;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 760;
   letter-spacing: -0.025em;
 }
 
@@ -605,7 +606,52 @@ select {
 
 .reward-value {
   color: var(--primary-dark) !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.025em;
+}
+
+.application-count {
   font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.competition-cell {
+  align-content: center;
+}
+
+.competition-pill {
+  width: fit-content;
+  min-width: 42px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.competition-pill.low {
+  background: #e8f7ef;
+  color: #17834f;
+}
+
+.competition-pill.mid {
+  background: #fff5db;
+  color: #9a6800;
+}
+
+.competition-pill.high {
+  background: #fff0ef;
+  color: #c24a43;
+}
+
+.competition-pill.neutral {
+  background: #f1f2f5;
+  color: #7d8490;
+}
+
+.deadline-region-cell strong {
+  font-size: 12px !important;
+  font-weight: 820 !important;
 }
 
 .metric-divider {
@@ -761,11 +807,7 @@ select {
   }
 
   .campaign-row {
-    grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(100px, 0.8fr)) 78px;
-  }
-
-  .deadline-cell {
-    display: none;
+    grid-template-columns: minmax(260px, 2fr) minmax(150px, 1fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) 70px;
   }
 }
 
@@ -887,10 +929,6 @@ select {
     font-weight: 750;
   }
 
-  .deadline-cell {
-    display: grid;
-  }
-
   .row-cta {
     grid-column: 1 / -1;
     height: 38px;
@@ -931,5 +969,32 @@ select {
   .campaign-main,
   .row-cta {
     grid-column: auto;
+  }
+}
+
+
+.region-chips {
+  row-gap: 6px;
+}
+
+.campaign-row:nth-child(even) {
+  background: #fcfcfd;
+}
+
+.campaign-row:hover {
+  background: #f7f8ff;
+}
+
+.reward-cell small {
+  max-width: 240px;
+}
+
+@media (max-width: 760px) {
+  .competition-pill {
+    margin-top: 2px;
+  }
+
+  .deadline-region-cell strong {
+    font-size: 11px !important;
   }
 }

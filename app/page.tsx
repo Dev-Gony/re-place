@@ -7,6 +7,26 @@ const PAGE_SIZE = 40;
 const PLATFORMS = ["강남맛집", "레뷰", "리뷰노트"];
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
 const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
+const REGION_GROUPS = [
+  "서울",
+  "경기",
+  "인천",
+  "부산",
+  "대구",
+  "대전",
+  "광주",
+  "울산",
+  "세종",
+  "제주",
+  "강원",
+  "충북",
+  "충남",
+  "전북",
+  "전남",
+  "경북",
+  "경남",
+  "전국",
+];
 
 type SearchValue = string | string[] | undefined;
 type SearchParams = Promise<Record<string, SearchValue>>;
@@ -14,8 +34,9 @@ type SearchParams = Promise<Record<string, SearchValue>>;
 type ActiveFilters = {
   q: string;
   platforms: string[];
-  media: string;
+  regionGroup: string;
   region: string;
+  media: string;
   campaignType: string;
   reward: string;
   sort: string;
@@ -47,8 +68,9 @@ function buildHref(filters: ActiveFilters, page: number) {
 
   if (filters.q) query.set("q", filters.q);
   filters.platforms.forEach((item) => query.append("platform", item));
-  if (filters.media) query.set("media", filters.media);
+  if (filters.regionGroup) query.set("regionGroup", filters.regionGroup);
   if (filters.region) query.set("region", filters.region);
+  if (filters.media) query.set("media", filters.media);
   if (filters.campaignType) query.set("type", filters.campaignType);
   if (filters.reward) query.set("reward", filters.reward);
   if (filters.sort !== "latest") query.set("sort", filters.sort);
@@ -83,13 +105,20 @@ function formatAmount(value: number | null) {
 function rewardBadge(kind: string | null, amount: number | null) {
   if (kind === "amount" && amount) return formatAmount(amount);
   if (kind === "points") return "포인트";
-  if (kind === "discount") return "할인형";
+  if (kind === "discount") return "할인";
   return "제공형";
 }
 
 function competitionRatio(apply: number | null, recruit: number | null) {
   if (!apply || !recruit || recruit <= 0) return null;
   return Math.round((apply / recruit) * 10) / 10;
+}
+
+function competitionClass(ratio: number | null) {
+  if (ratio === null) return "neutral";
+  if (ratio <= 1) return "low";
+  if (ratio <= 3) return "mid";
+  return "high";
 }
 
 export default async function Home({
@@ -102,8 +131,9 @@ export default async function Home({
   const platforms = listValue(resolved.platform).filter((item) =>
     PLATFORMS.includes(item),
   );
-  const media = firstValue(resolved.media).trim();
+  const regionGroup = firstValue(resolved.regionGroup).trim();
   const region = firstValue(resolved.region).trim();
+  const media = firstValue(resolved.media).trim();
   const campaignType = firstValue(resolved.type).trim();
   const reward = firstValue(resolved.reward).trim();
   const sort = firstValue(resolved.sort) === "deadline" ? "deadline" : "latest";
@@ -119,7 +149,7 @@ export default async function Home({
   let query = supabase
     .from("campaigns")
     .select(
-      "id, platform, title, link, media_type, reward, reward_amount, reward_kind, apply_count, recruit_count, region, campaign_type, deadline_at, collected_at",
+      "id, platform, title, link, media_type, reward, reward_amount, reward_kind, apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at",
       { count: "exact" },
     )
     .range(from, to);
@@ -134,8 +164,9 @@ export default async function Home({
 
   if (q) query = query.ilike("title", `%${q}%`);
   if (platforms.length) query = query.in("platform", platforms);
-  if (media) query = query.eq("media_type", media);
+  if (regionGroup) query = query.eq("region_group", regionGroup);
   if (region) query = query.ilike("region", `%${region}%`);
+  if (media) query = query.eq("media_type", media);
   if (campaignType) query = query.eq("campaign_type", campaignType);
 
   if (reward === "30000") query = query.gte("reward_amount", 30000);
@@ -154,8 +185,9 @@ export default async function Home({
   const filters: ActiveFilters = {
     q,
     platforms,
-    media,
+    regionGroup,
     region,
+    media,
     campaignType,
     reward,
     sort,
@@ -163,8 +195,9 @@ export default async function Home({
   const hasActiveFilters = Boolean(
     q ||
       platforms.length ||
-      media ||
+      regionGroup ||
       region ||
+      media ||
       campaignType ||
       reward ||
       sort === "deadline",
@@ -229,7 +262,8 @@ export default async function Home({
 
             <div className="hero-search-meta">
               <span>빠른 탐색</span>
-              <Link href="/?region=서울">서울</Link>
+              <Link href="/?regionGroup=서울">서울</Link>
+              <Link href="/?regionGroup=경기">경기</Link>
               <Link href="/?type=배송형">배송형</Link>
               <Link href="/?reward=50000">5만원 이상</Link>
               <Link href="/?sort=deadline">마감 임박</Link>
@@ -277,10 +311,39 @@ export default async function Home({
             </div>
           </div>
 
+          <div className="filter-row">
+            <div className="filter-label">
+              <span>지역</span>
+              <small>광역권으로 빠르게 필터</small>
+            </div>
+            <div className="chip-group region-chips">
+              <label className="radio-chip">
+                <input
+                  type="radio"
+                  name="regionGroup"
+                  value=""
+                  defaultChecked={!regionGroup}
+                />
+                <span>전체</span>
+              </label>
+              {REGION_GROUPS.map((item) => (
+                <label className="radio-chip" key={item}>
+                  <input
+                    type="radio"
+                    name="regionGroup"
+                    value={item}
+                    defaultChecked={regionGroup === item}
+                  />
+                  <span>{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="filter-row reward-filter">
             <div className="filter-label">
               <span>제공내역</span>
-              <small>금액 확인 가능한 캠페인 기준</small>
+              <small>금액 기준으로 빠르게 선별</small>
             </div>
             <div className="chip-group">
               {[
@@ -306,12 +369,12 @@ export default async function Home({
 
           <div className="filter-grid">
             <label className="filter-field" htmlFor="region">
-              <span>지역</span>
+              <span>세부 지역</span>
               <input
                 id="region"
                 name="region"
                 defaultValue={region}
-                placeholder="서울, 강남, 성수..."
+                placeholder="강남, 성수, 수원..."
               />
             </label>
 
@@ -363,7 +426,7 @@ export default async function Home({
           <div>
             <span className="results-kicker">CAMPAIGNS</span>
             <h2>{q ? `“${q}” 검색 결과` : "캠페인 한눈에 보기"}</h2>
-            <p>이미지는 덜어내고, 신청 결정에 필요한 정보만 압축했습니다.</p>
+            <p>혜택, 경쟁률, 마감일을 먼저 보고 빠르게 결정하세요.</p>
           </div>
           <div className="results-count">
             <strong>{totalCount.toLocaleString("ko-KR")}</strong>
@@ -380,11 +443,10 @@ export default async function Home({
           <>
             <div className="campaign-list">
               <div className="campaign-list-head" aria-hidden="true">
-                <span>플랫폼 / 캠페인</span>
-                <span>지역 · 유형</span>
-                <span>제공내역</span>
-                <span>신청 현황</span>
-                <span>마감</span>
+                <span>캠페인</span>
+                <span>혜택</span>
+                <span>신청 · 경쟁</span>
+                <span>마감 · 지역</span>
                 <span />
               </div>
 
@@ -394,6 +456,7 @@ export default async function Home({
                   campaign.apply_count,
                   campaign.recruit_count,
                 );
+                const ratioClass = competitionClass(ratio);
 
                 return (
                   <article key={campaign.id} className="campaign-row">
@@ -403,18 +466,15 @@ export default async function Home({
                         {campaign.media_type && (
                           <span className="sub-badge">{campaign.media_type}</span>
                         )}
+                        {campaign.campaign_type && (
+                          <span className="sub-badge">{campaign.campaign_type}</span>
+                        )}
                       </div>
                       <h3>{campaign.title}</h3>
                     </div>
 
-                    <div className="campaign-cell">
-                      <span className="mobile-cell-label">지역 · 유형</span>
-                      <strong>{campaign.region || "지역 미지정"}</strong>
-                      <small>{campaign.campaign_type || "유형 미지정"}</small>
-                    </div>
-
                     <div className="campaign-cell reward-cell">
-                      <span className="mobile-cell-label">제공내역</span>
+                      <span className="mobile-cell-label">혜택</span>
                       <strong className="reward-value">
                         {rewardBadge(campaign.reward_kind, campaign.reward_amount)}
                       </strong>
@@ -423,29 +483,36 @@ export default async function Home({
                       </small>
                     </div>
 
-                    <div className="campaign-cell">
-                      <span className="mobile-cell-label">신청 현황</span>
+                    <div className="campaign-cell competition-cell">
+                      <span className="mobile-cell-label">신청 · 경쟁</span>
                       {campaign.apply_count || campaign.recruit_count ? (
                         <>
-                          <strong>
+                          <strong className="application-count">
                             {campaign.apply_count ?? 0}
                             <span className="metric-divider"> / </span>
-                            {campaign.recruit_count ?? 0}
+                            {campaign.recruit_count ?? 0}명
                           </strong>
-                          <small>{ratio !== null ? `경쟁률 ${ratio}:1` : "경쟁률 집계 중"}</small>
+                          <span className={`competition-pill ${ratioClass}`}>
+                            {ratio !== null ? `${ratio}:1` : "집계 중"}
+                          </span>
                         </>
                       ) : (
                         <>
-                          <strong className="muted-value">정보 없음</strong>
+                          <strong className="muted-value">집계 전</strong>
                           <small>원문에서 확인</small>
                         </>
                       )}
                     </div>
 
-                    <div className="campaign-cell deadline-cell">
-                      <span className="mobile-cell-label">마감</span>
-                      <strong>{deadline || "미정"}</strong>
-                      <small>{deadline ? "마감일" : "원문 확인"}</small>
+                    <div className="campaign-cell deadline-region-cell">
+                      <span className="mobile-cell-label">마감 · 지역</span>
+                      <strong>{deadline || "마감 미정"}</strong>
+                      <small>
+                        {[campaign.region_group, campaign.region]
+                          .filter(Boolean)
+                          .filter((value, index, all) => all.indexOf(value) === index)
+                          .join(" · ") || "지역 정보 없음"}
+                      </small>
                     </div>
 
                     <a
@@ -455,7 +522,7 @@ export default async function Home({
                       className="row-cta"
                       aria-label={`${campaign.title} 원문 보기`}
                     >
-                      원문 보기
+                      보기
                       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                         <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>

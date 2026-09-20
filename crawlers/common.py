@@ -24,6 +24,7 @@ class Campaign:
     apply_count: int = 0
     recruit_count: int = 0
     region: str | None = None
+    region_group: str | None = None
     campaign_type: str | None = None
     deadline_at: str | None = None
     reward_amount: int | None = None
@@ -48,6 +49,8 @@ class Campaign:
             record["reward_amount"] = amount
         if record["reward_kind"] is None:
             record["reward_kind"] = kind
+        if record["region_group"] is None:
+            record["region_group"] = normalize_region_group(self.region)
         return record
 
 
@@ -106,6 +109,42 @@ def extract_region_from_title(title: str) -> str | None:
     if not match:
         return None
     return match.group(1).strip() or None
+
+
+def normalize_region_group(region: str | None) -> str | None:
+    if not region:
+        return None
+
+    value = region.strip()
+
+    if value in ("전국", "재택", "배송"):
+        return "전국"
+
+    mappings = (
+        ("서울", ("서울", "강남", "송파", "종로", "용산", "성수", "서초", "강동", "강서", "논현", "홍대", "노원", "마포", "잠실", "성북", "영등포", "압구정", "관악", "여의도", "청담", "합정", "선릉", "동대문", "광진", "은평", "신촌", "건대", "신사", "구로", "금천", "동작", "양천", "중랑", "도봉")),
+        ("경기", ("경기", "수원", "용인", "부천", "분당", "성남", "안양", "고양", "동탄", "화성", "일산", "안산", "파주", "평택", "김포", "남양주", "하남", "의정부", "광명", "시흥", "군포", "양주", "구리", "오산", "포천", "이천", "여주", "과천")),
+        ("인천", ("인천", "부평", "송도", "청라")),
+        ("부산", ("부산", "서면", "해운대", "광안리", "남포", "기장")),
+        ("대구", ("대구", "동성로", "수성")),
+        ("대전", ("대전", "둔산")),
+        ("광주", ("광주", "상무")),
+        ("울산", ("울산",)),
+        ("세종", ("세종",)),
+        ("제주", ("제주", "서귀포")),
+        ("강원", ("강원", "강릉", "춘천", "속초", "원주", "홍천", "양양", "평창")),
+        ("충북", ("충북", "청주", "충주", "제천")),
+        ("충남", ("충남", "천안", "아산", "공주", "당진", "서산", "보령")),
+        ("전북", ("전북", "전주", "군산", "익산", "정읍")),
+        ("전남", ("전남", "여수", "순천", "목포", "나주")),
+        ("경북", ("경북", "포항", "경주", "구미", "안동")),
+        ("경남", ("경남", "창원", "김해", "진주", "양산", "거제", "통영")),
+    )
+
+    for group, keywords in mappings:
+        if any(keyword in value for keyword in keywords):
+            return group
+
+    return None
 
 
 def normalize_campaign_type(
