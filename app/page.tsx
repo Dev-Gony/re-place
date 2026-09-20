@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 40;
-const PLATFORMS = ["강남맛집", "레뷰", "리뷰노트"];
+const PLATFORMS = ["강남맛집", "리뷰노트", "디너의여왕", "레뷰"];
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
 const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
 const REGION_GROUPS = [
