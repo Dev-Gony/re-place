@@ -253,7 +253,7 @@ export default async function Home({
             <div className="hero-search-meta">
               <span>빠른 탐색</span>
               <Link href="/?regionGroup=서울">서울</Link>
-              <Link href="/?regionGroup=경기">경기</Link>
+              <Link href="/?regionGroup=경기·인천">경기·인천</Link>
               <Link href="/?type=배송형">배송형</Link>
               <Link href="/?reward=50000">5만원 이상</Link>
               <Link href="/?sort=deadline">마감 임박</Link>
