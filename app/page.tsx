@@ -9,23 +9,13 @@ const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏
 const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
 const REGION_GROUPS = [
   "서울",
-  "경기",
-  "인천",
-  "부산",
-  "대구",
-  "대전",
-  "광주",
-  "울산",
-  "세종",
-  "제주",
+  "경기·인천",
+  "충청·대전·세종",
+  "전라·광주",
+  "경상·부산·대구·울산",
   "강원",
-  "충북",
-  "충남",
-  "전북",
-  "전남",
-  "경북",
-  "경남",
-  "전국",
+  "제주",
+  "지역무관",
 ];
 
 type SearchValue = string | string[] | undefined;
@@ -263,7 +253,7 @@ export default async function Home({
             <div className="hero-search-meta">
               <span>빠른 탐색</span>
               <Link href="/?regionGroup=서울">서울</Link>
-              <Link href="/?regionGroup=경기">경기</Link>
+              <Link href="/?regionGroup=경기·인천">경기·인천</Link>
               <Link href="/?type=배송형">배송형</Link>
               <Link href="/?reward=50000">5만원 이상</Link>
               <Link href="/?sort=deadline">마감 임박</Link>
