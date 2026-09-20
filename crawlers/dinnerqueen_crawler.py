@@ -250,6 +250,18 @@ def get_dinnerqueen_data():
 
         listing = extract_listing_campaigns(response.text)
         if not listing:
+            debug_soup = BeautifulSoup(response.text, "html.parser")
+            hrefs = [
+                anchor.get("href", "")
+                for anchor in debug_soup.find_all("a", href=True)
+            ][:40]
+            scripts = [
+                script.get("src", "")
+                for script in debug_soup.find_all("script", src=True)
+            ][:40]
+            print(f"[DEBUG] response length: {len(response.text)}")
+            print(f"[DEBUG] href samples: {hrefs}")
+            print(f"[DEBUG] script src samples: {scripts}")
             raise RuntimeError("디너의여왕 캠페인 목록을 파싱하지 못했습니다.")
 
         print(f"목록에서 {len(listing)}개 캠페인을 찾았습니다.")
