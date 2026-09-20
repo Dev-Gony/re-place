@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from supabase import Client, create_client
 
 
-_REGION_PATTERN = re.compile(r"^\[([^\]]+)\]")
+_REGION_PATTERN = re.compile(r"\[([^\]]+)\]")
 
 
 @dataclass(frozen=True)
@@ -105,10 +105,14 @@ def nested_text(data: dict[str, Any], paths: Iterable[tuple[str, ...]]) -> str |
 
 
 def extract_region_from_title(title: str) -> str | None:
-    match = _REGION_PATTERN.match(title.strip())
-    if not match:
-        return None
-    return match.group(1).strip() or None
+    for match in _REGION_PATTERN.finditer(title.strip()):
+        candidate = match.group(1).strip()
+        if normalize_region_group(candidate):
+            return candidate
+        if candidate in ("전국", "재택", "배송"):
+            return candidate
+
+    return None
 
 
 def normalize_region_group(region: str | None) -> str | None:
@@ -168,6 +172,14 @@ def parse_reward(reward: str, is_points: bool = False) -> tuple[int | None, str]
 
     if "%" in text:
         return None, "discount"
+
+    man_range = re.search(
+        r"([0-9]+(?:\.[0-9]+)?)\s*[~～~-]\s*([0-9]+(?:\.[0-9]+)?)\s*만\s*원",
+        text,
+    )
+    if man_range:
+        amount = round(min(float(man_range.group(1)), float(man_range.group(2))) * 10000)
+        return amount, "amount"
 
     man_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*만\s*원", text)
     if man_match:
