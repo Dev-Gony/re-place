@@ -20,7 +20,7 @@ from common import (
 BASE_URL = "https://dinnerqueen.net"
 LIST_URL = f"{BASE_URL}/taste?ct=%EC%A0%84%EC%B2%B4"
 CAMPAIGN_PATH_RE = re.compile(r"^/taste/(\d+)$")
-APPLY_RE = re.compile(r"신청\s*([\d,]+)\s*/\s*모집\s*([\d,]+)")
+APPLY_RE = re.compile(r"신청\s*([\d,]+)\s*/\s*(?:모집\s*)?([\d,]+)")
 DETAIL_APPLY_RE = re.compile(r"([\d,]+)\s*/\s*([\d,]+)명")
 PERIOD_RE = re.compile(
     r"(\d{2}\.\d{2}\.\d{2})\s*[–~-]\s*(\d{2}\.\d{2}\.\d{2})"
@@ -58,6 +58,10 @@ def build_session() -> requests.Session:
 
 def find_card(anchor):
     for parent in anchor.parents:
+        classes = parent.get("class", []) if hasattr(parent, "get") else []
+        if any("qz-dq-card" in class_name for class_name in classes):
+            return parent
+
         if not getattr(parent, "stripped_strings", None):
             continue
 
@@ -65,11 +69,10 @@ def find_card(anchor):
         if APPLY_RE.search(text):
             return parent
 
-        if len(text) > 1800:
+        if len(text) > 2400:
             break
 
     return anchor.parent
-
 
 def extract_title(card, source_id: str) -> str | None:
     for same_link in card.find_all("a", href=True):
@@ -78,29 +81,19 @@ def extract_title(card, source_id: str) -> str | None:
         if not match or match.group(1) != source_id:
             continue
 
+        title_attr = same_link.get("title", "").strip()
+        if title_attr:
+            return re.sub(r"\s*신청하기$", "", title_attr).strip()
+
+        image = same_link.find("img", alt=True)
+        if image and image.get("alt", "").strip():
+            return image["alt"].strip()
+
         text = " ".join(same_link.stripped_strings).strip()
         if text and len(text) <= 180:
             return text
 
-    parts = [part.strip() for part in card.stripped_strings if part.strip()]
-    apply_index = next(
-        (index for index, part in enumerate(parts) if APPLY_RE.search(part)),
-        len(parts),
-    )
-
-    for part in reversed(parts[:apply_index]):
-        if part in SKIP_LABELS:
-            continue
-        if re.fullmatch(r"D(?:-\d+|'day)", part, flags=re.IGNORECASE):
-            continue
-        if part.startswith("신청 "):
-            continue
-        if len(part) < 2:
-            continue
-        return part
-
     return None
-
 
 def extract_listing_campaigns(html: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
@@ -250,32 +243,6 @@ def get_dinnerqueen_data():
 
         listing = extract_listing_campaigns(response.text)
         if not listing:
-            debug_soup = BeautifulSoup(response.text, "html.parser")
-            hrefs = [
-                anchor.get("href", "")
-                for anchor in debug_soup.find_all("a", href=True)
-            ][:40]
-            scripts = [
-                script.get("src", "")
-                for script in debug_soup.find_all("script", src=True)
-            ][:40]
-            html = response.text
-            taste_refs = sorted(set(re.findall(r"(?:https?://dinnerqueen\\.net)?/taste/\\d+", html)))[:30]
-            ajax_refs = sorted(set(re.findall(r"[^\"'\\s<>]{0,100}(?:ajax|load|taste)[^\"'\\s<>]{0,120}", html, flags=re.IGNORECASE)))[:40]
-            application_snippets = []
-            for match in list(re.finditer(r"신청|모집", html))[:12]:
-                start = max(0, match.start() - 180)
-                end = min(len(html), match.end() + 280)
-                application_snippets.append(
-                    re.sub(r"\\s+", " ", html[start:end])
-                )
-
-            print(f"[DEBUG] response length: {len(html)}")
-            print(f"[DEBUG] href samples: {hrefs}")
-            print(f"[DEBUG] script src samples: {scripts}")
-            print(f"[DEBUG] taste refs: {taste_refs}")
-            print(f"[DEBUG] ajax/load/taste refs: {ajax_refs}")
-            print(f"[DEBUG] application snippets: {application_snippets}")
             raise RuntimeError("디너의여왕 캠페인 목록을 파싱하지 못했습니다.")
 
         print(f"목록에서 {len(listing)}개 캠페인을 찾았습니다.")
