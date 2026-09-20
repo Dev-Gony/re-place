@@ -17,7 +17,7 @@ from common import (
 
 
 BASE_URL = "https://www.mrblog.net"
-LIST_URL = f"{BASE_URL}/campaigns"
+LIST_URL = f"{BASE_URL}/"
 CAMPAIGN_RE = re.compile(r"^/campaigns/(\d+)$")
 COUNT_RE = re.compile(r"신청\s*([\d,]+)명?\s*/\s*모집\s*([\d,]+)명")
 DAYS_RE = re.compile(r"(\d+)일\s*남음")
