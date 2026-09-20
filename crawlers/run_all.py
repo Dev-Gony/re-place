@@ -12,7 +12,7 @@ Collector = tuple[str, Callable[[], None]]
 COLLECTORS: list[Collector] = [
     ("리뷰노트", get_reviewnote_data),
     ("디너의여왕", get_dinnerqueen_data),
-    ("포블로그", get_poblog_data),
+    ("미블", get_mible_data),
 ]
 
 
@@ -21,7 +21,7 @@ def run_all() -> None:
     started_at = datetime.now(timezone.utc).isoformat()
 
     print(f"Re:Place crawler batch started at {started_at}")
-    print("레뷰와 강남맛집 수집은 현재 운영 배치에서 일시 제외되어 있습니다.")
+    print("레뷰, 강남맛집, 포블로그 수집은 현재 운영 배치에서 일시 제외되어 있습니다.")
 
     for name, collector in COLLECTORS:
         started = perf_counter()
