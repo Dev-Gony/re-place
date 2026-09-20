@@ -259,9 +259,23 @@ def get_dinnerqueen_data():
                 script.get("src", "")
                 for script in debug_soup.find_all("script", src=True)
             ][:40]
-            print(f"[DEBUG] response length: {len(response.text)}")
+            html = response.text
+            taste_refs = sorted(set(re.findall(r"(?:https?://dinnerqueen\\.net)?/taste/\\d+", html)))[:30]
+            ajax_refs = sorted(set(re.findall(r"[^\"'\\s<>]{0,100}(?:ajax|load|taste)[^\"'\\s<>]{0,120}", html, flags=re.IGNORECASE)))[:40]
+            application_snippets = []
+            for match in list(re.finditer(r"신청|모집", html))[:12]:
+                start = max(0, match.start() - 180)
+                end = min(len(html), match.end() + 280)
+                application_snippets.append(
+                    re.sub(r"\\s+", " ", html[start:end])
+                )
+
+            print(f"[DEBUG] response length: {len(html)}")
             print(f"[DEBUG] href samples: {hrefs}")
             print(f"[DEBUG] script src samples: {scripts}")
+            print(f"[DEBUG] taste refs: {taste_refs}")
+            print(f"[DEBUG] ajax/load/taste refs: {ajax_refs}")
+            print(f"[DEBUG] application snippets: {application_snippets}")
             raise RuntimeError("디너의여왕 캠페인 목록을 파싱하지 못했습니다.")
 
         print(f"목록에서 {len(listing)}개 캠페인을 찾았습니다.")
