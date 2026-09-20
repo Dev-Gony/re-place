@@ -11,6 +11,7 @@ Collector = tuple[str, Callable[[], None]]
 COLLECTORS: list[Collector] = [
     ("리뷰노트", get_reviewnote_data),
     ("디너의여왕", get_dinnerqueen_data),
+    ("포블로그", get_poblog_data),
 ]
 
 
