@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
+import { queryDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -31,18 +31,6 @@ type ActiveFilters = {
   reward: string;
   sort: string;
 };
-
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://axsyupslmpdsatlxoliq.supabase.co";
-
-const supabaseKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-  "sb_publishable_xr-jck5ekpiwlVNnmAaZEw_Zx5K1OtN";
-
-function getSupabaseClient() {
-  return createClient(supabaseUrl, supabaseKey);
-}
 
 function firstValue(value: SearchValue) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -134,44 +122,66 @@ export default async function Home({
     Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
   const from = (currentPage - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
-  const supabase = getSupabaseClient();
+  const where: string[] = [];
+  const values: unknown[] = [];
 
-  let query = supabase
-    .from("campaigns")
-    .select(
-      "id, platform, title, link, media_type, reward, reward_amount, reward_kind, apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at",
-      { count: "exact" },
-    )
-    .range(from, to);
+  const addFilter = (clause: string, value: unknown) => {
+    values.push(value);
+    where.push(clause.replace("?", `${values.length}`));
+  };
 
-  if (sort === "deadline") {
-    query = query
-      .order("deadline_at", { ascending: true, nullsFirst: false })
-      .order("id", { ascending: false });
-  } else {
-    query = query.order("id", { ascending: false });
+  if (q) addFilter("title ILIKE ?", `%${q}%`);
+  if (platforms.length) addFilter("platform = ANY(?::text[])", platforms);
+  if (regionGroup) addFilter("region_group = ?", regionGroup);
+  if (region) addFilter("region ILIKE ?", `%${region}%`);
+  if (media) addFilter("media_type = ?", media);
+  if (campaignType) addFilter("campaign_type = ?", campaignType);
+
+  if (reward === "30000") addFilter("reward_amount >= ?", 30000);
+  if (reward === "50000") addFilter("reward_amount >= ?", 50000);
+  if (reward === "100000") addFilter("reward_amount >= ?", 100000);
+  if (reward === "provided") addFilter("reward_kind = ?", "provided");
+  if (reward === "points") addFilter("reward_kind = ?", "points");
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const orderSql =
+    sort === "deadline"
+      ? "ORDER BY deadline_at ASC NULLS LAST, id DESC"
+      : "ORDER BY id DESC";
+
+  const pageValues = [...values, PAGE_SIZE, from];
+  const limitParam = `${values.length + 1}`;
+  const offsetParam = `${values.length + 2}`;
+
+  let data: Record<string, any>[] = [];
+  let totalCount = 0;
+  let totalCampaigns = 0;
+  let error: Error | null = null;
+
+  try {
+    const [dataResult, countResult, totalResult] = await Promise.all([
+      queryDb(
+        `SELECT id, platform, title, link, media_type, reward, reward_amount, reward_kind,
+                apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at
+           FROM campaigns
+           ${whereSql}
+           ${orderSql}
+           LIMIT ${limitParam} OFFSET ${offsetParam}`,
+        pageValues,
+      ),
+      queryDb(
+        `SELECT count(*)::int AS count FROM campaigns ${whereSql}`,
+        values,
+      ),
+      queryDb("SELECT count(*)::int AS count FROM campaigns"),
+    ]);
+
+    data = dataResult.rows;
+    totalCount = Number(countResult.rows[0]?.count ?? 0);
+    totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
+  } catch (caught) {
+    error = caught instanceof Error ? caught : new Error("Database query failed");
   }
-
-  if (q) query = query.ilike("title", `%${q}%`);
-  if (platforms.length) query = query.in("platform", platforms);
-  if (regionGroup) query = query.eq("region_group", regionGroup);
-  if (region) query = query.ilike("region", `%${region}%`);
-  if (media) query = query.eq("media_type", media);
-  if (campaignType) query = query.eq("campaign_type", campaignType);
-
-  if (reward === "30000") query = query.gte("reward_amount", 30000);
-  if (reward === "50000") query = query.gte("reward_amount", 50000);
-  if (reward === "100000") query = query.gte("reward_amount", 100000);
-  if (reward === "provided") query = query.eq("reward_kind", "provided");
-  if (reward === "points") query = query.eq("reward_kind", "points");
-
-  const [{ data, count, error }, { count: totalCampaigns }] = await Promise.all([
-    query,
-    supabase.from("campaigns").select("id", { count: "exact", head: true }),
-  ]);
-
-  const totalCount = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const filters: ActiveFilters = {
     q,
