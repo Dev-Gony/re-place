@@ -25,7 +25,7 @@ Platform Collectors
 Normalize Campaign Data
         |
         v
-Supabase
+Neon Postgres
   campaigns table
         |
         v
@@ -62,14 +62,14 @@ Unified Campaign Search
 
 ### Data storage
 
-- Supabase `campaigns` 테이블 연동
+- Neon Postgres `campaigns` / `platform_sources` 테이블 연동
 - `(platform, source_campaign_id)` 기준 Unique + Upsert
 - 반복 수집 시 중복 데이터 방지
 - 검색 / 정렬용 메타데이터 인덱스
 
 ### Frontend
 
-Next.js App Router 기반으로 Supabase 데이터를 서버에서 조회합니다.
+Next.js App Router의 서버 컴포넌트에서 Neon Postgres를 직접 조회합니다.
 
 현재 제공 기능:
 
@@ -144,7 +144,8 @@ Next.js App Router 기반으로 Supabase 데이터를 서버에서 조회합니�
 
 ### Data / Collection
 
-- Supabase
+- Neon Postgres
+- PostgreSQL
 - Python
 - requests
 - BeautifulSoup4
@@ -165,7 +166,7 @@ Next.js App Router 기반으로 Supabase 데이터를 서버에서 조회합니�
 
 다음 단계:
 
-- 실제 운영 DB migration 적용 및 데이터 재수집
+- Neon 운영 DB 이전 및 기존 데이터 검증 완료
 - 프론트엔드 UI / 접근성 / 이미지 최적화
 - 크롤러 fixture 기반 테스트
 - 배포 화면 검증

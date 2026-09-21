@@ -1,0 +1,52 @@
+name: Neon migration check
+
+on:
+  push:
+    branches:
+      - migrate/neon
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run build
+      - run: python -m compileall -q crawlers
+      - name: Verify Neon connection
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -m pip install "psycopg[binary]>=3.2,<4"
+          python - <<'PY'
+          import os
+          import psycopg
+
+          database_url = os.environ.get("DATABASE_URL")
+          if not database_url:
+              raise SystemExit("DATABASE_URL secret is missing")
+
+          with psycopg.connect(database_url) as conn:
+              with conn.cursor() as cur:
+                  cur.execute("select count(*) from campaigns")
+                  count = cur.fetchone()[0]
+
+          if count < 3000:
+              raise SystemExit(f"Unexpected campaigns count: {count}")
+
+          print(f"Neon connection OK: campaigns={count}")
+          PY

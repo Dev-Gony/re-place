@@ -36,6 +36,5 @@ jobs:
 
       - name: Run active collectors
         env:
-          SUPABASE_URL: https://axsyupslmpdsatlxoliq.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python crawlers/run_all.py
