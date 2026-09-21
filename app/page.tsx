@@ -276,7 +276,6 @@ export default async function Home({
             <Link href="/?reward=50000">5만원 이상</Link>
             <Link href="/?sort=deadline">마감 임박</Link>
           </div>
-          </form>
 
           <div className="hero-stats">
             <div>
