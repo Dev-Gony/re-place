@@ -199,6 +199,10 @@ export default async function Home({
     totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
   } catch (caught) {
     error = caught instanceof Error ? caught : new Error("Database query failed");
+    console.error("[Re:Place] campaign query failed", {
+      message: error.message,
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    });
   }
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const filters: ActiveFilters = {
