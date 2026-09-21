@@ -145,7 +145,7 @@ export default async function Home({
 
   const addFilter = (clause: string, value: unknown) => {
     values.push(value);
-    where.push(clause.replace("?", `${values.length}`));
+    where.push(clause.replace("?", "$" + values.length));
   };
 
   if (q) addFilter("title ILIKE ?", `%${q}%`);
@@ -168,8 +168,8 @@ export default async function Home({
       : "ORDER BY id DESC";
 
   const pageValues = [...values, PAGE_SIZE, from];
-  const limitParam = `${values.length + 1}`;
-  const offsetParam = `${values.length + 2}`;
+  const limitParam = "$" + (values.length + 1);
+  const offsetParam = "$" + (values.length + 2);
 
   let data: CampaignRow[] = [];
   let totalCount = 0;
