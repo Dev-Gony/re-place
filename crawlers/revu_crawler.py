@@ -10,7 +10,7 @@ from common import (
     extract_region_from_title,
     first_datetime,
     first_text,
-    get_supabase_client,
+    get_database_connection,
     nested_datetime,
     nested_text,
     normalize_campaign_type,
@@ -34,7 +34,7 @@ def get_revu_data():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
     }
 
-    client = get_supabase_client()
+    client = get_database_connection()
     page = 1
     total_saved = 0
 
