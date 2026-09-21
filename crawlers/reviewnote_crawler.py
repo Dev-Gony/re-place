@@ -10,7 +10,7 @@ from common import (
     extract_region_from_title,
     first_datetime,
     first_text,
-    get_supabase_client,
+    get_database_connection,
     nested_datetime,
     nested_text,
     normalize_campaign_type,
@@ -40,7 +40,7 @@ def get_reviewnote_data():
 
     print(f"동적 Build ID 추출 완료: {build_id}")
 
-    client = get_supabase_client()
+    client = get_database_connection()
     page = 0
     total_saved = 0
 
