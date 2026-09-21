@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Iterable
 
 from dotenv import load_dotenv
-from supabase import Client, create_client
+import psycopg
 
 
 _REGION_PATTERN = re.compile(r"\[([^\]]+)\]")
@@ -54,26 +54,82 @@ class Campaign:
         return record
 
 
-def get_supabase_client() -> Client:
+def get_database_connection() -> psycopg.Connection:
     load_dotenv()
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    database_url = os.getenv("DATABASE_URL")
 
-    if not url or not key:
-        raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL must be configured")
 
-    return create_client(url, key)
+    return psycopg.connect(database_url)
 
 
-def upsert_campaigns(client: Client, campaigns: list[Campaign]) -> int:
+def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) -> int:
     if not campaigns:
         return 0
 
     records = [campaign.to_record() for campaign in campaigns]
-    client.table("campaigns").upsert(
-        records,
-        on_conflict="platform,source_campaign_id",
-    ).execute()
+    sql = """
+        insert into campaigns (
+            platform,
+            source_campaign_id,
+            title,
+            link,
+            image_url,
+            media_type,
+            reward,
+            is_points,
+            apply_count,
+            recruit_count,
+            region,
+            region_group,
+            campaign_type,
+            deadline_at,
+            reward_amount,
+            reward_kind,
+            collected_at
+        )
+        values (
+            %(platform)s,
+            %(source_campaign_id)s,
+            %(title)s,
+            %(link)s,
+            %(image_url)s,
+            %(media_type)s,
+            %(reward)s,
+            %(is_points)s,
+            %(apply_count)s,
+            %(recruit_count)s,
+            %(region)s,
+            %(region_group)s,
+            %(campaign_type)s,
+            %(deadline_at)s,
+            %(reward_amount)s,
+            %(reward_kind)s,
+            %(collected_at)s
+        )
+        on conflict (platform, source_campaign_id)
+        do update set
+            title = excluded.title,
+            link = excluded.link,
+            image_url = excluded.image_url,
+            media_type = excluded.media_type,
+            reward = excluded.reward,
+            is_points = excluded.is_points,
+            apply_count = excluded.apply_count,
+            recruit_count = excluded.recruit_count,
+            region = excluded.region,
+            region_group = excluded.region_group,
+            campaign_type = excluded.campaign_type,
+            deadline_at = excluded.deadline_at,
+            reward_amount = excluded.reward_amount,
+            reward_kind = excluded.reward_kind,
+            collected_at = excluded.collected_at
+    """
+
+    with connection.cursor() as cursor:
+        cursor.executemany(sql, records)
+    connection.commit()
     return len(records)
 
 
