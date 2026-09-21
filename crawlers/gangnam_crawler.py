@@ -6,7 +6,7 @@ from urllib3.util.retry import Retry
 from common import (
     Campaign,
     extract_region_from_title,
-    get_supabase_client,
+    get_database_connection,
     normalize_campaign_type,
     upsert_campaigns,
 )
@@ -107,7 +107,7 @@ def get_gangnam_data():
     if not campaigns:
         raise RuntimeError("강남맛집에서 수집할 캠페인을 찾지 못했습니다.")
 
-    saved = upsert_campaigns(get_supabase_client(), campaigns)
+    saved = upsert_campaigns(get_database_connection(), campaigns)
     print(f"{saved}개 캠페인을 DB에 동기화했습니다.")
 
 
