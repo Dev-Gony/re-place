@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from common import (
     Campaign,
     extract_region_from_title,
-    get_supabase_client,
+    get_database_connection,
     normalize_campaign_type,
     upsert_campaigns,
 )
@@ -203,7 +203,7 @@ def get_mible_data():
     if not campaigns:
         raise RuntimeError("미블에서 수집할 캠페인을 찾지 못했습니다.")
 
-    saved = upsert_campaigns(get_supabase_client(), campaigns)
+    saved = upsert_campaigns(get_database_connection(), campaigns)
     print(f"미블 {saved}개 캠페인 DB 동기화 완료")
 
 
