@@ -4,29 +4,33 @@ const globalForDb = globalThis as typeof globalThis & {
   rePlacePool?: Pool;
 };
 
-function createPool() {
+function getPool() {
+  if (globalForDb.rePlacePool) {
+    return globalForDb.rePlacePool;
+  }
+
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is not configured");
   }
 
-  return new Pool({
+  const pool = new Pool({
     connectionString,
     max: 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
-}
 
-const pool = globalForDb.rePlacePool ?? createPool();
+  if (process.env.NODE_ENV !== "production") {
+    globalForDb.rePlacePool = pool;
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.rePlacePool = pool;
+  return pool;
 }
 
 export function queryDb<T extends QueryResultRow = QueryResultRow>(
   text: string,
   values: readonly unknown[] = [],
 ): Promise<QueryResult<T>> {
-  return pool.query<T>(text, [...values]);
+  return getPool().query<T>(text, [...values]);
 }
