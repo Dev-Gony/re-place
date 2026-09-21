@@ -32,6 +32,24 @@ type ActiveFilters = {
   sort: string;
 };
 
+type CampaignRow = {
+  id: number;
+  platform: string;
+  title: string;
+  link: string;
+  media_type: string | null;
+  reward: string | null;
+  reward_amount: number | null;
+  reward_kind: string | null;
+  apply_count: number | null;
+  recruit_count: number | null;
+  region: string | null;
+  region_group: string | null;
+  campaign_type: string | null;
+  deadline_at: string | null;
+  collected_at: string;
+};
+
 function firstValue(value: SearchValue) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
@@ -153,14 +171,14 @@ export default async function Home({
   const limitParam = `${values.length + 1}`;
   const offsetParam = `${values.length + 2}`;
 
-  let data: Record<string, any>[] = [];
+  let data: CampaignRow[] = [];
   let totalCount = 0;
   let totalCampaigns = 0;
   let error: Error | null = null;
 
   try {
     const [dataResult, countResult, totalResult] = await Promise.all([
-      queryDb(
+      queryDb<CampaignRow>(
         `SELECT id, platform, title, link, media_type, reward, reward_amount, reward_kind,
                 apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at
            FROM campaigns
