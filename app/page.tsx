@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { queryDb } from "@/lib/db";
+import { FilterPanel, HeroSearch } from "./filter-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -265,33 +266,16 @@ export default async function Home({
             </p>
           </div>
 
-          <form action="/" method="get" className="hero-search">
-            <div className="hero-search-main">
-              <div className="search-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
-                  <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              </div>
-              <input
-                id="q"
-                name="q"
-                defaultValue={q}
-                placeholder="예: 강남 카페, 제주 숙소, 화장품"
-                aria-label="캠페인 검색"
-              />
-              <button type="submit">검색</button>
-            </div>
+          <HeroSearch initialQuery={q} />
 
-            <div className="hero-search-meta">
-              <span>빠른 탐색</span>
-              <Link href="/?regionGroup=서울">서울</Link>
-              <Link href="/?regionGroup=경기·인천">경기·인천</Link>
-              <Link href="/?type=배송형">배송형</Link>
-              <Link href="/?reward=50000">5만원 이상</Link>
-              <Link href="/?sort=deadline">마감 임박</Link>
-            </div>
-          </form>
+          <div className="hero-search-meta">
+            <span>빠른 탐색</span>
+            <Link href="/?regionGroup=서울">서울</Link>
+            <Link href="/?regionGroup=경기·인천">경기·인천</Link>
+            <Link href="/?type=배송형">배송형</Link>
+            <Link href="/?reward=50000">5만원 이상</Link>
+            <Link href="/?sort=deadline">마감 임박</Link>
+          </div>
 
           <div className="hero-stats">
             <div>
@@ -311,139 +295,15 @@ export default async function Home({
       </section>
 
       <section className="content-wrap" id="campaigns">
-        <form action="/" method="get" className="filter-panel" id="filters">
-          <input type="hidden" name="q" value={q} />
-
-          <div className="filter-row filter-platforms">
-            <div className="filter-label">
-              <span>플랫폼</span>
-              <small>여러 개 선택 가능</small>
-            </div>
-            <div className="chip-group">
-              {PLATFORMS.map((item) => (
-                <label className="check-chip" key={item}>
-                  <input
-                    type="checkbox"
-                    name="platform"
-                    value={item}
-                    defaultChecked={platforms.includes(item)}
-                  />
-                  <span>{item}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="filter-row">
-            <div className="filter-label">
-              <span>지역</span>
-              <small>광역권으로 빠르게 필터</small>
-            </div>
-            <div className="chip-group region-chips">
-              <label className="radio-chip">
-                <input
-                  type="radio"
-                  name="regionGroup"
-                  value=""
-                  defaultChecked={!regionGroup}
-                />
-                <span>전체</span>
-              </label>
-              {REGION_GROUPS.map((item) => (
-                <label className="radio-chip" key={item}>
-                  <input
-                    type="radio"
-                    name="regionGroup"
-                    value={item}
-                    defaultChecked={regionGroup === item}
-                  />
-                  <span>{item}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="filter-row reward-filter">
-            <div className="filter-label">
-              <span>제공내역</span>
-              <small>금액 기준으로 빠르게 선별</small>
-            </div>
-            <div className="chip-group">
-              {[
-                ["", "전체"],
-                ["30000", "3만원+"],
-                ["50000", "5만원+"],
-                ["100000", "10만원+"],
-                ["provided", "제공형"],
-                ["points", "포인트"],
-              ].map(([value, label]) => (
-                <label className="radio-chip" key={label}>
-                  <input
-                    type="radio"
-                    name="reward"
-                    value={value}
-                    defaultChecked={reward === value}
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="filter-grid">
-            <label className="filter-field" htmlFor="region">
-              <span>세부 지역</span>
-              <input
-                id="region"
-                name="region"
-                defaultValue={region}
-                placeholder="강남, 성수, 수원..."
-              />
-            </label>
-
-            <label className="filter-field" htmlFor="media">
-              <span>매체</span>
-              <select id="media" name="media" defaultValue={media}>
-                <option value="">전체</option>
-                {MEDIA_TYPES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="filter-field" htmlFor="type">
-              <span>유형</span>
-              <select id="type" name="type" defaultValue={campaignType}>
-                <option value="">전체</option>
-                {CAMPAIGN_TYPES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="filter-field" htmlFor="sort">
-              <span>정렬</span>
-              <select id="sort" name="sort" defaultValue={sort}>
-                <option value="latest">최신순</option>
-                <option value="deadline">마감임박순</option>
-              </select>
-            </label>
-
-            <button type="submit" className="filter-submit">
-              조건 적용
-            </button>
-
-            {hasActiveFilters && (
-              <Link href="/" className="filter-reset">
-                초기화
-              </Link>
-            )}
-          </div>
-        </form>
+        <FilterPanel
+          key={buildHref(filters, currentPage)}
+          values={filters}
+          platforms={PLATFORMS}
+          mediaTypes={MEDIA_TYPES}
+          campaignTypes={CAMPAIGN_TYPES}
+          regionGroups={REGION_GROUPS}
+          hasActiveFilters={hasActiveFilters}
+        />
 
         <div className="results-head">
           <div>
