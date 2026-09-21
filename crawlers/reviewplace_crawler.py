@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import requests
 from bs4 import BeautifulSoup
 
-from common import Campaign, get_supabase_client, upsert_campaigns
+from common import Campaign, get_database_connection, upsert_campaigns
 
 
 BASE_URL = "https://www.reviewplace.co.kr"
@@ -216,7 +216,7 @@ def get_reviewplace_data():
     if not campaigns:
         raise RuntimeError("리뷰플레이스에서 수집할 캠페인을 찾지 못했습니다.")
 
-    saved = upsert_campaigns(get_supabase_client(), campaigns)
+    saved = upsert_campaigns(get_database_connection(), campaigns)
     print(f"리뷰플레이스 {saved}개 캠페인 DB 동기화 완료")
 
 
