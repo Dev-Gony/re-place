@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { queryDb } from "@/lib/db";
+import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
 import { FilterPanel, HeroSearch } from "./filter-controls";
 
-export const dynamic = "force-dynamic";
+// searchParams keeps this page request-rendered; public DB reads are cached separately.
 
 const PAGE_SIZE = 40;
 const PLATFORMS = ["강남맛집", "리뷰노트", "디너의여왕", "미블", "리뷰플레이스", "리뷰어스", "레뷰"];

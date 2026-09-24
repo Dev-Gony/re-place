@@ -5,26 +5,25 @@ const globalForDb = globalThis as typeof globalThis & {
 };
 
 function getPool() {
-  if (globalForDb.rePlacePool) {
-    return globalForDb.rePlacePool;
-  }
+  if (globalForDb.rePlacePool) return globalForDb.rePlacePool;
 
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not configured");
-  }
+  if (!connectionString) throw new Error("DATABASE_URL is not configured");
 
   const pool = new Pool({
     connectionString,
-    max: 5,
-    idleTimeoutMillis: 30_000,
+    max: 3,
+    idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 10_000,
+    statement_timeout: 15_000,
+    application_name: "re-place-web",
   });
-
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.rePlacePool = pool;
-  }
-
+  // Idle clients can fail independently of a request. Do not log credentials.
+  pool.on("error", () => {
+    console.error("[Re:Place] idle database connection failed");
+  });
+  // One pool per warm process, including production. Never a new pool per query.
+  globalForDb.rePlacePool = pool;
   return pool;
 }
 
