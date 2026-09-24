@@ -88,12 +88,11 @@ Next.js App Router의 서버 컴포넌트에서 Neon Postgres를 직접 조회�
 
 필요한 GitHub Actions repository secret:
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `DATABASE_URL` — Neon pooled PostgreSQL connection string
 
 레뷰 수집은 현재 운영 배치에서 일시 제외되어 있으며, 토큰을 다시 확보한 뒤 재활성화할 예정입니다.
 
-수동 실행도 `workflow_dispatch`로 지원합니다. 세 플랫폼 중 하나라도 인증, API, 파싱 또는 DB 저장 단계에서 실패하면 workflow 전체를 실패 처리해 조용히 데이터가 끊기는 상황을 줄였습니다. 크롤러 쓰기 권한은 브라우저에 노출되지 않는 `SUPABASE_SERVICE_ROLE_KEY`로 분리합니다.
+수동 실행도 `workflow_dispatch`로 지원합니다. 세 플랫폼 중 하나라도 인증, API, 파싱 또는 DB 저장 단계에서 실패하면 workflow 전체를 실패 처리해 조용히 데이터가 끊기는 상황을 줄였습니다. 크롤러는 브라우저에 노출되지 않는 GitHub Actions secret `DATABASE_URL`을 통해 Neon에 직접 기록합니다.
 
 ## Technical Problems I Worked On
 
@@ -166,11 +165,21 @@ Next.js App Router의 서버 컴포넌트에서 Neon Postgres를 직접 조회�
 
 다음 단계:
 
-- Neon 운영 DB 이전 및 기존 데이터 검증 완료
+- Neon 운영 DB 사용량 / 연결 수 모니터링
 - 프론트엔드 UI / 접근성 / 이미지 최적화
 - 크롤러 fixture 기반 테스트
 - 배포 화면 검증
 - 관심 캠페인 저장 / 마감 알림 등 사용자 기능
+
+## Deployment / Infrastructure
+
+- Frontend: Next.js 16
+- Hosting: Vercel-compatible Node/Next.js host
+- Database: Neon Postgres
+- Scheduled collection: GitHub Actions, every 6 hours
+- Database credential: GitHub Actions / hosting environment의 `DATABASE_URL`
+- Previous Supabase project is not part of the production data path.
+- Public browser code never receives the PostgreSQL connection string.
 
 ## Why This Project Matters
 
