@@ -1,12 +1,18 @@
-name: Neon migration check
+name: Neon database check
 
 on:
-  push:
-    branches:
-      - migrate/neon
+  workflow_dispatch:
   pull_request:
     branches:
       - main
+    paths:
+      - "lib/db.ts"
+      - "lib/campaign-cache.ts"
+      - "crawlers/**"
+      - "package.json"
+      - "package-lock.json"
+      - "requirements.txt"
+      - ".github/workflows/neon-migration-check.yml"
 
 permissions:
   contents: read
