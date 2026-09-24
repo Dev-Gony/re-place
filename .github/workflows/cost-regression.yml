@@ -1,0 +1,31 @@
+name: Cost regression
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'app/**'
+      - 'test/**'
+      - 'package*.json'
+      - '.github/workflows/cost-regression.yml'
+permissions:
+  contents: read
+concurrency:
+  group: cost-regression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test test/cost-*.test.cjs
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
