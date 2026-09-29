@@ -58,8 +58,12 @@ def clean_link(href: str) -> tuple[str, str] | None:
     return source_id, clean_url
 
 
+def strip_listing_flags(text: str) -> str:
+    return re.sub(r"^\s*(?:NEW\s+)+", "", text, flags=re.IGNORECASE).strip()
+
+
 def parse_region_from_tag(text: str) -> str | None:
-    tag_match = LEADING_TAG_RE.match(text)
+    tag_match = LEADING_TAG_RE.match(strip_listing_flags(text))
     if not tag_match:
         return None
 
@@ -103,9 +107,10 @@ def parse_region_from_tag(text: str) -> str | None:
 
 
 def parse_media_type(text: str) -> str:
-    tag_match = LEADING_TAG_RE.match(text)
+    cleaned = strip_listing_flags(text)
+    tag_match = LEADING_TAG_RE.match(cleaned)
     tag = " ".join(part for part in tag_match.groups() if part) if tag_match else ""
-    source = tag or text[:80]
+    source = tag or cleaned[:80]
 
     if "릴스" in source:
         return "숏폼(릴스)"
@@ -142,6 +147,7 @@ def parse_deadline(text: str) -> str | None:
 
 
 def split_content(text: str) -> tuple[str, str]:
+    text = strip_listing_flags(text)
     deadline_markers = []
     dday = D_DAY_RE.search(text)
     if dday:
