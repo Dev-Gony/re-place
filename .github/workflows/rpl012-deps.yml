@@ -1,0 +1,36 @@
+name: RPL-012 dependency sync
+
+on:
+  push:
+    branches:
+      - feat/rpl-012-auth-boundary
+    paths:
+      - ".github/workflows/rpl012-deps.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/rpl-012-auth-boundary
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install Neon Auth packages
+        run: npm install @neondatabase/auth @neondatabase/auth-ui --save
+      - name: Commit dependency lock
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "No dependency changes"
+            exit 0
+          fi
+          git commit -m "deps: add Neon Auth client"
+          git push origin HEAD:feat/rpl-012-auth-boundary
