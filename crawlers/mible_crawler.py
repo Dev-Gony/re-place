@@ -12,6 +12,7 @@ from common import (
     extract_region_from_title,
     get_database_connection,
     normalize_campaign_type,
+    normalize_region_group,
     upsert_campaigns,
 )
 
@@ -50,7 +51,12 @@ def parse_campaign_link(href: str) -> tuple[str, str] | None:
 def parse_deadline(text: str) -> str | None:
     days_match = DAYS_RE.search(text)
     if not days_match:
-        if "오늘 마감" not in text and "오늘마감" not in text:
+        compact = text.replace(" ", "").lower()
+        if (
+            "오늘마감" not in compact
+            and "d-day" not in compact
+            and "dday" not in compact
+        ):
             return None
         days = 0
     else:
@@ -67,6 +73,31 @@ def parse_deadline(text: str) -> str | None:
         59,
         tzinfo=seoul,
     ).isoformat()
+
+
+def extract_region_from_card(
+    card_text: str,
+    title: str,
+) -> str | None:
+    prefix = card_text.split(title, 1)[0].strip() if title in card_text else ""
+    prefix = re.sub(
+        r"^(?:NEW|추천|프리미엄|클립|릴스|숏폼|인스타그램|인스타|블로그)\s*",
+        "",
+        prefix,
+        flags=re.IGNORECASE,
+    ).strip(" |·-/")
+
+    if prefix and normalize_region_group(prefix):
+        return prefix[:80]
+
+    # Some cards keep the region label directly next to the title without
+    # brackets. Do not guess from arbitrary brand names; only keep text that
+    # maps to a known region group.
+    leading = " ".join(card_text.split()[:3]).strip()
+    if leading and normalize_region_group(leading):
+        return leading[:80]
+
+    return extract_region_from_title(title)
 
 
 def parse_media_type(text: str) -> str:
@@ -107,7 +138,7 @@ def parse_card(anchor) -> Campaign | None:
         apply_count = int(count_match.group(1).replace(",", ""))
         recruit_count = int(count_match.group(2).replace(",", ""))
 
-    region = extract_region_from_title(title)
+    region = extract_region_from_card(card_text, title)
 
     raw_type = None
     if "배송" in card_text:
