@@ -6,7 +6,12 @@ from zoneinfo import ZoneInfo
 import requests
 from bs4 import BeautifulSoup
 
-from common import Campaign, get_database_connection, upsert_campaigns
+from common import (
+    Campaign,
+    get_database_connection,
+    normalize_region_group,
+    upsert_campaigns,
+)
 
 
 BASE_URL = "https://www.reviewplace.co.kr"
@@ -51,6 +56,50 @@ def clean_link(href: str) -> tuple[str, str] | None:
         (parsed.scheme, parsed.netloc, parsed.path, "", clean_query, "")
     )
     return source_id, clean_url
+
+
+def parse_region_from_tag(text: str) -> str | None:
+    tag_match = LEADING_TAG_RE.match(text)
+    if not tag_match:
+        return None
+
+    tag = " ".join(part for part in tag_match.groups() if part)
+    tokens = [
+        token.strip()
+        for token in re.split(r"[/|,]", tag)
+        if token.strip()
+    ]
+
+    ignored = {
+        "블로그",
+        "릴스",
+        "인스타",
+        "인스타릴스",
+        "인스타그램",
+        "유튜브",
+        "쇼츠",
+        "클립",
+        "스스",
+        "스마트스토어",
+        "구매평",
+        "기자단",
+        "N인플루언서",
+    }
+    candidates = [
+        token
+        for token in tokens
+        if token not in ignored
+        and not re.search(r"\d+\s*만?\s*원|\d+P|상당", token, re.IGNORECASE)
+    ]
+
+    for size in (2, 1):
+        if len(candidates) < size:
+            continue
+        candidate = " ".join(candidates[:size])
+        if normalize_region_group(candidate):
+            return candidate
+
+    return None
 
 
 def parse_media_type(text: str) -> str:
@@ -151,8 +200,16 @@ def parse_campaign(anchor, category: str) -> Campaign | None:
         region = "배송"
     elif category == "지역":
         campaign_type = "방문형"
+        region = parse_region_from_tag(text)
     elif category == "구매평":
         campaign_type = "페이백"
+        region = "배송"
+    elif category == "기자단":
+        campaign_type = "기자단"
+        region = parse_region_from_tag(text) or "전국"
+    elif category == "프리미엄":
+        region = parse_region_from_tag(text)
+        campaign_type = "방문형" if region else None
 
     return Campaign(
         platform="리뷰플레이스",
