@@ -20,40 +20,44 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install requests
-      - name: Probe Gangnam public recommendation endpoint
+      - name: Inspect Gangnam recommendation JSON contract
         run: |
           python - <<'PY'
           import json
           import requests
 
-          session = requests.Session()
-          session.headers.update({
+          url = "https://gangnam-review.net/index_recommend.php"
+          headers = {
               "User-Agent": "Mozilla/5.0",
               "Referer": "https://gangnam-review.net/cp/?id=2295177",
-          })
+          }
 
-          url = "https://gangnam-review.net/index_recommend.php"
-          response = session.get(url, timeout=(8, 20))
-          print("status:", response.status_code)
-          print("content_type:", response.headers.get("content-type"))
-          print("bytes:", len(response.content))
+          response = requests.get(url, headers=headers, timeout=(8, 20))
           response.raise_for_status()
-
           data = response.json()
-          print("top_keys:", sorted(data.keys()) if isinstance(data, dict) else type(data).__name__)
-          items = data.get("items", []) if isinstance(data, dict) else []
+
+          print("count:", data.get("count"))
+          print("qr:", json.dumps(data.get("qr"), ensure_ascii=False)[:2000])
+          items = data.get("items", [])
           print("items:", len(items))
-          if items:
-              print("item_keys:", sorted(items[0].keys()))
-              for item in items[:10]:
-                  safe = {
-                      key: item.get(key)
-                      for key in (
-                          "href", "title", "subject", "type", "d_gap",
-                          "apply", "apply_cnt", "recruit", "recruit_cnt",
-                          "benefit", "reward", "location", "region"
-                      )
-                      if key in item
-                  }
-                  print("item:", json.dumps(safe, ensure_ascii=False)[:1200])
+          for index, item in enumerate(items[:3], 1):
+              print(
+                  f"full_item_{index}:",
+                  json.dumps(item, ensure_ascii=False)[:5000],
+              )
+
+          seen = set()
+          for attempt in range(5):
+              sample = requests.get(
+                  url,
+                  headers=headers,
+                  timeout=(8, 20),
+              ).json().get("items", [])
+              seen.update(
+                  item.get("href")
+                  for item in sample
+                  if item.get("href")
+              )
+              print(f"sample_{attempt + 1}_items:", len(sample))
+              print(f"sample_{attempt + 1}_union:", len(seen))
           PY
