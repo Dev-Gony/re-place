@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
 import { FilterPanel, HeroSearch } from "./filter-controls";
+import { AuthStatus } from "./auth-status";
 
 // searchParams keeps this page request-rendered; public DB reads are cached separately.
 
@@ -313,9 +314,12 @@ export default async function Home({
             <a href="#filters">필터</a>
           </nav>
 
-          <div className="header-status">
-            <span className="status-dot" />
-            6시간 주기 업데이트
+          <div className="header-actions">
+            <div className="header-status">
+              <span className="status-dot" />
+              6시간 주기 업데이트
+            </div>
+            <AuthStatus />
           </div>
         </div>
       </header>
