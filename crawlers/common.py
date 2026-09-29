@@ -287,16 +287,16 @@ def _context_amount(text: str, labels: str) -> int | None:
 
 
 def _provided_amount(text: str) -> int | None:
-    labelled = _context_amount(text, _PROVIDED_LABELS)
-    if labelled is not None:
-        return labelled
-
     substantial = re.search(
         rf"(?P<amount>{_AMOUNT_TEXT})\s*(?:상당|상응)",
         text,
     )
     if substantial:
         return _parse_amount_text(substantial.group("amount"))
+
+    labelled = _context_amount(text, _PROVIDED_LABELS)
+    if labelled is not None:
+        return labelled
 
     return None
 
