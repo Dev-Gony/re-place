@@ -20,67 +20,60 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install requests beautifulsoup4
-      - name: Inspect Supermembers API call sites
+      - name: Probe exposed read-only Supermembers GET routes
         run: |
           python - <<'PY'
-          import re
+          import json
           import requests
-          from bs4 import BeautifulSoup
-          from urllib.parse import urljoin
 
-          headers = {"User-Agent": "Mozilla/5.0"}
-          page = "https://www.supermembers.co.kr/"
-          html = requests.get(page, headers=headers, timeout=(8, 20)).text
-          soup = BeautifulSoup(html, "html.parser")
-          scripts = [
-              urljoin(page, tag["src"])
-              for tag in soup.find_all("script", src=True)
-              if tag.get("src")
+          headers = {
+              "User-Agent": "Mozilla/5.0",
+              "Accept": "application/json,text/plain,*/*",
+              "Origin": "https://www.supermembers.co.kr",
+              "Referer": "https://www.supermembers.co.kr/",
+          }
+
+          candidates = [
+              "https://api.supermembers.co.kr/company3/v2?orderBy=id&direction=desc",
+              "https://api.supermembers.co.kr/company3/v2?orderBy=id&direction=desc&limit=10",
+              "https://api.supermembers.co.kr/company/option",
+              "https://api.supermembers.co.kr/company3",
+              "https://api.supermembers.co.kr/company3?limit=10",
+              "https://api.supermembers.co.kr/ads",
+              "https://api.supermembers.co.kr/ad",
           ]
 
-          js = "\n".join(
-              requests.get(src, headers=headers, timeout=(8, 20)).text
-              for src in scripts
-          )
+          for url in candidates:
+              print("\n===", url, "===")
+              try:
+                  response = requests.get(
+                      url,
+                      headers=headers,
+                      timeout=(8, 20),
+                      allow_redirects=False,
+                  )
+              except Exception as exc:
+                  print("error:", type(exc).__name__, str(exc)[:300])
+                  continue
 
-          needles = [
-              "api.supermembers.co.kr",
-              "console-api.supermembers.co.kr",
-              "/company",
-              "/ad",
-              "/store",
-              "/place",
-              "/experience",
-              "/member",
-              "/blogger",
-              "/reviewer",
-          ]
+              print("status:", response.status_code)
+              print("content_type:", response.headers.get("content-type"))
+              print("www_authenticate:", response.headers.get("www-authenticate"))
+              print("bytes:", len(response.content))
+              body = response.text[:1800]
+              print("body:", " ".join(body.split()))
 
-          for needle in needles:
-              print(f"=== needle {needle} ===")
-              starts = [m.start() for m in re.finditer(re.escape(needle), js, re.I)]
-              print("matches:", len(starts))
-              for pos in starts[:30]:
-                  snippet = js[max(0, pos-350):pos+700]
-                  snippet = " ".join(snippet.split())
-                  print("snippet:", snippet[:1300])
-
-          call_pattern = re.compile(
-              r"(?:\.get|\.post|\.put|\.delete)\((.{0,260})\)",
-              re.I,
-          )
-          calls = []
-          for match in call_pattern.finditer(js):
-              value = " ".join(match.group(0).split())
-              if any(k in value.lower() for k in (
-                  "company", "store", "place", "ad", "experience",
-                  "member", "blogger", "review"
-              )):
-                  if value not in calls:
-                      calls.append(value)
-
-          print("=== api_calls ===")
-          print("count:", len(calls))
-          for call in calls[:120]:
-              print("call:", call[:1000])
+              if response.ok and "json" in (response.headers.get("content-type") or ""):
+                  try:
+                      data = response.json()
+                      if isinstance(data, dict):
+                          print("json_keys:", sorted(data.keys()))
+                      elif isinstance(data, list):
+                          print("json_list_len:", len(data))
+                          if data:
+                              first = data[0]
+                              if isinstance(first, dict):
+                                  print("first_keys:", sorted(first.keys()))
+                  except Exception:
+                      pass
           PY
