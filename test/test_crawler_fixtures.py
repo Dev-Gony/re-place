@@ -11,6 +11,7 @@ FIXTURES = ROOT / 'test' / 'fixtures'
 sys.path.insert(0, str(CRAWLERS))
 
 import dinnerqueen_crawler
+import gangnam_crawler
 import mible_crawler
 import reviewnote_crawler
 import reviewplace_crawler
@@ -68,6 +69,36 @@ class CrawlerFixtureTests(unittest.TestCase):
         self.assertEqual(len(campaigns), 1)
         self.assertIsNone(campaigns[0].apply_count)
         self.assertIsNone(campaigns[0].recruit_count)
+
+    def test_gangnam_current_domain_fixture(self):
+        html = (FIXTURES / 'gangnam.html').read_text(encoding='utf-8')
+        campaigns = gangnam_crawler.parse_campaigns(
+            html,
+            page_url='https://gangnam-review.net/',
+        )
+        self.assertEqual(len(campaigns), 2)
+
+        first = next(item for item in campaigns if item.source_campaign_id == '2295177')
+        self.assertEqual(first.platform, '강남맛집')
+        self.assertEqual(first.apply_count, 582)
+        self.assertEqual(first.recruit_count, 5)
+        self.assertEqual(first.campaign_type, '배송형')
+        self.assertEqual(
+            first.link,
+            'https://gangnam-review.net/cp/?id=2295177',
+        )
+        self.assertIn('65000', str(first.reward_amount))
+
+    def test_gangnam_source_id_is_numeric_and_deduplicated(self):
+        html = (FIXTURES / 'gangnam.html').read_text(encoding='utf-8')
+        campaigns = gangnam_crawler.parse_campaigns(html)
+        ids = [item.source_campaign_id for item in campaigns]
+        self.assertEqual(ids.count('2295177'), 1)
+        self.assertTrue(all(item.isdigit() for item in ids))
+
+    def test_gangnam_invalid_campaign_link_is_rejected(self):
+        self.assertIsNone(gangnam_crawler.canonical_source_id('/cp/?foo=123'))
+        self.assertIsNone(gangnam_crawler.canonical_source_id('/notice/?id=123'))
 
     def test_reviewplace_fixture(self):
         html = (FIXTURES / 'reviewplace.html').read_text(encoding='utf-8')
