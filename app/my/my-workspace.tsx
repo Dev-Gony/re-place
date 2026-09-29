@@ -2,6 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
+import { MonthCalendar } from "./month-calendar";
+
 export type FavoriteItem = {
   id: number;
   campaign_id: number;
@@ -100,13 +102,13 @@ function calendarKey(value: string | Date) {
   return year && month && day ? `${year}-${month}-${day}` : null;
 }
 
-function taskUrgency(task: TaskItem) {
+function taskUrgency(task: TaskItem, todayKey: string) {
   if (task.completed_at) {
     return { label: "완료", tone: "done" };
   }
 
   const due = calendarKey(task.due_at);
-  const today = calendarKey(new Date());
+  const today = todayKey;
   if (!due || !today) {
     return { label: "예정", tone: "normal" };
   }
@@ -125,16 +127,19 @@ export function MyWorkspace({
   initialFavorites,
   initialRecords,
   initialTasks,
+  todayKey,
 }: {
   initialFavorites: FavoriteItem[];
   initialRecords: RecordItem[];
   initialTasks: TaskItem[];
+  todayKey: string;
 }) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>(initialFavorites);
   const [records, setRecords] = useState<RecordItem[]>(initialRecords);
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
   const [manualOpen, setManualOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
   const [notice, setNotice] = useState<string | null>(null);
 
   function showError(message: string) {
@@ -176,9 +181,9 @@ export function MyWorkspace({
   const overdueTaskCount = useMemo(
     () =>
       tasks.filter(
-        (task) => !task.completed_at && taskUrgency(task).tone === "overdue",
+        (task) => !task.completed_at && taskUrgency(task, todayKey).tone === "overdue",
       ).length,
-    [tasks],
+    [tasks, todayKey],
   );
 
   const filteredRecords = useMemo(() => {
@@ -344,9 +349,27 @@ export function MyWorkspace({
         <div className="my-section-head">
           <div>
             <h2>일정 · 할 일</h2>
-            <p>방문, 콘텐츠 작성, 제출 일정을 따로 관리합니다.</p>
+            <p>방문, 콘텐츠 작성, 제출 일정과 캠페인 마감을 함께 관리합니다.</p>
           </div>
-          <span className="my-section-count">{openTaskCount}개 남음</span>
+          <div className="my-schedule-head-actions">
+            <span className="my-section-count">{openTaskCount}개 남음</span>
+            <div className="my-view-toggle" aria-label="일정 보기 방식">
+              <button
+                type="button"
+                className={scheduleView === "calendar" ? "active" : ""}
+                onClick={() => setScheduleView("calendar")}
+              >
+                달력
+              </button>
+              <button
+                type="button"
+                className={scheduleView === "list" ? "active" : ""}
+                onClick={() => setScheduleView("list")}
+              >
+                목록
+              </button>
+            </div>
+          </div>
         </div>
 
         {records.length ? (
@@ -380,7 +403,10 @@ export function MyWorkspace({
           </div>
         )}
 
-        <div className="my-task-table">
+        {scheduleView === "calendar" ? (
+          <MonthCalendar tasks={tasks} records={records} todayKey={todayKey} />
+        ) : (
+          <div className="my-task-table">
           <div className="my-task-table-head" aria-hidden="true">
             <span>캠페인</span>
             <span>할 일</span>
@@ -391,7 +417,7 @@ export function MyWorkspace({
 
           {tasks.length ? (
             tasks.map((task) => {
-              const urgency = taskUrgency(task);
+              const urgency = taskUrgency(task, todayKey);
 
               return (
                 <article
@@ -430,7 +456,8 @@ export function MyWorkspace({
               아직 등록한 할 일이 없습니다. 방문일이나 리뷰 제출일을 추가해 보세요.
             </div>
           )}
-        </div>
+          </div>
+        )}
       </section>
 
       <section className="my-section">

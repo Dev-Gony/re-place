@@ -9,6 +9,21 @@ import type { FavoriteItem, RecordItem, TaskItem } from "./my-workspace";
 
 export const dynamic = "force-dynamic";
 
+function seoulDateKey() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Seoul",
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "1970-01-01";
+}
+
 export default async function MyPage() {
   const { data: session } = await auth.getSession();
 
@@ -85,6 +100,7 @@ export default async function MyPage() {
           initialFavorites={favoritesResult.rows}
           initialRecords={recordsResult.rows}
           initialTasks={tasksResult.rows}
+          todayKey={seoulDateKey()}
         />
       </section>
     </main>
