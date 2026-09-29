@@ -74,3 +74,18 @@ test('unknown visit locations are not rendered as fake region values', () => {
   assert.match(page, /위치 원문 확인/);
   assert.match(page, /지역무관/);
 });
+
+
+test('production header keeps auth controls on the far right', () => {
+  assert.match(css, /\.header-actions\s*\{[\s\S]*?margin-left:\s*auto/);
+});
+
+test('campaign action label never wraps vertically', () => {
+  assert.match(css, /\.row-cta\s*\{[\s\S]*?white-space:\s*nowrap/);
+  assert.match(css, /\.campaign-actions\s*\{[\s\S]*?grid-template-columns:\s*30px 56px/);
+});
+
+test('deadline formatter removes the Korean trailing period', () => {
+  assert.match(page, /formatToParts/);
+  assert.match(page, /month \+ "\." \+ day/);
+});

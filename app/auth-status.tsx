@@ -22,9 +22,6 @@ export function AuthStatus() {
 
   return (
     <div className="header-auth">
-      <Link href="/my" className="header-my-link">
-        내 체험단
-      </Link>
       <UserButton />
     </div>
   );

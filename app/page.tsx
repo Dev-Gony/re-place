@@ -95,11 +95,15 @@ function formatDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
 
-  return new Intl.DateTimeFormat("ko-KR", {
+  const parts = new Intl.DateTimeFormat("ko-KR", {
     month: "numeric",
     day: "numeric",
     timeZone: "Asia/Seoul",
-  }).format(date);
+  }).formatToParts(date);
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return month && day ? month + "." + day : null;
 }
 
 function formatAmount(value: number | null) {

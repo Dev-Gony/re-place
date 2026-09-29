@@ -4110,3 +4110,53 @@ body {
     padding-top: 34px;
   }
 }
+
+
+/* RPL-017 production UI hotfix */
+.header-actions {
+  margin-left: auto;
+}
+
+.header-auth {
+  margin-left: 0;
+}
+
+.header-auth-link {
+  white-space: nowrap;
+}
+
+.campaign-list-head,
+.campaign-row {
+  grid-template-columns:
+    minmax(320px, 2.4fr)
+    minmax(180px, 1.15fr)
+    125px
+    92px
+    minmax(150px, .95fr)
+    92px;
+}
+
+.campaign-actions {
+  min-width: 92px;
+  grid-template-columns: 30px 56px;
+  justify-content: end;
+}
+
+.row-cta {
+  min-width: 56px;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+@media (max-width: 1050px) {
+  .campaign-actions {
+    min-width: 0;
+    grid-template-columns: 30px minmax(56px, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .header-actions {
+    margin-left: auto;
+  }
+}
