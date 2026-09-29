@@ -19,46 +19,30 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install requests beautifulsoup4
-      - name: Inspect live card shapes
+      - name: Inspect current Mible cards
         run: |
           python - <<'PY'
+          import re
           import requests
           from bs4 import BeautifulSoup
-          from urllib.parse import urljoin
 
-          headers={"User-Agent":"Mozilla/5.0"}
-
-          def inspect_mible(ids):
-              html=requests.get("https://www.mrblog.net/",headers=headers,timeout=(8,20)).text
-              soup=BeautifulSoup(html,"html.parser")
-              print("=== MIBLE ===")
-              for cid in ids:
-                  a=soup.find("a",href=f"/campaigns/{cid}")
-                  print("ID",cid,"FOUND",bool(a))
-                  if not a:
-                      continue
-                  print("TEXT", " | ".join(a.stripped_strings))
-                  print("CHILDREN")
-                  for child in a.find_all(recursive=False):
-                      print(child.name, child.get("class"), " | ".join(child.stripped_strings)[:500])
-                  print("HTML", str(a)[:5000])
-
-          def inspect_reviewplace():
-              url="https://www.reviewplace.co.kr/pr/?ct1=%EC%A7%80%EC%97%AD"
-              html=requests.get(url,headers=headers,timeout=(8,20)).text
-              soup=BeautifulSoup(html,"html.parser")
-              print("=== REVIEWPLACE REGION ===")
-              n=0
-              for a in soup.find_all("a",href=True):
-                  if "/pr/?id=" not in a.get("href",""):
-                      continue
-                  print("LINK",urljoin(url,a["href"]))
-                  print("TEXT"," | ".join(a.stripped_strings)[:1200])
-                  print("HTML",str(a)[:4000])
-                  n+=1
-                  if n>=3:
-                      break
-
-          inspect_mible(["1136849","1136741","1136293","1136348"])
-          inspect_reviewplace()
+          html=requests.get("https://www.mrblog.net/",headers={"User-Agent":"Mozilla/5.0"},timeout=(8,20)).text
+          soup=BeautifulSoup(html,"html.parser")
+          seen=set()
+          count=0
+          for a in soup.find_all("a",href=True):
+              href=a.get("href","")
+              m=re.fullmatch(r"/campaigns/(\d+)",href)
+              if not m or m.group(1) in seen:
+                  continue
+              seen.add(m.group(1))
+              print("=== CARD",m.group(1),"===")
+              print("TEXT"," | ".join(a.stripped_strings)[:1800])
+              for child in a.find_all(recursive=False):
+                  print("CHILD",child.name,child.get("class"),"|"," | ".join(child.stripped_strings)[:1000])
+              print("HTML",str(a)[:7000])
+              count+=1
+              if count>=8:
+                  break
+          print("TOTAL_SAMPLE",count)
           PY
