@@ -101,7 +101,7 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
           id="q"
           name="q"
           defaultValue={initialQuery}
-          placeholder="예: 강남 카페, 제주 숙소, 화장품"
+          placeholder="캠페인명, 지역, 브랜드를 검색하세요"
           aria-label="캠페인 검색"
         />
         <button type="submit" disabled={isPending}>
@@ -109,6 +109,26 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
         </button>
       </div>
     </form>
+  );
+}
+
+function FilterSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="filter-section">
+      <div className="filter-section-head">
+        <strong>{title}</strong>
+        {hint && <span>{hint}</span>}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -141,34 +161,44 @@ export function FilterPanel({
       onSubmit={handleSubmit}
       aria-busy={isPending}
     >
+      <div className="filter-panel-head">
+        <div>
+          <span className="filter-overline">FILTER</span>
+          <h2>조건 좁히기</h2>
+        </div>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            className="filter-reset-link"
+            onClick={handleReset}
+            disabled={isPending}
+          >
+            전체 초기화
+          </button>
+        )}
+      </div>
+
       <input type="hidden" name="q" value={values.q} readOnly />
 
-      <div className="filter-row filter-platforms">
-        <div className="filter-label">
-          <span>플랫폼</span>
-          <small>여러 개 선택 가능</small>
-        </div>
-        <div className="chip-group">
+      <FilterSection title="플랫폼" hint="복수 선택">
+        <div className="filter-stack">
           {platforms.map((item) => (
-            <label className="check-chip" key={item}>
+            <label className="filter-check" key={item}>
               <input
                 type="checkbox"
                 name="platform"
                 value={item}
                 defaultChecked={values.platforms.includes(item)}
               />
+              <span className="filter-check-box" aria-hidden="true" />
               <span>{item}</span>
             </label>
           ))}
         </div>
-      </div>
+      </FilterSection>
 
-      <div className="filter-row">
-        <div className="filter-label">
-          <span>지역</span>
-          <small>광역권으로 빠르게 필터</small>
-        </div>
-        <div className="chip-group region-chips">
+      <FilterSection title="지역">
+        <div className="filter-chip-grid">
           <label className="radio-chip">
             <input
               type="radio"
@@ -190,14 +220,19 @@ export function FilterPanel({
             </label>
           ))}
         </div>
-      </div>
+        <label className="filter-input" htmlFor="region">
+          <span>세부 지역</span>
+          <input
+            id="region"
+            name="region"
+            defaultValue={values.region}
+            placeholder="강남, 성수, 수원..."
+          />
+        </label>
+      </FilterSection>
 
-      <div className="filter-row reward-filter">
-        <div className="filter-label">
-          <span>제공내역</span>
-          <small>개별 혜택 금액 기준 · 서로 합산하지 않음</small>
-        </div>
-        <div className="chip-group">
+      <FilterSection title="혜택" hint="합산하지 않음">
+        <div className="filter-chip-grid compact">
           {[
             ["", "전체"],
             ["30000", "3만원+"],
@@ -219,55 +254,48 @@ export function FilterPanel({
             </label>
           ))}
         </div>
-      </div>
+      </FilterSection>
 
-      <div className="filter-grid">
-        <label className="filter-field" htmlFor="region">
-          <span>세부 지역</span>
-          <input
-            id="region"
-            name="region"
-            defaultValue={values.region}
-            placeholder="강남, 성수, 수원..."
-          />
-        </label>
+      <FilterSection title="상세 조건">
+        <div className="filter-select-stack">
+          <label className="filter-input" htmlFor="media">
+            <span>매체</span>
+            <select id="media" name="media" defaultValue={values.media}>
+              <option value="">전체</option>
+              {mediaTypes.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label className="filter-field" htmlFor="media">
-          <span>매체</span>
-          <select id="media" name="media" defaultValue={values.media}>
-            <option value="">전체</option>
-            {mediaTypes.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="filter-input" htmlFor="type">
+            <span>유형</span>
+            <select id="type" name="type" defaultValue={values.campaignType}>
+              <option value="">전체</option>
+              {campaignTypes.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label className="filter-field" htmlFor="type">
-          <span>유형</span>
-          <select id="type" name="type" defaultValue={values.campaignType}>
-            <option value="">전체</option>
-            {campaignTypes.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="filter-input" htmlFor="sort">
+            <span>정렬</span>
+            <select id="sort" name="sort" defaultValue={values.sort}>
+              <option value="latest">최신순</option>
+              <option value="deadline">마감임박순</option>
+            </select>
+          </label>
+        </div>
+      </FilterSection>
 
-        <label className="filter-field" htmlFor="sort">
-          <span>정렬</span>
-          <select id="sort" name="sort" defaultValue={values.sort}>
-            <option value="latest">최신순</option>
-            <option value="deadline">마감임박순</option>
-          </select>
-        </label>
-
+      <div className="filter-actions">
         <button type="submit" className="filter-submit" disabled={isPending}>
           {isPending ? "적용 중" : "조건 적용"}
         </button>
-
         {hasActiveFilters && (
           <button
             type="button"
