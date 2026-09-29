@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
-type FavoriteItem = {
+export type FavoriteItem = {
   id: number;
   campaign_id: number;
   campaign_snapshot: {
@@ -16,7 +16,7 @@ type FavoriteItem = {
   created_at: string;
 };
 
-type RecordItem = {
+export type RecordItem = {
   id: number;
   campaign_id: number | null;
   source_type: "linked" | "manual";
