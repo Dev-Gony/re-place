@@ -56,6 +56,19 @@ class CrawlerFixtureTests(unittest.TestCase):
         self.assertEqual(campaign.recruit_count, 10)
         self.assertIsNotNone(campaign.deadline_at)
 
+    def test_mible_missing_counts_remain_unknown(self):
+        html = """<html><body>
+        <a href="/campaigns/3999">
+          <div class="subject">[배송] 카운트 미확인 체험단</div>
+          <div class="desc">제품 제공</div>
+          <span>배송</span>
+        </a>
+        </body></html>"""
+        campaigns = mible_crawler.parse_page(html)
+        self.assertEqual(len(campaigns), 1)
+        self.assertIsNone(campaigns[0].apply_count)
+        self.assertIsNone(campaigns[0].recruit_count)
+
     def test_reviewplace_fixture(self):
         html = (FIXTURES / 'reviewplace.html').read_text(encoding='utf-8')
         soup = BeautifulSoup(html, 'html.parser')
