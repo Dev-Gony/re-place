@@ -100,8 +100,8 @@ def parse_card(anchor) -> Campaign | None:
     desc = anchor.select_one(".desc")
     reward = " ".join(desc.stripped_strings).strip() if desc else ""
 
-    apply_count = 0
-    recruit_count = 0
+    apply_count = None
+    recruit_count = None
     count_match = COUNT_RE.search(card_text)
     if count_match:
         apply_count = int(count_match.group(1).replace(",", ""))
