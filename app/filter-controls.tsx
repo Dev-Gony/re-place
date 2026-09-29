@@ -96,6 +96,80 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
   }
 
   return (
+    <form className="hero-search" onSubmit={handleSubmit} aria-busy={isPending}>
+      <div className="hero-search-main">
+        <div className="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+            <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </div>
+        <input
+          id="q"
+          name="q"
+          defaultValue={initialQuery}
+          placeholder="캠페인명, 지역, 브랜드를 검색하세요"
+          aria-label="캠페인 검색"
+        />
+        <button type="submit" disabled={isPending}>
+          {isPending ? "검색 중" : "검색"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function FilterPanel({
+  values,
+  platforms,
+  mediaTypes,
+  campaignTypes,
+  regionGroups,
+  sourceStatuses,
+  hasActiveFilters,
+}: FilterPanelProps) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const regionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function applyNow() {
+    if (!formRef.current) return;
+    navigateFromForm(formRef.current, router, startTransition);
+  }
+
+  function handleChange(event: FormEvent<HTMLFormElement>) {
+    const target = event.target;
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
+
+    if (!target.name) return;
+
+    if (target.name === "region" && target instanceof HTMLInputElement) {
+      if (regionTimer.current) clearTimeout(regionTimer.current);
+      regionTimer.current = setTimeout(applyNow, 350);
+      return;
+    }
+
+    applyNow();
+  }
+
+  function handleReset() {
+    if (regionTimer.current) clearTimeout(regionTimer.current);
+    startTransition(() => {
+      router.replace("/", { scroll: false });
+    });
+  }
+
+  const pausedSources = sourceStatuses.filter(
+    (source) => source.status === "paused" && !source.search_enabled,
+  );
+
+  return (
     <form
       ref={formRef}
       className="filter-toolbar"
