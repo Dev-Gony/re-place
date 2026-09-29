@@ -327,7 +327,6 @@ export default async function Home({
       <header className="site-header">
         <div className="header-inner">
           <Link href="/" className="brand" aria-label="Re:Place 홈">
-            <span className="brand-mark">R</span>
             <span className="brand-text">Re:Place</span>
           </Link>
 
@@ -374,8 +373,8 @@ export default async function Home({
       </section>
 
       <section className="content-wrap" id="campaigns">
-        <div className="workspace">
-          <aside className="filter-sidebar" aria-label="캠페인 필터">
+        <div className="finder-layout">
+          <div className="filter-toolbar-wrap" aria-label="캠페인 필터">
             <FilterPanel
               key={buildHref(filters, currentPage)}
               values={filters}
@@ -386,7 +385,7 @@ export default async function Home({
               sourceStatuses={sourceRows}
               hasActiveFilters={hasActiveFilters}
             />
-          </aside>
+          </div>
 
           <div className="results-pane">
         <div className="results-head">
@@ -424,11 +423,12 @@ export default async function Home({
           <>
             <div className="campaign-list">
               <div className="campaign-list-head" aria-hidden="true">
-                <span>캠페인</span>
-                <span>혜택</span>
-                <span>신청 · 경쟁</span>
-                <span>마감 · 지역</span>
-                <span>액션</span>
+                <span>플랫폼 · 캠페인</span>
+                <span>제공 혜택</span>
+                <span>신청 / 모집</span>
+                <span>마감</span>
+                <span>지역</span>
+                <span />
               </div>
 
               {data.map((campaign) => {
@@ -486,12 +486,14 @@ export default async function Home({
                       )}
                     </div>
 
-                    <div className="campaign-cell deadline-region-cell">
-                      <span className="mobile-cell-label">마감 · 지역</span>
+                    <div className="campaign-cell deadline-cell">
+                      <span className="mobile-cell-label">마감</span>
                       <strong>{deadline || "마감 미정"}</strong>
-                      <small>
-                        {displayRegion(campaign)}
-                      </small>
+                    </div>
+
+                    <div className="campaign-cell region-cell">
+                      <span className="mobile-cell-label">지역</span>
+                      <strong>{displayRegion(campaign)}</strong>
                     </div>
 
                     <div className="campaign-actions">
