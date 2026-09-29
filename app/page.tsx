@@ -5,7 +5,6 @@ import { FilterPanel, HeroSearch } from "./filter-controls";
 // searchParams keeps this page request-rendered; public DB reads are cached separately.
 
 const PAGE_SIZE = 40;
-const PLATFORMS = ["강남맛집", "리뷰노트", "디너의여왕", "미블", "리뷰플레이스", "리뷰어스", "레뷰"];
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
 const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
 const REGION_GROUPS = [
@@ -31,6 +30,11 @@ type ActiveFilters = {
   campaignType: string;
   reward: string;
   sort: string;
+};
+
+type SourceRow = {
+  name: string;
+  freshness_hours: number;
 };
 
 type CampaignRow = {
@@ -125,6 +129,26 @@ export default async function Home({
   searchParams: SearchParams;
 }) {
   const resolved = await searchParams;
+
+  let sourceRows: SourceRow[] = [];
+  let registryError: Error | null = null;
+
+  try {
+    const sourceResult = await queryDb<SourceRow>(
+      `SELECT name, freshness_hours
+         FROM platform_sources
+        WHERE status = 'active'
+          AND search_enabled = true
+        ORDER BY priority, name`,
+    );
+    sourceRows = sourceResult.rows;
+  } catch (caught) {
+    registryError =
+      caught instanceof Error ? caught : new Error("Source registry query failed");
+    console.error("[Re:Place] source registry query failed");
+  }
+
+  const PLATFORMS = sourceRows.map((source) => source.name);
   const q = firstValue(resolved.q).trim();
   const platforms = listValue(resolved.platform).filter((item) =>
     PLATFORMS.includes(item),
@@ -141,7 +165,19 @@ export default async function Home({
     Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
   const from = (currentPage - 1) * PAGE_SIZE;
-  const where: string[] = [];
+  const visibilityWhere: string[] = [
+    `EXISTS (
+       SELECT 1
+         FROM platform_sources ps
+        WHERE ps.name = campaigns.platform
+          AND ps.status = 'active'
+          AND ps.search_enabled = true
+          AND campaigns.collected_at >=
+              now() - make_interval(hours => ps.freshness_hours)
+     )`,
+    "(campaigns.deadline_at IS NULL OR campaigns.deadline_at >= now())",
+  ];
+  const where: string[] = [...visibilityWhere];
   const values: unknown[] = [];
 
   const addFilter = (clause: string, value: unknown) => {
@@ -162,7 +198,8 @@ export default async function Home({
   if (reward === "provided") addFilter("reward_kind = ?", "provided");
   if (reward === "points") addFilter("reward_kind = ?", "points");
 
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const whereSql = `WHERE ${where.join(" AND ")}`;
+  const visibilitySql = `WHERE ${visibilityWhere.join(" AND ")}`;
   const orderSql =
     sort === "deadline"
       ? "ORDER BY deadline_at ASC NULLS LAST, id DESC"
@@ -175,10 +212,11 @@ export default async function Home({
   let data: CampaignRow[] = [];
   let totalCount = 0;
   let totalCampaigns = 0;
-  let error: Error | null = null;
+  let error: Error | null = registryError;
 
-  try {
-    const [dataResult, countResult, totalResult] = await Promise.all([
+  if (!error) {
+    try {
+      const [dataResult, countResult, totalResult] = await Promise.all([
       queryDb<CampaignRow>(
         `SELECT id, platform, title, link, media_type, reward, reward_amount, reward_kind,
                 apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at
@@ -192,18 +230,18 @@ export default async function Home({
         `SELECT count(*)::int AS count FROM campaigns ${whereSql}`,
         values,
       ),
-      queryDb("SELECT count(*)::int AS count FROM campaigns"),
+      queryDb(
+        `SELECT count(*)::int AS count FROM campaigns ${visibilitySql}`,
+      ),
     ]);
 
-    data = dataResult.rows;
-    totalCount = Number(countResult.rows[0]?.count ?? 0);
-    totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
-  } catch (caught) {
-    error = caught instanceof Error ? caught : new Error("Database query failed");
-    console.error("[Re:Place] campaign query failed", {
-      message: error.message,
-      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-    });
+      data = dataResult.rows;
+      totalCount = Number(countResult.rows[0]?.count ?? 0);
+      totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
+    } catch (caught) {
+      error = caught instanceof Error ? caught : new Error("Database query failed");
+      console.error("[Re:Place] campaign query failed");
+    }
   }
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const filters: ActiveFilters = {
