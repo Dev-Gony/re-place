@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";\n\nimport { MonthCalendar } from "./month-calendar";
+import { FormEvent, useMemo, useState } from "react";
+
+import { MonthCalendar } from "./month-calendar";
 
 export type FavoriteItem = {
   id: number;
@@ -136,7 +138,8 @@ export function MyWorkspace({
   const [records, setRecords] = useState<RecordItem[]>(initialRecords);
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
   const [manualOpen, setManualOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");\n  const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
   const [notice, setNotice] = useState<string | null>(null);
 
   function showError(message: string) {
