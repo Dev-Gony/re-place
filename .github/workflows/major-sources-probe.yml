@@ -20,91 +20,56 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install requests beautifulsoup4
-      - name: Probe Revu and Supermembers public routes
+      - name: Inspect public JS endpoints
         run: |
           python - <<'PY'
           import re
           import requests
           from bs4 import BeautifulSoup
-          from urllib.parse import urljoin, urlparse
+          from urllib.parse import urljoin
 
-          HEADERS = {
+          headers = {
               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/154.0.0.0 Safari/537.36",
               "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.7",
           }
 
-          targets = [
-              ("revu_web", "https://webview.revu.net/"),
-              ("revu_api_noauth", "https://api.weble.net/v1/campaigns?cat=%EC%A7%80%EC%97%AD&class=campaign&type=play&sort=latest&page=1&limit=5"),
-              ("super_home", "https://www.supermembers.co.kr/"),
-              ("super_guide", "https://www.supermembers.co.kr/serviceGuide"),
-          ]
+          targets = {
+              "revu": "https://webview.revu.net/",
+              "supermembers": "https://www.supermembers.co.kr/",
+          }
 
-          session = requests.Session()
-          session.headers.update(HEADERS)
-
-          for name, url in targets:
+          for name, page_url in targets.items():
               print(f"=== {name} ===")
-              try:
-                  response = session.get(url, timeout=(8, 20), allow_redirects=True)
-              except Exception as exc:
-                  print("request_error:", type(exc).__name__, str(exc)[:300])
-                  continue
+              html = requests.get(page_url, headers=headers, timeout=(8, 20)).text
+              soup = BeautifulSoup(html, "html.parser")
+              scripts = [
+                  urljoin(page_url, tag["src"])
+                  for tag in soup.find_all("script", src=True)
+                  if tag.get("src")
+              ]
 
-              print("status:", response.status_code)
-              print("final_url:", response.url)
-              print("content_type:", response.headers.get("content-type"))
-              print("bytes:", len(response.content))
-              print("www_authenticate:", response.headers.get("www-authenticate"))
-              print("location:", response.headers.get("location"))
+              print("script_count:", len(scripts))
+              for src in scripts[:12]:
+                  try:
+                      js = requests.get(src, headers=headers, timeout=(8, 20)).text
+                  except Exception as exc:
+                      print("script_error:", src, type(exc).__name__)
+                      continue
 
-              text = response.text
-              print("body_head:", " ".join(text[:400].split()))
+                  print("script:", src, "bytes:", len(js))
+                  candidates = []
+                  patterns = (
+                      r"https://(?:api\.weble\.net|api\.supermembers\.co\.kr|console-api\.supermembers\.co\.kr)[^\"'\s)]+",
+                      r"[\"'](/(?:v\d+/)?(?:campaigns?|stores?|places?|shops?|benefits?|experiences?|members?|search|regions?)[^\"']*)[\"']",
+                      r"[\"']([^\"']*(?:campaign|store|place|shop|benefit|experience)[^\"']{0,120})[\"']",
+                  )
+                  for pattern in patterns:
+                      for match in re.finditer(pattern, js, re.I):
+                          value = match.group(1) if match.lastindex else match.group(0)
+                          value = value[:400]
+                          if value not in candidates:
+                              candidates.append(value)
 
-              if "html" not in (response.headers.get("content-type") or "").lower():
-                  continue
-
-              soup = BeautifulSoup(text, "html.parser")
-              internal = []
-              scripts = []
-
-              host = urlparse(response.url).netloc
-              for anchor in soup.find_all("a", href=True):
-                  absolute = urljoin(response.url, anchor["href"])
-                  if urlparse(absolute).netloc == host:
-                      label = " ".join(anchor.get_text(" ", strip=True).split())
-                      pair = (absolute, label)
-                      if pair not in internal:
-                          internal.append(pair)
-
-              for script in soup.find_all("script", src=True):
-                  absolute = urljoin(response.url, script["src"])
-                  if absolute not in scripts:
-                      scripts.append(absolute)
-
-              print("internal_links:", len(internal))
-              for href, label in internal[:60]:
-                  print("link:", href, "|", label[:100])
-
-              print("scripts:", len(scripts))
-              for src in scripts[:40]:
-                  print("script:", src)
-
-              inline = "\n".join(
-                  script.get_text("\n", strip=False)
-                  for script in soup.find_all("script")
-                  if not script.get("src")
-              )
-              candidates = []
-              for pattern in (
-                  r"https?://[^\"'\s<>]+",
-                  r"/(?:api|v1|v2|campaign|store|place|shop|member|experience)[^\"'\s<>]{0,160}",
-              ):
-                  for match in re.finditer(pattern, inline, re.I):
-                      value = match.group(0)
-                      if value not in candidates:
-                          candidates.append(value)
-              print("inline_candidates:", len(candidates))
-              for item in candidates[:80]:
-                  print("candidate:", item[:300])
+                  for item in candidates[:160]:
+                      print("candidate:", item)
           PY
