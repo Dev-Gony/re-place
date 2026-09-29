@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { authClient } from "../lib/auth/client";
+import { FavoritesProvider } from "./favorites-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -21,7 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
       redirectTo="/my"
       Link={Link}
     >
-      {children}
+      <FavoritesProvider>{children}</FavoritesProvider>
     </NeonAuthUIProvider>
   );
 }

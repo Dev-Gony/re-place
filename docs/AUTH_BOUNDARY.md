@@ -11,7 +11,7 @@ Every private row added in RPL-013 and later must be owned by the authenticated 
 Canonical owner column:
 
 ```sql
-auth_user_id text not null
+auth_user_id uuid not null
 ```
 
 Do not accept an owner ID from URL params, request JSON, query strings, or form input.

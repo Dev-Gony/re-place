@@ -1694,3 +1694,280 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* RPL-013 favorites and private campaign management */
+.campaign-actions {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 5px;
+  align-items: center;
+}
+.favorite-button {
+  width: 32px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: #a1a7b2;
+  font-size: 15px;
+  cursor: pointer;
+}
+.favorite-button.active {
+  border-color: #ffd6df;
+  background: #fff3f6;
+  color: #f05272;
+}
+.favorite-button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.my-workspace-actions,
+.my-record-section,
+.my-favorite-list {
+  width: min(1080px, calc(100% - 40px));
+  margin-left: auto;
+  margin-right: auto;
+}
+.my-workspace-actions {
+  margin-top: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.my-workspace-actions h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -.035em;
+}
+.my-workspace-actions > button,
+.manual-record-form > button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--foreground);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.favorite-heading > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.manual-record-form {
+  width: min(1080px, calc(100% - 40px));
+  margin: 12px auto 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.manual-record-form label,
+.my-record-card label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.manual-record-form label > span,
+.my-record-card label > span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 750;
+}
+.manual-record-form input,
+.manual-record-form textarea,
+.my-record-card input,
+.my-record-card select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fafbfc;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 10px;
+}
+.manual-record-form input,
+.my-record-card input,
+.my-record-card select {
+  height: 36px;
+  padding: 0 10px;
+}
+.manual-record-form textarea {
+  padding: 9px 10px;
+  resize: vertical;
+}
+.manual-record-note {
+  grid-column: 1 / -1;
+}
+
+.my-record-section {
+  margin-top: 12px;
+}
+.my-record-list {
+  display: grid;
+  gap: 8px;
+}
+.my-record-card {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.8fr) 120px 135px minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.my-record-main {
+  min-width: 0;
+}
+.my-record-meta {
+  display: flex;
+  gap: 5px;
+}
+.my-record-meta span {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #f3f4f7;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 750;
+}
+.my-record-main h3 {
+  margin: 7px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.my-record-main p {
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 9px;
+}
+.my-record-actions,
+.my-favorite-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.my-record-actions a,
+.my-record-actions button,
+.my-favorite-actions a,
+.my-favorite-actions button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--foreground);
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.my-record-actions button:not(.danger-text),
+.my-favorite-actions button:not(.danger-text) {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: #fff;
+}
+.danger-text {
+  color: #c8435d !important;
+}
+.my-empty {
+  padding: 28px 18px;
+  border: 1px dashed #d8dce3;
+  border-radius: 12px;
+  color: var(--muted);
+  background: #fafbfc;
+  text-align: center;
+  font-size: 10px;
+}
+
+.my-favorite-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.my-favorite-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.my-favorite-card > div:first-child {
+  min-width: 0;
+}
+.my-favorite-card span {
+  color: var(--primary);
+  font-size: 8px;
+  font-weight: 800;
+}
+.my-favorite-card h3 {
+  margin: 5px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.my-favorite-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .my-record-card {
+    grid-template-columns: 1fr 1fr;
+  }
+  .my-record-main,
+  .my-record-note,
+  .my-record-actions {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .my-workspace-actions,
+  .my-record-section,
+  .my-favorite-list,
+  .manual-record-form {
+    width: min(100% - 24px, 1080px);
+  }
+  .manual-record-form {
+    grid-template-columns: 1fr;
+  }
+  .manual-record-note {
+    grid-column: auto;
+  }
+  .my-favorite-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .my-favorite-actions {
+    flex-wrap: wrap;
+  }
+  .campaign-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: 40px 1fr;
+  }
+}
