@@ -5,7 +5,6 @@ on:
     branches:
       - feat/rpl-011-major-sources
     paths:
-      - "crawlers/gangnam_crawler.py"
       - ".github/workflows/gangnam-live-smoke.yml"
 
 permissions:
@@ -20,15 +19,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
-      - run: python -m pip install -r requirements.txt
-      - name: Probe current Gangnam detail internals
+      - run: python -m pip install requests beautifulsoup4
+      - name: Inspect Gangnam campaign-list inline JavaScript
         run: |
           python - <<'PY'
           import re
           import requests
           from bs4 import BeautifulSoup
-          from urllib.parse import urljoin, urlparse
 
           url = "https://gangnam-review.net/cp/?id=2295177"
           response = requests.get(
@@ -36,48 +33,40 @@ jobs:
               timeout=(8, 20),
               headers={"User-Agent": "Mozilla/5.0"},
           )
-          print("status:", response.status_code)
-          print("final_url:", response.url)
-          print("bytes:", len(response.content))
           response.raise_for_status()
-
           soup = BeautifulSoup(response.text, "html.parser")
 
-          hrefs = []
-          for anchor in soup.find_all("a", href=True):
-              absolute = urljoin(response.url, anchor["href"])
-              if urlparse(absolute).netloc == "gangnam-review.net":
-                  hrefs.append(absolute)
-
-          interesting_links = sorted({
-              href for href in hrefs
-              if any(token in href.lower() for token in (
-                  "/cp/", "campaign", "list", "page=", "category", "search"
-              ))
-          })
-          print("interesting_links:", len(interesting_links))
-          for href in interesting_links[:80]:
-              print("link:", href)
-
-          inline = "\n".join(
-              script.get_text("\n", strip=True)
+          blocks = [
+              script.get_text("\n", strip=False)
               for script in soup.find_all("script")
               if not script.get("src")
-          )
-          patterns = (
-              r"[^\n;]{0,120}\$\.ajax[^\n;]{0,220}",
-              r"[^\n;]{0,120}\$\.get[^\n;]{0,220}",
-              r"[^\n;]{0,120}\$\.post[^\n;]{0,220}",
-              r"[^\n;]{0,120}(?:ajax|api|campaign|list|load|page)[^\n;]{0,220}",
-          )
-          snippets = []
-          for pattern in patterns:
-              for match in re.finditer(pattern, inline, re.I):
-                  snippet = " ".join(match.group(0).split())
-                  if snippet not in snippets:
-                      snippets.append(snippet)
+          ]
 
-          print("inline_candidates:", len(snippets))
-          for snippet in snippets[:80]:
-              print("inline:", snippet[:340])
+          needles = (
+              "b_html +=",
+              "$.ajax",
+              "ajax_req",
+              "list_item",
+              "recommend",
+              "relation",
+              "campaign",
+          )
+
+          matches = []
+          for block in blocks:
+              if not any(needle.lower() in block.lower() for needle in needles):
+                  continue
+              lines = block.splitlines()
+              for index, line in enumerate(lines):
+                  if any(needle.lower() in line.lower() for needle in needles):
+                      start = max(0, index - 8)
+                      end = min(len(lines), index + 18)
+                      snippet = "\n".join(lines[start:end]).strip()
+                      if snippet and snippet not in matches:
+                          matches.append(snippet)
+
+          print("candidate_blocks:", len(matches))
+          for i, snippet in enumerate(matches[:30], 1):
+              print(f"--- candidate {i} ---")
+              print(snippet[:5000])
           PY
