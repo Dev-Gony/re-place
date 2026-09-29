@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Probe current Gangnam detail page
+      - name: Probe current Gangnam detail internals
         run: |
           python - <<'PY'
           import re
@@ -42,34 +42,42 @@ jobs:
           response.raise_for_status()
 
           soup = BeautifulSoup(response.text, "html.parser")
+
           hrefs = []
           for anchor in soup.find_all("a", href=True):
               absolute = urljoin(response.url, anchor["href"])
               if urlparse(absolute).netloc == "gangnam-review.net":
                   hrefs.append(absolute)
 
-          campaign_links = sorted({
+          interesting_links = sorted({
               href for href in hrefs
-              if re.search(r"/cp/\?id=\d+", href)
+              if any(token in href.lower() for token in (
+                  "/cp/", "campaign", "list", "page=", "category", "search"
+              ))
           })
-          print("campaign_links:", len(campaign_links))
-          for href in campaign_links[:30]:
-              print("campaign:", href)
+          print("interesting_links:", len(interesting_links))
+          for href in interesting_links[:80]:
+              print("link:", href)
 
-          script_srcs = sorted({
-              urljoin(response.url, script["src"])
-              for script in soup.find_all("script", src=True)
-          })
-          print("script_srcs:", len(script_srcs))
-          for src in script_srcs[:30]:
-              print("script:", src)
+          inline = "\n".join(
+              script.get_text("\n", strip=True)
+              for script in soup.find_all("script")
+              if not script.get("src")
+          )
+          patterns = (
+              r"[^\n;]{0,120}\$\.ajax[^\n;]{0,220}",
+              r"[^\n;]{0,120}\$\.get[^\n;]{0,220}",
+              r"[^\n;]{0,120}\$\.post[^\n;]{0,220}",
+              r"[^\n;]{0,120}(?:ajax|api|campaign|list|load|page)[^\n;]{0,220}",
+          )
+          snippets = []
+          for pattern in patterns:
+              for match in re.finditer(pattern, inline, re.I):
+                  snippet = " ".join(match.group(0).split())
+                  if snippet not in snippets:
+                      snippets.append(snippet)
 
-          form_actions = sorted({
-              urljoin(response.url, form.get("action", ""))
-              for form in soup.find_all("form")
-              if form.get("action")
-          })
-          print("form_actions:", len(form_actions))
-          for action in form_actions[:30]:
-              print("form:", action)
+          print("inline_candidates:", len(snippets))
+          for snippet in snippets[:80]:
+              print("inline:", snippet[:340])
           PY
