@@ -5,7 +5,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 
-function loadHealthRoute({ databaseUrl = 'postgresql://secret@example/db', queryError = null } = {}) {
+function loadHealthRoute(options = {}) {
+  const databaseUrl = Object.prototype.hasOwnProperty.call(options, 'databaseUrl')
+    ? options.databaseUrl
+    : 'postgresql://secret@example/db';
+  const queryError = options.queryError ?? null;
+
   const source = fs.readFileSync(
     path.join(__dirname, '../app/api/health/db/route.ts'),
     'utf8',
@@ -74,11 +79,15 @@ function loadHealthRoute({ databaseUrl = 'postgresql://secret@example/db', query
   return { api: exports, calls, responses, errors };
 }
 
+function plain(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 test('healthy response exposes only ok and disables caching', async () => {
   const h = loadHealthRoute();
   const response = await h.api.GET();
 
-  assert.deepEqual(response.body, { ok: true });
+  assert.deepEqual(plain(response.body), { ok: true });
   assert.equal(response.status, 200);
   assert.equal(response.headers['Cache-Control'], 'no-store, max-age=0');
   assert.equal(h.calls.length, 1);
@@ -92,7 +101,7 @@ test('missing DATABASE_URL returns the same minimal unavailable response', async
   const h = loadHealthRoute({ databaseUrl: undefined });
   const response = await h.api.GET();
 
-  assert.deepEqual(response.body, { ok: false });
+  assert.deepEqual(plain(response.body), { ok: false });
   assert.equal(response.status, 503);
   assert.equal(response.headers['Cache-Control'], 'no-store, max-age=0');
   assert.equal(h.calls.length, 0);
@@ -108,11 +117,11 @@ test('database errors never expose driver details or credentials', async () => {
   const h = loadHealthRoute({ queryError: secretError });
   const response = await h.api.GET();
 
-  assert.deepEqual(response.body, { ok: false });
+  assert.deepEqual(plain(response.body), { ok: false });
   assert.equal(response.status, 503);
 
   const exposed = JSON.stringify({
-    response,
+    response: plain(response),
     errors: h.errors,
   });
 
