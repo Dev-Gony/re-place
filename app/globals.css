@@ -4160,3 +4160,240 @@ body {
     margin-left: auto;
   }
 }
+
+
+/* RPL-018 personal schedule and task management */
+.my-task-section {
+  margin-top: 22px;
+}
+
+.my-task-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) 130px minmax(220px, 1.5fr) 128px 64px;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #e3e3df;
+  border-radius: 6px;
+  background: #fafaf8;
+}
+
+.my-task-form select,
+.my-task-form input {
+  min-width: 0;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #dcdcd7;
+  border-radius: 5px;
+  outline: none;
+  background: #fff;
+  color: #292927;
+  font-size: 11px;
+}
+
+.my-task-form select:focus,
+.my-task-form input:focus {
+  border-color: #999992;
+}
+
+.my-task-form button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 5px;
+  background: #2b2b29;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 730;
+  cursor: pointer;
+}
+
+.my-task-empty-callout {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #e5e5e0;
+  border-radius: 6px;
+  background: #fafaf8;
+  color: #7a7a74;
+  font-size: 11px;
+}
+
+.my-task-table {
+  border-top: 1px solid #dcdcd7;
+}
+
+.my-task-table-head,
+.my-task-row {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.25fr)
+    minmax(240px, 1.5fr)
+    90px
+    72px
+    130px;
+  gap: 12px;
+  align-items: center;
+}
+
+.my-task-table-head {
+  min-height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e4e4df;
+  background: #fafaf8;
+  color: #7b7b75;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.my-task-row {
+  min-height: 66px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #ecece9;
+  background: #fff;
+}
+
+.my-task-row:hover {
+  background: #fafaf8;
+}
+
+.my-task-row.is-complete {
+  opacity: .58;
+}
+
+.my-task-campaign,
+.my-task-title {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.my-task-campaign span,
+.my-task-title span {
+  overflow: hidden;
+  color: #8b8b85;
+  font-size: 9px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-task-campaign strong,
+.my-task-title strong {
+  overflow: hidden;
+  color: #282826;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-task-date {
+  color: #4c4c48;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.my-task-badge {
+  width: fit-content;
+  min-width: 42px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f1f1ed;
+  color: #666660;
+  font-size: 9px;
+  font-weight: 760;
+  text-align: center;
+}
+
+.my-task-badge.overdue {
+  background: #fff0f1;
+  color: #b43f49;
+}
+
+.my-task-badge.today {
+  background: #fff7df;
+  color: #8a6713;
+}
+
+.my-task-badge.soon {
+  background: #f4f2e8;
+  color: #6c5d22;
+}
+
+.my-task-badge.done {
+  background: #eff3ed;
+  color: #5b6d55;
+}
+
+.my-task-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.my-task-actions button {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid #dcdcd7;
+  border-radius: 5px;
+  background: #fff;
+  color: #494944;
+  font-size: 10px;
+  font-weight: 680;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.my-task-actions button:first-child {
+  border-color: #2b2b29;
+  background: #2b2b29;
+  color: #fff;
+}
+
+@media (max-width: 980px) {
+  .my-task-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .my-task-form input[name="taskTitle"] {
+    grid-column: 1 / -1;
+  }
+
+  .my-task-table-head {
+    display: none;
+  }
+
+  .my-task-row {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.5fr) 80px 64px;
+  }
+
+  .my-task-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .my-task-form {
+    grid-template-columns: 1fr;
+  }
+
+  .my-task-form input[name="taskTitle"] {
+    grid-column: 1;
+  }
+
+  .my-task-row {
+    grid-template-columns: 1fr auto;
+    gap: 8px 10px;
+    padding: 12px 0;
+  }
+
+  .my-task-campaign,
+  .my-task-title,
+  .my-task-actions {
+    grid-column: 1 / -1;
+  }
+
+  .my-task-actions {
+    justify-content: flex-start;
+  }
+}
