@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   collect:
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -36,5 +37,5 @@ jobs:
 
       - name: Run active collectors
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
         run: python crawlers/run_all.py
