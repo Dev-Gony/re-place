@@ -3,6 +3,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 import psycopg
@@ -21,8 +22,8 @@ class Campaign:
     media_type: str = ""
     reward: str = ""
     is_points: bool = False
-    apply_count: int = 0
-    recruit_count: int = 0
+    apply_count: int | None = None
+    recruit_count: int | None = None
     region: str | None = None
     region_group: str | None = None
     campaign_type: str | None = None
@@ -395,7 +396,11 @@ def parse_reward(
 
     return None, "provided"
 
-def normalize_datetime(value: Any) -> str | None:
+def normalize_datetime(
+    value: Any,
+    *,
+    source_timezone: str = "Asia/Seoul",
+) -> str | None:
     if value is None or value == "":
         return None
 
@@ -422,14 +427,26 @@ def normalize_datetime(value: Any) -> str | None:
         return None
 
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        try:
+            source_tz = ZoneInfo(source_timezone)
+        except (KeyError, ValueError):
+            return None
+        parsed = parsed.replace(tzinfo=source_tz)
 
     return parsed.astimezone(timezone.utc).isoformat()
 
 
-def first_datetime(data: dict[str, Any], keys: Iterable[str]) -> str | None:
+def first_datetime(
+    data: dict[str, Any],
+    keys: Iterable[str],
+    *,
+    source_timezone: str = "Asia/Seoul",
+) -> str | None:
     for key in keys:
-        parsed = normalize_datetime(data.get(key))
+        parsed = normalize_datetime(
+            data.get(key),
+            source_timezone=source_timezone,
+        )
         if parsed:
             return parsed
     return None
@@ -438,6 +455,8 @@ def first_datetime(data: dict[str, Any], keys: Iterable[str]) -> str | None:
 def nested_datetime(
     data: dict[str, Any],
     paths: Iterable[tuple[str, ...]],
+    *,
+    source_timezone: str = "Asia/Seoul",
 ) -> str | None:
     for path in paths:
         value: Any = data
@@ -447,7 +466,10 @@ def nested_datetime(
                 break
             value = value[key]
 
-        parsed = normalize_datetime(value)
+        parsed = normalize_datetime(
+            value,
+            source_timezone=source_timezone,
+        )
         if parsed:
             return parsed
 
