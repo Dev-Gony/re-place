@@ -139,6 +139,20 @@ class CrawlerFixtureTests(unittest.TestCase):
         self.assertEqual(campaign.campaign_type, '방문형')
         self.assertEqual(campaign.media_type, '숏폼(릴스)')
 
+    def test_reviewplace_influencer_tag_does_not_pollute_region(self):
+        html = """<html><body>
+        <a href="/pr/?id=4998">
+          NEW [N인플/서울/강남] 준오헤어 스타일링
+          ♥ 펌 or 컬러 중 택1
+          D - 7 신청 1 / 2명
+        </a>
+        </body></html>"""
+        soup = BeautifulSoup(html, 'html.parser')
+        campaign = reviewplace_crawler.parse_campaign(soup.find('a'), '지역')
+        self.assertIsNotNone(campaign)
+        self.assertEqual(campaign.region, '서울 강남')
+        self.assertEqual(campaign.campaign_type, '방문형')
+
     def test_reviewplace_fixture(self):
         html = (FIXTURES / 'reviewplace.html').read_text(encoding='utf-8')
         soup = BeautifulSoup(html, 'html.parser')
