@@ -1,12 +1,23 @@
 import type { MetadataRoute } from "next";
 
+const base = "https://re-place.devgony.com";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://re-place.devgony.com/",
-      lastModified: new Date(),
+      url: `${base}/`,
       changeFrequency: "daily",
       priority: 1,
+    },
+    {
+      url: `${base}/privacy`,
+      changeFrequency: "monthly",
+      priority: 0.2,
+    },
+    {
+      url: `${base}/terms`,
+      changeFrequency: "monthly",
+      priority: 0.2,
     },
   ];
 }
