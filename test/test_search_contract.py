@@ -46,6 +46,15 @@ class SearchQueryContractTests(unittest.TestCase):
         self.assertIn('points_amount IS NOT NULL', PAGE)
         self.assertIn('reimbursement_amount IS NOT NULL', PAGE)
 
+    def test_korean_deadlines_render_in_seoul_timezone(self):
+        self.assertIn('timeZone: "Asia/Seoul"', PAGE)
+
+    def test_missing_counts_are_not_rendered_as_zero(self):
+        self.assertIn('value === null ? "미확인"', PAGE)
+        self.assertIn('"일부 미확인"', PAGE)
+        self.assertNotIn('campaign.apply_count ?? 0', PAGE)
+        self.assertNotIn('campaign.recruit_count ?? 0', PAGE)
+
 
 if __name__ == "__main__":
     unittest.main()

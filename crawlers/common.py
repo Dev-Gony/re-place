@@ -3,6 +3,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 import psycopg
@@ -21,8 +22,8 @@ class Campaign:
     media_type: str = ""
     reward: str = ""
     is_points: bool = False
-    apply_count: int = 0
-    recruit_count: int = 0
+    apply_count: int | None = None
+    recruit_count: int | None = None
     region: str | None = None
     region_group: str | None = None
     campaign_type: str | None = None
@@ -208,6 +209,19 @@ def normalize_region_group(region: str | None) -> str | None:
 
     if value in ("전국", "재택", "배송"):
         return "지역무관"
+
+    explicit_groups = (
+        ("서울", ("서울특별시", "서울 ")),
+        ("경기·인천", ("경기도", "경기 ", "인천광역시", "인천 ")),
+        ("충청·대전·세종", ("충청북도", "충청남도", "충북 ", "충남 ", "대전광역시", "대전 ", "세종특별자치시", "세종 ")),
+        ("전라·광주", ("전북특별자치도", "전라북도", "전라남도", "전북 ", "전남 ", "광주광역시", "광주 ")),
+        ("경상·부산·대구·울산", ("경상북도", "경상남도", "경북 ", "경남 ", "부산광역시", "부산 ", "대구광역시", "대구 ", "울산광역시", "울산 ")),
+        ("강원", ("강원특별자치도", "강원도", "강원 ")),
+        ("제주", ("제주특별자치도", "제주 ")),
+    )
+    for group, markers in explicit_groups:
+        if any(marker in value for marker in markers):
+            return group
 
     mappings = (
         ("서울", ("서울", "강남", "송파", "종로", "용산", "성수", "서초", "강동", "강서", "논현", "홍대", "노원", "마포", "잠실", "성북", "영등포", "압구정", "관악", "여의도", "청담", "합정", "선릉", "동대문", "광진", "은평", "신촌", "건대", "신사", "구로", "금천", "동작", "양천", "중랑", "도봉")),
@@ -395,7 +409,11 @@ def parse_reward(
 
     return None, "provided"
 
-def normalize_datetime(value: Any) -> str | None:
+def normalize_datetime(
+    value: Any,
+    *,
+    source_timezone: str = "Asia/Seoul",
+) -> str | None:
     if value is None or value == "":
         return None
 
@@ -422,14 +440,26 @@ def normalize_datetime(value: Any) -> str | None:
         return None
 
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        try:
+            source_tz = ZoneInfo(source_timezone)
+        except (KeyError, ValueError):
+            return None
+        parsed = parsed.replace(tzinfo=source_tz)
 
     return parsed.astimezone(timezone.utc).isoformat()
 
 
-def first_datetime(data: dict[str, Any], keys: Iterable[str]) -> str | None:
+def first_datetime(
+    data: dict[str, Any],
+    keys: Iterable[str],
+    *,
+    source_timezone: str = "Asia/Seoul",
+) -> str | None:
     for key in keys:
-        parsed = normalize_datetime(data.get(key))
+        parsed = normalize_datetime(
+            data.get(key),
+            source_timezone=source_timezone,
+        )
         if parsed:
             return parsed
     return None
@@ -438,6 +468,8 @@ def first_datetime(data: dict[str, Any], keys: Iterable[str]) -> str | None:
 def nested_datetime(
     data: dict[str, Any],
     paths: Iterable[tuple[str, ...]],
+    *,
+    source_timezone: str = "Asia/Seoul",
 ) -> str | None:
     for path in paths:
         value: Any = data
@@ -447,7 +479,10 @@ def nested_datetime(
                 break
             value = value[key]
 
-        parsed = normalize_datetime(value)
+        parsed = normalize_datetime(
+            value,
+            source_timezone=source_timezone,
+        )
         if parsed:
             return parsed
 
