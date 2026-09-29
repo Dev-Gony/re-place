@@ -94,6 +94,7 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("ko-KR", {
     month: "numeric",
     day: "numeric",
+    timeZone: "Asia/Seoul",
   }).format(date);
 }
 
@@ -131,8 +132,16 @@ function rewardBadge(campaign: CampaignRow) {
 }
 
 function competitionRatio(apply: number | null, recruit: number | null) {
-  if (!apply || !recruit || recruit <= 0) return null;
+  if (apply === null || recruit === null || recruit <= 0) return null;
   return Math.round((apply / recruit) * 10) / 10;
+}
+
+function formatApplicantCount(value: number | null) {
+  return value === null ? "미확인" : value.toLocaleString("ko-KR");
+}
+
+function formatRecruitCount(value: number | null) {
+  return value === null ? "미확인" : `${value.toLocaleString("ko-KR")}명`;
 }
 
 function competitionClass(ratio: number | null) {
@@ -431,15 +440,16 @@ export default async function Home({
 
                     <div className="campaign-cell competition-cell">
                       <span className="mobile-cell-label">신청 · 경쟁</span>
-                      {campaign.apply_count || campaign.recruit_count ? (
+                      {campaign.apply_count !== null ||
+                      campaign.recruit_count !== null ? (
                         <>
                           <strong className="application-count">
-                            {campaign.apply_count ?? 0}
+                            {formatApplicantCount(campaign.apply_count)}
                             <span className="metric-divider"> / </span>
-                            {campaign.recruit_count ?? 0}명
+                            {formatRecruitCount(campaign.recruit_count)}
                           </strong>
                           <span className={`competition-pill ${ratioClass}`}>
-                            {ratio !== null ? `${ratio}:1` : "집계 중"}
+                            {ratio !== null ? `${ratio}:1` : "일부 미확인"}
                           </span>
                         </>
                       ) : (
