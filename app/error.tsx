@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 
 export default function ErrorPage({
@@ -25,7 +26,7 @@ export default function ErrorPage({
           <button type="button" onClick={reset}>
             다시 시도
           </button>
-          <a href="/">홈으로 이동</a>
+          <Link href="/">홈으로 이동</Link>
         </div>
       </section>
     </main>
