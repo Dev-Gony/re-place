@@ -3,6 +3,7 @@ import re
 from collections import deque
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urljoin, urlparse
+from zoneinfo import ZoneInfo
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -25,10 +26,16 @@ ENTRY_URLS = (
 )
 MAX_LIST_PAGES = 6
 CAMPAIGN_HREF_RE = re.compile(r"/cp/\?id=(\d+)")
-COUNT_RE = re.compile(
-    r"신청\s*([0-9,]+)\s*(?:/|\||·)?\s*모집\s*([0-9,]+)"
+COUNT_PATTERNS = (
+    re.compile(r"신청\s*([0-9,]+)\s*(?:/|\||·)?\s*모집\s*([0-9,]+)"),
+    re.compile(r"신청자\s*([0-9,]+)\s*/\s*([0-9,]+)"),
 )
 DAYS_LEFT_RE = re.compile(r"([0-9]+)\s*일\s*남음")
+APPLICATION_PERIOD_RE = re.compile(
+    r"캠페인\s*신청기간\s*([0-9]{1,2})[.\-/]([0-9]{1,2})\s*[~～-]\s*"
+    r"([0-9]{1,2})[.\-/]([0-9]{1,2})"
+)
+SEOUL = ZoneInfo("Asia/Seoul")
 
 
 def build_session() -> requests.Session:
@@ -145,7 +152,7 @@ def _extract_reward(container: Tag, title: str) -> str:
     for line in lines:
         if line == title:
             continue
-        if COUNT_RE.search(line):
+        if any(pattern.search(line) for pattern in COUNT_PATTERNS):
             continue
         if any(
             marker in line
@@ -175,18 +182,43 @@ def _extract_media_type(text: str) -> str:
 
 
 def _deadline_from_text(text: str, *, now: datetime | None = None) -> str | None:
-    match = DAYS_LEFT_RE.search(text)
-    if not match:
+    base = (now or datetime.now(SEOUL)).astimezone(SEOUL)
+
+    days_match = DAYS_LEFT_RE.search(text)
+    if days_match:
+        deadline = (base + timedelta(days=int(days_match.group(1)))).replace(
+            hour=23,
+            minute=59,
+            second=59,
+            microsecond=0,
+        )
+        return deadline.isoformat()
+
+    period_match = APPLICATION_PERIOD_RE.search(text)
+    if not period_match:
         return None
 
-    base = now or datetime.now().astimezone()
-    deadline = (base + timedelta(days=int(match.group(1)))).replace(
-        hour=23,
-        minute=59,
-        second=59,
-        microsecond=0,
-    )
-    return deadline.astimezone().isoformat()
+    end_month = int(period_match.group(3))
+    end_day = int(period_match.group(4))
+    try:
+        deadline = datetime(
+            base.year,
+            end_month,
+            end_day,
+            23,
+            59,
+            59,
+            tzinfo=SEOUL,
+        )
+    except ValueError:
+        return None
+
+    if deadline < base - timedelta(days=180):
+        deadline = deadline.replace(year=deadline.year + 1)
+    elif deadline > base + timedelta(days=180):
+        deadline = deadline.replace(year=deadline.year - 1)
+
+    return deadline.isoformat()
 
 
 def parse_campaigns(html: str, *, page_url: str = BASE_URL) -> list[Campaign]:
@@ -205,7 +237,10 @@ def parse_campaigns(html: str, *, page_url: str = BASE_URL) -> list[Campaign]:
             continue
 
         text = container.get_text(" ", strip=True)
-        count_match = COUNT_RE.search(text)
+        count_match = next(
+            (match for pattern in COUNT_PATTERNS if (match := pattern.search(text))),
+            None,
+        )
         apply_count = (
             int(count_match.group(1).replace(",", ""))
             if count_match
