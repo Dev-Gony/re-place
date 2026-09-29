@@ -26,16 +26,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const session = authClient.useSession();
   const router = useRouter();
   const [ids, setIds] = useState<Set<number>>(new Set());
-  const [ready, setReady] = useState(false);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (session.isPending) return;
 
-    if (!session.data?.user) {
-      setIds(new Set());
-      setReady(true);
-      return;
-    }
+    if (!session.data?.user) return;
 
     let cancelled = false;
 
@@ -44,10 +40,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         if (cancelled) return;
         setIds(new Set((data?.campaignIds ?? []).map(Number)));
-        setReady(true);
+        setLoadedUserId(session.data?.user?.id ?? null);
       })
       .catch(() => {
-        if (!cancelled) setReady(true);
+        if (!cancelled) setLoadedUserId(session.data?.user?.id ?? null);
       });
 
     return () => {
@@ -89,6 +85,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     },
     [ids, router, session.data?.user],
   );
+
+  const ready =
+    !session.isPending &&
+    (!session.data?.user || loadedUserId === session.data.user.id);
 
   const value = useMemo(
     () => ({
