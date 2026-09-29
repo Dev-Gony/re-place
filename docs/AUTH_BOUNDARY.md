@@ -66,3 +66,30 @@ Initial integration supports the Neon Auth built-in email flow.
 Google can be added after Google OAuth credentials are configured per environment.
 
 Naver is not exposed by the current Neon Auth provider management API and is deferred rather than implemented through a fragile custom bypass.
+
+
+## Current Neon Auth endpoints
+
+Production:
+- `NEON_AUTH_BASE_URL=https://ep-morning-rain-b5o8puxr.neonauth.c-7.us-east-2.aws.neon.tech/neondb/auth`
+- trusted origin: `https://re-place.devgony.com`
+
+Preview:
+- `NEON_AUTH_BASE_URL=https://ep-long-dream-b5wthfmt.neonauth.c-7.us-east-2.aws.neon.tech/neondb/auth`
+- localhost is currently trusted
+- add the exact Vercel Preview origin after the next Preview deployment URL is available
+
+CI:
+- Managed Better Auth is provisioned on the CI branch.
+- CI builds use non-secret placeholder auth values and do not perform live sign-in.
+
+## Vercel runtime wiring
+
+Before the auth PR can be deployed, Vercel needs two server-only variables in each runtime environment:
+
+- `NEON_AUTH_BASE_URL`
+- `NEON_AUTH_COOKIE_SECRET`
+
+`NEON_AUTH_COOKIE_SECRET` must be a unique random value of at least 32 characters per environment. Do not reuse Production in Preview.
+
+The cookie secret is intentionally not stored in GitHub, docs, or chat.
