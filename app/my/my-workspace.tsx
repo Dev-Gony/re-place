@@ -74,11 +74,12 @@ export function MyWorkspace() {
 
   const upcoming = useMemo(
     () =>
-      records.filter((item) => {
-        if (!item.deadline_at) return false;
-        if (item.status === "completed" || item.status === "cancelled") return false;
-        return new Date(item.deadline_at).getTime() >= Date.now();
-      }).length,
+      records.filter(
+        (item) =>
+          Boolean(item.deadline_at) &&
+          item.status !== "completed" &&
+          item.status !== "cancelled",
+      ).length,
     [records],
   );
 
