@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 type FavoriteItem = {
   id: number;
@@ -44,10 +44,15 @@ function dateInput(value: string | null) {
   return value ? value.slice(0, 10) : "";
 }
 
-export function MyWorkspace() {
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
-  const [records, setRecords] = useState<RecordItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export function MyWorkspace({
+  initialFavorites,
+  initialRecords,
+}: {
+  initialFavorites: FavoriteItem[];
+  initialRecords: RecordItem[];
+}) {
+  const [favorites, setFavorites] = useState<FavoriteItem[]>(initialFavorites);
+  const [records, setRecords] = useState<RecordItem[]>(initialRecords);
   const [manualOpen, setManualOpen] = useState(false);
 
   async function reload() {
@@ -65,12 +70,7 @@ export function MyWorkspace() {
       setRecords(data.items ?? []);
     }
 
-    setLoading(false);
   }
-
-  useEffect(() => {
-    void reload();
-  }, []);
 
   const upcoming = useMemo(
     () =>
@@ -215,9 +215,7 @@ export function MyWorkspace() {
       )}
 
       <section className="my-record-section">
-        {loading ? (
-          <div className="my-empty">불러오는 중...</div>
-        ) : records.length ? (
+        {records.length ? (
           <div className="my-record-list">
             {records.map((item) => (
               <RecordEditor
