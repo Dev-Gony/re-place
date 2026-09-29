@@ -24,6 +24,7 @@ ENTRY_URLS = (
     f"{BASE_URL}/",
     f"{BASE_URL}/business/",
 )
+# Keep request volume bounded because this source is public HTML, not an API.
 MAX_LIST_PAGES = 6
 CAMPAIGN_HREF_RE = re.compile(r"/cp/\?id=(\d+)")
 COUNT_PATTERNS = (
