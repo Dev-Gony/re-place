@@ -19,45 +19,35 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install requests
-      - name: Inspect Gangnam recommendation JSON contract
+      - run: python -m pip install requests beautifulsoup4
+      - name: Discover Gangnam public navigation routes
         run: |
           python - <<'PY'
-          import json
           import requests
+          from bs4 import BeautifulSoup
+          from urllib.parse import urljoin, urlparse
 
-          url = "https://gangnam-review.net/index_recommend.php"
-          headers = {
-              "User-Agent": "Mozilla/5.0",
-              "Referer": "https://gangnam-review.net/cp/?id=2295177",
-          }
-
-          response = requests.get(url, headers=headers, timeout=(8, 20))
+          seed = "https://gangnam-review.net/cp/?id=2295177"
+          response = requests.get(
+              seed,
+              timeout=(8, 20),
+              headers={"User-Agent": "Mozilla/5.0"},
+          )
           response.raise_for_status()
-          data = response.json()
+          soup = BeautifulSoup(response.text, "html.parser")
 
-          print("count:", data.get("count"))
-          print("qr:", json.dumps(data.get("qr"), ensure_ascii=False)[:2000])
-          items = data.get("items", [])
-          print("items:", len(items))
-          for index, item in enumerate(items[:3], 1):
-              print(
-                  f"full_item_{index}:",
-                  json.dumps(item, ensure_ascii=False)[:5000],
-              )
+          routes = {}
+          for anchor in soup.find_all("a", href=True):
+              href = urljoin(response.url, anchor["href"])
+              parsed = urlparse(href)
+              if parsed.netloc != "gangnam-review.net":
+                  continue
+              label = " ".join(anchor.get_text(" ", strip=True).split())
+              key = parsed.path + (("?" + parsed.query) if parsed.query else "")
+              if key not in routes:
+                  routes[key] = label
 
-          seen = set()
-          for attempt in range(5):
-              sample = requests.get(
-                  url,
-                  headers=headers,
-                  timeout=(8, 20),
-              ).json().get("items", [])
-              seen.update(
-                  item.get("href")
-                  for item in sample
-                  if item.get("href")
-              )
-              print(f"sample_{attempt + 1}_items:", len(sample))
-              print(f"sample_{attempt + 1}_union:", len(seen))
+          print("routes:", len(routes))
+          for route, label in sorted(routes.items()):
+              print("route:", route, "|", label[:100])
           PY
