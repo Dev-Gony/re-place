@@ -48,6 +48,10 @@ class RewardComponentTests(unittest.TestCase):
         self.assertIsNone(parsed["provided_value_amount"])
         self.assertIsNone(parsed["cash_fee_amount"])
 
+    def test_product_pack_count_is_not_misread_as_points(self):
+        parsed = parse_reward_components("쏘피 안심숙면팬티 5P(M / L 중 택 1)")
+        self.assertIsNone(parsed["points_amount"])
+
     def test_campaign_record_preserves_raw_reward_and_components(self):
         campaign = Campaign(
             platform="테스트",
