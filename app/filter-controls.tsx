@@ -96,247 +96,145 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
   }
 
   return (
-    <form className="hero-search" onSubmit={handleSubmit} aria-busy={isPending}>
-      <div className="hero-search-main">
-        <div className="search-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
-            <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </div>
-        <input
-          id="q"
-          name="q"
-          defaultValue={initialQuery}
-          placeholder="캠페인명, 지역, 브랜드를 검색하세요"
-          aria-label="캠페인 검색"
-        />
-        <button type="submit" disabled={isPending}>
-          {isPending ? "검색 중" : "검색"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function FilterSection({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="filter-section">
-      <div className="filter-section-head">
-        <strong>{title}</strong>
-        {hint && <span>{hint}</span>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-export function FilterPanel({
-  values,
-  platforms,
-  mediaTypes,
-  campaignTypes,
-  regionGroups,
-  sourceStatuses,
-  hasActiveFilters,
-}: FilterPanelProps) {
-  const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
-  const regionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  function applyNow() {
-    if (!formRef.current) return;
-    navigateFromForm(formRef.current, router, startTransition);
-  }
-
-  function handleChange(event: FormEvent<HTMLFormElement>) {
-    const target = event.target;
-    if (
-      !(target instanceof HTMLInputElement) &&
-      !(target instanceof HTMLSelectElement)
-    ) {
-      return;
-    }
-    if (!target.name) return;
-
-    if (target.name === "region" && target instanceof HTMLInputElement) {
-      if (regionTimer.current) clearTimeout(regionTimer.current);
-      regionTimer.current = setTimeout(applyNow, 350);
-      return;
-    }
-
-    applyNow();
-  }
-
-  function handleReset() {
-    if (regionTimer.current) clearTimeout(regionTimer.current);
-    startTransition(() => {
-      router.replace("/", { scroll: false });
-    });
-  }
-
-  const pausedSources = sourceStatuses.filter(
-    (source) => source.status === "paused" && !source.search_enabled,
-  );
-
-  return (
     <form
       ref={formRef}
-      className="filter-panel"
+      className="filter-toolbar"
       id="filters"
       onChange={handleChange}
       aria-busy={isPending}
     >
-      <div className="filter-panel-head">
-        <div>
-          <h2>필터</h2>
+      <div className="filter-toolbar-main">
+        <div className="filter-toolbar-group platform-group">
+          <span className="filter-toolbar-label">플랫폼</span>
+          <div className="filter-inline-options">
+            {platforms.map((item) => (
+              <label className="filter-check" key={item}>
+                <input
+                  type="checkbox"
+                  name="platform"
+                  value={item}
+                  defaultChecked={values.platforms.includes(item)}
+                />
+                <span className="filter-check-box" aria-hidden="true" />
+                <span>{item}</span>
+              </label>
+            ))}
+          </div>
         </div>
-        {hasActiveFilters && (
-          <button
-            type="button"
-            className="filter-reset-link"
-            onClick={handleReset}
-            disabled={isPending}
-          >
-            전체 초기화
-          </button>
-        )}
-      </div>
 
-      {isPending && <div className="filter-loading">결과 갱신 중…</div>}
-
-      <input type="hidden" name="q" value={values.q} readOnly />
-
-      <FilterSection title="플랫폼">
-        <div className="filter-stack">
-          {platforms.map((item) => (
-            <label className="filter-check" key={item}>
-              <input
-                type="checkbox"
-                name="platform"
-                value={item}
-                defaultChecked={values.platforms.includes(item)}
-              />
-              <span className="filter-check-box" aria-hidden="true" />
-              <span>{item}</span>
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="지역">
-        <div className="filter-chip-grid">
-          <label className="radio-chip">
-            <input
-              type="radio"
-              name="regionGroup"
-              value=""
-              defaultChecked={!values.regionGroup}
-            />
-            <span>전체</span>
-          </label>
-          {regionGroups.map((item) => (
-            <label className="radio-chip" key={item}>
+        <div className="filter-toolbar-group">
+          <span className="filter-toolbar-label">지역</span>
+          <div className="filter-inline-options scrollable">
+            <label className="radio-chip">
               <input
                 type="radio"
                 name="regionGroup"
-                value={item}
-                defaultChecked={values.regionGroup === item}
+                value=""
+                defaultChecked={!values.regionGroup}
               />
-              <span>{item}</span>
+              <span>전체</span>
             </label>
-          ))}
+            {regionGroups.map((item) => (
+              <label className="radio-chip" key={item}>
+                <input
+                  type="radio"
+                  name="regionGroup"
+                  value={item}
+                  defaultChecked={values.regionGroup === item}
+                />
+                <span>{item}</span>
+              </label>
+            ))}
+          </div>
         </div>
-        <label className="filter-input" htmlFor="region">
-          <span>세부 지역</span>
-          <input
-            id="region"
-            name="region"
-            defaultValue={values.region}
-            placeholder="강남, 성수, 수원..."
-          />
-        </label>
-      </FilterSection>
 
-      <FilterSection title="혜택">
-        <div className="filter-chip-grid compact">
-          {[
-            ["", "전체"],
-            ["30000", "3만원+"],
-            ["50000", "5만원+"],
-            ["100000", "10만원+"],
-            ["cash", "원고료"],
-            ["provided", "제공"],
-            ["points", "포인트"],
-            ["reimbursement", "환급"],
-          ].map(([value, label]) => (
-            <label className="radio-chip" key={label}>
-              <input
-                type="radio"
-                name="reward"
-                value={value}
-                defaultChecked={values.reward === value}
-              />
-              <span>{label}</span>
-            </label>
-          ))}
+        <div className="filter-toolbar-group">
+          <span className="filter-toolbar-label">혜택</span>
+          <div className="filter-inline-options scrollable">
+            {[
+              ["", "전체"],
+              ["30000", "3만원+"],
+              ["50000", "5만원+"],
+              ["100000", "10만원+"],
+              ["cash", "원고료"],
+              ["provided", "제공"],
+              ["points", "포인트"],
+              ["reimbursement", "환급"],
+            ].map(([value, label]) => (
+              <label className="radio-chip" key={label}>
+                <input
+                  type="radio"
+                  name="reward"
+                  value={value}
+                  defaultChecked={values.reward === value}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
         </div>
-      </FilterSection>
 
-      <FilterSection title="상세 조건">
-        <div className="filter-select-stack">
-          <label className="filter-input" htmlFor="media">
+        <div className="filter-toolbar-detail">
+          <label className="filter-compact-field">
+            <span>세부 지역</span>
+            <input
+              name="region"
+              defaultValue={values.region}
+              placeholder="강남, 성수, 수원"
+            />
+          </label>
+
+          <label className="filter-compact-field">
             <span>매체</span>
-            <select id="media" name="media" defaultValue={values.media}>
+            <select name="media" defaultValue={values.media}>
               <option value="">전체</option>
               {mediaTypes.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </label>
 
-          <label className="filter-input" htmlFor="type">
+          <label className="filter-compact-field">
             <span>유형</span>
-            <select id="type" name="type" defaultValue={values.campaignType}>
+            <select name="type" defaultValue={values.campaignType}>
               <option value="">전체</option>
               {campaignTypes.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </label>
 
-          <label className="filter-input" htmlFor="sort">
+          <label className="filter-compact-field">
             <span>정렬</span>
-            <select id="sort" name="sort" defaultValue={values.sort}>
+            <select name="sort" defaultValue={values.sort}>
               <option value="latest">최신순</option>
               <option value="deadline">마감임박순</option>
             </select>
           </label>
-        </div>
-      </FilterSection>
 
-      {pausedSources.length > 0 && (
-        <section className="source-status-panel">
-          <strong>연동 점검 중</strong>
-          <p>
-            {pausedSources.map((source) => source.name).join(" · ")}
-          </p>
-          <small>전체 목록을 안정적으로 가져올 수 있을 때 검색에 추가합니다.</small>
-        </section>
-      )}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="filter-reset-link"
+              onClick={handleReset}
+              disabled={isPending}
+            >
+              전체 초기화
+            </button>
+          )}
+        </div>
+
+        {isPending && <div className="filter-loading">결과 갱신 중…</div>}
+
+        <input type="hidden" name="q" value={values.q} readOnly />
+
+        {pausedSources.length > 0 && (
+          <div className="source-status-inline">
+            <span>연동 점검 중</span>
+            <strong>{pausedSources.map((source) => source.name).join(" · ")}</strong>
+          </div>
+        )}
+      </div>
     </form>
   );
-}
+}}
