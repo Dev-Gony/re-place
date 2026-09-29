@@ -1,0 +1,39 @@
+name: RPL baseline unit tests
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/db_baseline.py'
+      - 'test/test_db_baseline.py'
+      - '.github/workflows/rpl-baseline-unit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/db_baseline.py'
+      - 'test/test_db_baseline.py'
+      - '.github/workflows/rpl-baseline-unit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rpl-baseline-unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Pin the actions already observed in the production collection run.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      # Offline standard-library tests only. No database secret or crawler call.
+      - run: python -m unittest discover -s test -p 'test_db_baseline.py' -v
+      - run: python -m py_compile scripts/db_baseline.py test/test_db_baseline.py
+      - run: python scripts/db_baseline.py --help
