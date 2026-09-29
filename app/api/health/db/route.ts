@@ -3,36 +3,34 @@ import { queryDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, max-age=0",
+};
+
 export async function GET() {
-  const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
-
-  if (!hasDatabaseUrl) {
-    return NextResponse.json(
-      { ok: false, hasDatabaseUrl: false, error: "DATABASE_URL_MISSING" },
-      { status: 500 },
-    );
-  }
-
   try {
-    const result = await queryDb<{ count: number }>(
-      "SELECT count(*)::int AS count FROM campaigns",
-    );
+    if (!process.env.DATABASE_URL) {
+      throw new Error("database health check unavailable");
+    }
 
-    return NextResponse.json({
-      ok: true,
-      hasDatabaseUrl: true,
-      campaigns: Number(result.rows[0]?.count ?? 0),
-    });
-  } catch (error) {
-    const err = error as NodeJS.ErrnoException & { code?: string };
+    await queryDb("SELECT 1");
+
     return NextResponse.json(
+      { ok: true },
       {
-        ok: false,
-        hasDatabaseUrl: true,
-        error: err.code || err.name || "DB_CONNECTION_FAILED",
-        message: err.message.replace(/postgres(?:ql)?:\/\/[^\s@]+@/gi, "postgres://***@"),
+        status: 200,
+        headers: NO_STORE_HEADERS,
       },
-      { status: 500 },
+    );
+  } catch {
+    console.error("[Re:Place] database health check failed");
+
+    return NextResponse.json(
+      { ok: false },
+      {
+        status: 503,
+        headers: NO_STORE_HEADERS,
+      },
     );
   }
 }
