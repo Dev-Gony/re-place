@@ -89,7 +89,7 @@ def _find_campaign_container(anchor: Tag) -> Tag:
 
         fallback = parent
         text = parent.get_text(" ", strip=True)
-        if "신청" in text and "모집" in text:
+        if any(pattern.search(text) for pattern in COUNT_PATTERNS):
             return parent
 
         current = parent
