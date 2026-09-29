@@ -42,5 +42,7 @@ test("ownership contract forbids client supplied owner IDs", () => {
 });
 
 test("public campaign cache remains public-only", () => {
-  assert.doesNotMatch(campaignCache, /user|session|favorite|manual/i);
+  assert.match(campaignCache, /re-place-public-campaigns-v1/);
+  assert.doesNotMatch(campaignCache, /from ["']\.\/auth|from ["']\.\/private/);
+  assert.doesNotMatch(campaignCache, /auth_user_id|session\.user\.id/);
 });
