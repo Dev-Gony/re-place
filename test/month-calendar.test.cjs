@@ -30,7 +30,7 @@ test("schedule defaults to calendar and keeps list view available", () => {
 
 test("calendar always renders a stable six week grid", () => {
   assert.match(calendar, /Array\.from\(\{ length: 42 \}/);
-  assert.match(calendar, /repeat\(7, minmax\(0, 1fr\)\)/);
+  assert.match(css, /repeat\(7, minmax\(0, 1fr\)\)/);
 });
 
 test("calendar supports previous current and next month navigation", () => {
