@@ -29,6 +29,10 @@ class Campaign:
     deadline_at: str | None = None
     reward_amount: int | None = None
     reward_kind: str | None = None
+    cash_fee_amount: int | None = None
+    provided_value_amount: int | None = None
+    points_amount: int | None = None
+    reimbursement_amount: int | None = None
     collected_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -44,7 +48,20 @@ class Campaign:
             raise ValueError("link is required")
 
         record = asdict(self)
-        amount, kind = parse_reward(self.reward, self.is_points)
+        components = parse_reward_components(
+            self.reward,
+            self.is_points,
+            campaign_type=self.campaign_type,
+        )
+        for key, value in components.items():
+            if record[key] is None:
+                record[key] = value
+
+        amount, kind = parse_reward(
+            self.reward,
+            self.is_points,
+            campaign_type=self.campaign_type,
+        )
         if record["reward_amount"] is None:
             record["reward_amount"] = amount
         if record["reward_kind"] is None:
@@ -87,6 +104,10 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
             deadline_at,
             reward_amount,
             reward_kind,
+            cash_fee_amount,
+            provided_value_amount,
+            points_amount,
+            reimbursement_amount,
             collected_at
         )
         values (
@@ -106,6 +127,10 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
             %(deadline_at)s,
             %(reward_amount)s,
             %(reward_kind)s,
+            %(cash_fee_amount)s,
+            %(provided_value_amount)s,
+            %(points_amount)s,
+            %(reimbursement_amount)s,
             %(collected_at)s
         )
         on conflict (platform, source_campaign_id)
@@ -124,6 +149,10 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
             deadline_at = excluded.deadline_at,
             reward_amount = excluded.reward_amount,
             reward_kind = excluded.reward_kind,
+            cash_fee_amount = excluded.cash_fee_amount,
+            provided_value_amount = excluded.provided_value_amount,
+            points_amount = excluded.points_amount,
+            reimbursement_amount = excluded.reimbursement_amount,
             collected_at = excluded.collected_at
     """
 
@@ -220,35 +249,145 @@ def normalize_campaign_type(
 
 
 
-def parse_reward(reward: str, is_points: bool = False) -> tuple[int | None, str]:
+_AMOUNT_TEXT = r"(?:[0-9]+(?:\.[0-9]+)?\s*만\s*원|[0-9][0-9,]*\s*원)"
+_POINT_REWARD_RE = re.compile(r"([0-9][0-9,]*)\s*(?:P|p|포인트)")
+_CASH_LABELS = r"(?:원고료|활동비|작성비|리뷰비|고료|현금지급|현금)"
+_REIMBURSE_LABELS = r"(?:페이백|환급|캐시백|구매지원금|구매비지원|구매비)"
+_PROVIDED_LABELS = r"(?:제공가|제공금액|제공내역|상품권|식사권|이용권|제공)"
+
+
+def _parse_amount_text(value: str) -> int | None:
+    man = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*만\s*원", value)
+    if man:
+        return round(float(man.group(1)) * 10000)
+
+    won = re.search(r"([0-9][0-9,]*)\s*원", value)
+    if won:
+        return int(won.group(1).replace(",", ""))
+
+    return None
+
+
+def _context_amount(text: str, labels: str) -> int | None:
+    after = re.search(
+        rf"{labels}[^0-9]{{0,16}}(?P<amount>{_AMOUNT_TEXT})",
+        text,
+    )
+    if after:
+        return _parse_amount_text(after.group("amount"))
+
+    before = re.search(
+        rf"(?P<amount>{_AMOUNT_TEXT})[^0-9가-힣]{{0,8}}{labels}",
+        text,
+    )
+    if before:
+        return _parse_amount_text(before.group("amount"))
+
+    return None
+
+
+def _provided_amount(text: str) -> int | None:
+    labelled = _context_amount(text, _PROVIDED_LABELS)
+    if labelled is not None:
+        return labelled
+
+    substantial = re.search(
+        rf"(?P<amount>{_AMOUNT_TEXT})\s*(?:상당|상응)",
+        text,
+    )
+    if substantial:
+        return _parse_amount_text(substantial.group("amount"))
+
+    return None
+
+
+def parse_reward_components(
+    reward: str,
+    is_points: bool = False,
+    *,
+    campaign_type: str | None = None,
+) -> dict[str, int | None]:
     text = (reward or "").strip()
 
+    result: dict[str, int | None] = {
+        "cash_fee_amount": None,
+        "provided_value_amount": None,
+        "points_amount": None,
+        "reimbursement_amount": None,
+    }
+    if not text:
+        return result
+
+    point_values = [
+        int(value.replace(",", ""))
+        for value in _POINT_REWARD_RE.findall(text)
+    ]
+    if point_values:
+        result["points_amount"] = max(point_values)
+
+    result["cash_fee_amount"] = _context_amount(text, _CASH_LABELS)
+    result["reimbursement_amount"] = _context_amount(
+        text,
+        _REIMBURSE_LABELS,
+    )
+    result["provided_value_amount"] = _provided_amount(text)
+
+    generic_amounts = [
+        amount
+        for amount in (
+            _parse_amount_text(match.group(0))
+            for match in re.finditer(_AMOUNT_TEXT, text)
+        )
+        if amount is not None
+    ]
+
+    if (
+        result["cash_fee_amount"] is None
+        and result["reimbursement_amount"] is None
+        and result["provided_value_amount"] is None
+        and generic_amounts
+    ):
+        generic = max(generic_amounts)
+        if campaign_type == "페이백":
+            result["reimbursement_amount"] = generic
+        elif not (is_points and result["points_amount"] is not None):
+            result["provided_value_amount"] = generic
+
+    return result
+
+
+def parse_reward(
+    reward: str,
+    is_points: bool = False,
+    *,
+    campaign_type: str | None = None,
+) -> tuple[int | None, str]:
+    text = (reward or "").strip()
     if not text:
         return None, "unknown"
 
-    if is_points or "포인트" in text:
-        return None, "points"
+    components = parse_reward_components(
+        text,
+        is_points,
+        campaign_type=campaign_type,
+    )
+
+    priority = (
+        ("cash_fee_amount", "cash"),
+        ("reimbursement_amount", "reimbursement"),
+        ("provided_value_amount", "provided"),
+        ("points_amount", "points"),
+    )
+    for field, kind in priority:
+        amount = components[field]
+        if amount is not None:
+            return amount, kind
 
     if "%" in text:
         return None, "discount"
 
-    man_range = re.search(
-        r"([0-9]+(?:\.[0-9]+)?)\s*[~～~-]\s*([0-9]+(?:\.[0-9]+)?)\s*만\s*원",
-        text,
-    )
-    if man_range:
-        amount = round(min(float(man_range.group(1)), float(man_range.group(2))) * 10000)
-        return amount, "amount"
-
-    man_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*만\s*원", text)
-    if man_match:
-        amount = round(float(man_match.group(1)) * 10000)
-        return amount, "amount"
-
-    won_match = re.search(r"([0-9][0-9,]*)\s*원", text)
-    if won_match:
-        amount = int(won_match.group(1).replace(",", ""))
-        return amount, "amount"
+    if is_points or "포인트" in text:
+        return None, "points"
 
     return None, "provided"
 
