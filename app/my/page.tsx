@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "../../lib/auth/server";
 import { queryDb } from "../../lib/db";
 import { MyWorkspace } from "./my-workspace";
+import type { FavoriteItem, RecordItem } from "./my-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +16,17 @@ export default async function MyPage() {
   }
 
   const [favoritesResult, recordsResult] = await Promise.all([
-    queryDb(
-      `select id, campaign_id, campaign_snapshot, created_at
+    queryDb<FavoriteItem>(
+      `select id, campaign_id, campaign_snapshot, created_at::text as created_at
          from user_favorites
         where auth_user_id = $1
         order by created_at desc`,
       [session.user.id],
     ),
-    queryDb(
+    queryDb<RecordItem>(
       `select id, campaign_id, source_type, status, title, platform, link,
-              reward, region, deadline_at, note, campaign_snapshot,
-              created_at, updated_at
+              reward, region, deadline_at::text as deadline_at, note, campaign_snapshot,
+              created_at::text as created_at, updated_at::text as updated_at
          from user_campaign_records
         where auth_user_id = $1
         order by
