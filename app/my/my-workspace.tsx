@@ -183,7 +183,7 @@ export function MyWorkspace({
       tasks.filter(
         (task) => !task.completed_at && taskUrgency(task, todayKey).tone === "overdue",
       ).length,
-    [tasks],
+    [tasks, todayKey],
   );
 
   const filteredRecords = useMemo(() => {
