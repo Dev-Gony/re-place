@@ -35,7 +35,37 @@ test('basic security response headers are configured', () => {
   assert.match(nextConfig, /Permissions-Policy/);
 });
 
-test('robots hides API endpoints from indexing', () => {
+test('robots hides API auth and private account routes from indexing', () => {
   const robots = fs.readFileSync(path.join(root, 'app/robots.ts'), 'utf8');
-  assert.match(robots, /disallow:\s*\["\/api\/"\]/);
+  assert.match(robots, /"\/api\/"/);
+  assert.match(robots, /"\/auth\/"/);
+  assert.match(robots, /"\/my"/);
+});
+
+test('launch metadata and public policy surface exist', () => {
+  for (const file of [
+    'app/manifest.ts',
+    'app/opengraph-image.tsx',
+    'app/privacy/page.tsx',
+    'app/terms/page.tsx',
+    'app/global-error.tsx',
+    'app/loading.tsx',
+    'app/my/loading.tsx',
+  ]) {
+    assert.equal(fs.existsSync(path.join(root, file)), true, file);
+  }
+
+  assert.match(layout, /@vercel\/analytics\/next/);
+  assert.match(layout, /@vercel\/speed-insights\/next/);
+  assert.match(layout, /<Analytics \/>/);
+  assert.match(layout, /<SpeedInsights \/>/);
+});
+
+test('private auth and my pages explicitly opt out of indexing', () => {
+  const authLayout = fs.readFileSync(path.join(root, 'app/auth/layout.tsx'), 'utf8');
+  const myLayout = fs.readFileSync(path.join(root, 'app/my/layout.tsx'), 'utf8');
+  for (const source of [authLayout, myLayout]) {
+    assert.match(source, /index:\s*false/);
+    assert.match(source, /follow:\s*false/);
+  }
 });
