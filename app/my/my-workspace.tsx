@@ -30,6 +30,17 @@ export type RecordItem = {
   note: string | null;
 };
 
+export type TaskItem = {
+  id: number;
+  record_id: number;
+  task_type: "visit" | "content" | "submit" | "other";
+  title: string;
+  due_at: string;
+  completed_at: string | null;
+  record_title: string;
+  record_platform: string | null;
+};
+
 const STATUS_LABELS: Record<string, string> = {
   saved: "저장",
   applied: "지원",
@@ -49,6 +60,13 @@ const STATUS_FILTERS = [
   ["completed", "완료"],
 ] as const;
 
+const TASK_TYPE_LABELS: Record<TaskItem["task_type"], string> = {
+  visit: "방문",
+  content: "콘텐츠 작성",
+  submit: "제출",
+  other: "기타",
+};
+
 function dateInput(value: string | null) {
   return value ? value.slice(0, 10) : "";
 }
@@ -60,18 +78,61 @@ function formatDeadline(value: string | null) {
   return new Intl.DateTimeFormat("ko-KR", {
     month: "numeric",
     day: "numeric",
+    timeZone: "Asia/Seoul",
   }).format(date);
+}
+
+function calendarKey(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Seoul",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function taskUrgency(task: TaskItem) {
+  if (task.completed_at) {
+    return { label: "완료", tone: "done" };
+  }
+
+  const due = calendarKey(task.due_at);
+  const today = calendarKey(new Date());
+  if (!due || !today) {
+    return { label: "예정", tone: "normal" };
+  }
+
+  const difference =
+    (Date.parse(`${due}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) /
+    86_400_000;
+
+  if (difference < 0) return { label: "지연", tone: "overdue" };
+  if (difference === 0) return { label: "오늘", tone: "today" };
+  if (difference <= 7) return { label: `D-${difference}`, tone: "soon" };
+  return { label: "예정", tone: "normal" };
 }
 
 export function MyWorkspace({
   initialFavorites,
   initialRecords,
+  initialTasks,
 }: {
   initialFavorites: FavoriteItem[];
   initialRecords: RecordItem[];
+  initialTasks: TaskItem[];
 }) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>(initialFavorites);
   const [records, setRecords] = useState<RecordItem[]>(initialRecords);
+  const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
   const [manualOpen, setManualOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [notice, setNotice] = useState<string | null>(null);
@@ -82,9 +143,10 @@ export function MyWorkspace({
   }
 
   async function reload() {
-    const [favoritesResponse, recordsResponse] = await Promise.all([
+    const [favoritesResponse, recordsResponse, tasksResponse] = await Promise.all([
       fetch("/api/private/favorites", { cache: "no-store" }),
       fetch("/api/private/records", { cache: "no-store" }),
+      fetch("/api/private/tasks", { cache: "no-store" }),
     ]);
 
     if (favoritesResponse.ok) {
@@ -95,6 +157,10 @@ export function MyWorkspace({
       const data = await recordsResponse.json();
       setRecords(data.items ?? []);
     }
+    if (tasksResponse.ok) {
+      const data = await tasksResponse.json();
+      setTasks(data.items ?? []);
+    }
   }
 
   const activeCount = useMemo(
@@ -102,14 +168,17 @@ export function MyWorkspace({
     [records],
   );
 
-  const upcoming = useMemo(
+  const openTaskCount = useMemo(
+    () => tasks.filter((task) => !task.completed_at).length,
+    [tasks],
+  );
+
+  const overdueTaskCount = useMemo(
     () =>
-      records.filter(
-        (item) =>
-          Boolean(item.deadline_at) &&
-          !["completed", "cancelled"].includes(item.status),
+      tasks.filter(
+        (task) => !task.completed_at && taskUrgency(task).tone === "overdue",
       ).length,
-    [records],
+    [tasks],
   );
 
   const filteredRecords = useMemo(() => {
@@ -144,6 +213,56 @@ export function MyWorkspace({
       await reload();
     } else {
       showError("내 체험단에 추가하지 못했습니다. 다시 시도해 주세요.");
+    }
+  }
+
+  async function createTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+
+    const response = await fetch("/api/private/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recordId: data.get("recordId"),
+        taskType: data.get("taskType"),
+        title: data.get("taskTitle"),
+        dueAt: data.get("taskDueAt"),
+      }),
+    });
+
+    if (response.ok) {
+      form.reset();
+      await reload();
+    } else {
+      showError("할 일을 추가하지 못했습니다. 입력값을 확인해 주세요.");
+    }
+  }
+
+  async function toggleTask(task: TaskItem) {
+    const response = await fetch(`/api/private/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: !task.completed_at }),
+    });
+
+    if (response.ok) {
+      await reload();
+    } else {
+      showError("할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.");
+    }
+  }
+
+  async function deleteTask(id: number) {
+    const response = await fetch(`/api/private/tasks/${id}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      setTasks((items) => items.filter((item) => item.id !== id));
+    } else {
+      showError("할 일을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
@@ -199,6 +318,7 @@ export function MyWorkspace({
     });
     if (response.ok) {
       setRecords((items) => items.filter((item) => item.id !== id));
+      setTasks((items) => items.filter((item) => item.record_id !== id));
     } else {
       showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
@@ -211,18 +331,113 @@ export function MyWorkspace({
           {notice}
         </div>
       )}
+
       <section className="my-summary-bar" aria-label="내 체험단 요약">
         <div><strong>{activeCount}</strong><span>진행중</span></div>
-        <div><strong>{upcoming}</strong><span>마감 있음</span></div>
+        <div><strong>{openTaskCount}</strong><span>남은 할 일</span></div>
+        <div><strong>{overdueTaskCount}</strong><span>지연</span></div>
         <div><strong>{favorites.length}</strong><span>찜</span></div>
         <div><strong>{records.length}</strong><span>전체 기록</span></div>
+      </section>
+
+      <section className="my-section my-task-section">
+        <div className="my-section-head">
+          <div>
+            <h2>일정 · 할 일</h2>
+            <p>방문, 콘텐츠 작성, 제출 일정을 따로 관리합니다.</p>
+          </div>
+          <span className="my-section-count">{openTaskCount}개 남음</span>
+        </div>
+
+        {records.length ? (
+          <form className="my-task-form" onSubmit={createTask}>
+            <select name="recordId" required defaultValue="" aria-label="체험단 기록">
+              <option value="" disabled>체험단 선택</option>
+              {records
+                .filter((record) => record.status !== "cancelled")
+                .map((record) => (
+                  <option value={record.id} key={record.id}>{record.title}</option>
+                ))}
+            </select>
+            <select name="taskType" required defaultValue="submit" aria-label="할 일 유형">
+              {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </select>
+            <input
+              name="taskTitle"
+              required
+              maxLength={240}
+              placeholder="예: 리뷰 초안 작성"
+              aria-label="할 일"
+            />
+            <input name="taskDueAt" type="date" required aria-label="일정 날짜" />
+            <button type="submit">추가</button>
+          </form>
+        ) : (
+          <div className="my-task-empty-callout">
+            참여 기록을 먼저 추가하면 일정과 할 일을 연결할 수 있습니다.
+          </div>
+        )}
+
+        <div className="my-task-table">
+          <div className="my-task-table-head" aria-hidden="true">
+            <span>캠페인</span>
+            <span>할 일</span>
+            <span>기한</span>
+            <span>상태</span>
+            <span />
+          </div>
+
+          {tasks.length ? (
+            tasks.map((task) => {
+              const urgency = taskUrgency(task);
+
+              return (
+                <article
+                  className={`my-task-row ${task.completed_at ? "is-complete" : ""}`}
+                  key={task.id}
+                >
+                  <div className="my-task-campaign">
+                    <span>{task.record_platform || "수동 등록"}</span>
+                    <strong>{task.record_title}</strong>
+                  </div>
+                  <div className="my-task-title">
+                    <span>{TASK_TYPE_LABELS[task.task_type]}</span>
+                    <strong>{task.title}</strong>
+                  </div>
+                  <div className="my-task-date">{formatDeadline(task.due_at)}</div>
+                  <div className={`my-task-badge ${urgency.tone}`}>
+                    {urgency.label}
+                  </div>
+                  <div className="my-task-actions">
+                    <button type="button" onClick={() => toggleTask(task)}>
+                      {task.completed_at ? "되돌리기" : "완료"}
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-text"
+                      onClick={() => deleteTask(task.id)}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </article>
+              );
+            })
+          ) : (
+            <div className="my-empty-row">
+              아직 등록한 할 일이 없습니다. 방문일이나 리뷰 제출일을 추가해 보세요.
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="my-section">
         <div className="my-section-head">
           <div>
             <h2>참여 기록</h2>
-            <p>지원부터 리뷰 완료까지 상태와 마감을 관리합니다.</p>
+            <p>지원부터 리뷰 완료까지 상태와 캠페인 마감을 관리합니다.</p>
           </div>
           <button
             type="button"
@@ -251,7 +466,7 @@ export function MyWorkspace({
             <input name="title" required maxLength={240} placeholder="캠페인명 *" />
             <input name="platform" maxLength={80} placeholder="플랫폼" />
             <input name="link" type="url" placeholder="원문 링크" />
-            <input name="deadlineAt" type="date" aria-label="마감일" />
+            <input name="deadlineAt" type="date" aria-label="캠페인 마감일" />
             <input name="reward" maxLength={500} placeholder="혜택" />
             <input name="region" maxLength={120} placeholder="지역" />
             <input name="note" maxLength={4000} placeholder="메모" />
@@ -397,7 +612,7 @@ function RecordEditor({
       </label>
 
       <label className="my-inline-field">
-        <span>마감</span>
+        <span>캠페인 마감</span>
         <input
           type="date"
           value={deadlineAt}
