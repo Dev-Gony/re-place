@@ -332,8 +332,8 @@ export default async function Home({
           </Link>
 
           <nav className="header-nav" aria-label="주요 메뉴">
-            <a href="#campaigns">캠페인</a>
-            <a href="#filters">필터</a>
+            <a href="#campaigns">캠페인 찾기</a>
+            <Link href="/my">내 체험단</Link>
           </nav>
 
           <div className="header-actions">
@@ -346,34 +346,24 @@ export default async function Home({
         </div>
       </header>
 
-      <section className="hero">
-        <div className="hero-inner">
-          <div className="hero-topline">
-            <div className="hero-copy">
-              <span className="eyebrow">RE:PLACE CAMPAIGN FINDER</span>
-              <h1>체험단 캠페인, <strong>한 번에 비교하세요.</strong></h1>
-              <p>신청 판단에 필요한 혜택·경쟁률·마감·지역만 빠르게 모았습니다.</p>
+      <section className="search-workspace">
+        <div className="search-workspace-inner">
+          <div className="search-heading-row">
+            <div>
+              <h1>체험단 찾기</h1>
+              <p>여러 플랫폼의 모집중 캠페인을 지역, 혜택, 경쟁률 기준으로 비교하세요.</p>
             </div>
-            <div className="hero-stats">
-              <div>
-                <span>모집중</span>
-                <strong>{(totalCampaigns ?? 0).toLocaleString("ko-KR")}</strong>
-              </div>
-              <div>
-                <span>플랫폼</span>
-                <strong>{PLATFORMS.length}</strong>
-              </div>
-              <div>
-                <span>갱신</span>
-                <strong>6h</strong>
-              </div>
+            <div className="source-summary" aria-label="수집 현황">
+              <span><strong>{totalCampaigns.toLocaleString("ko-KR")}</strong>개 모집중</span>
+              <span><strong>{PLATFORMS.length}</strong>개 플랫폼</span>
+              <span>6시간 주기 갱신</span>
             </div>
           </div>
 
           <HeroSearch initialQuery={q} />
 
-          <div className="hero-search-meta">
-            <span>빠른 조건</span>
+          <div className="quick-filters">
+            <span>빠른 필터</span>
             <Link href="/?regionGroup=서울">서울</Link>
             <Link href="/?regionGroup=경기·인천">경기·인천</Link>
             <Link href="/?type=배송형">배송형</Link>
@@ -401,9 +391,8 @@ export default async function Home({
           <div className="results-pane">
         <div className="results-head">
           <div>
-            <span className="results-kicker">CAMPAIGNS</span>
-            <h2>{q ? `“${q}” 검색 결과` : "캠페인 한눈에 보기"}</h2>
-            <p>마감된 캠페인과 오래된 데이터는 제외하고 현재 모집중인 항목만 보여줍니다.</p>
+            <h2>{q ? `“${q}” 검색 결과` : "모집중 캠페인"}</h2>
+            <p>마감된 캠페인과 오래된 데이터는 제외합니다.</p>
           </div>
           <div className="results-count">
             <strong>{totalCount.toLocaleString("ko-KR")}</strong>
