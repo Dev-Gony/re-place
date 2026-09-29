@@ -1,0 +1,25 @@
+name: Gangnam live smoke
+
+on:
+  push:
+    branches:
+      - feat/rpl-011-major-sources
+    paths:
+      - "crawlers/gangnam_crawler.py"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Dry-run current Gangnam public pages
+        run: python crawlers/gangnam_crawler.py --dry-run
