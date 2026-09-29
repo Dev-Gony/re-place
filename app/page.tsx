@@ -46,6 +46,10 @@ type CampaignRow = {
   reward: string | null;
   reward_amount: number | null;
   reward_kind: string | null;
+  cash_fee_amount: number | null;
+  provided_value_amount: number | null;
+  points_amount: number | null;
+  reimbursement_amount: number | null;
   apply_count: number | null;
   recruit_count: number | null;
   region: string | null;
@@ -103,11 +107,26 @@ function formatAmount(value: number | null) {
   return `${value.toLocaleString("ko-KR")}원`;
 }
 
-function rewardBadge(kind: string | null, amount: number | null) {
-  if (kind === "amount" && amount) return formatAmount(amount);
-  if (kind === "points") return "포인트";
-  if (kind === "discount") return "할인";
-  if (kind === "provided") return "제공형";
+function rewardBadge(campaign: CampaignRow) {
+  const parts: string[] = [];
+
+  if (campaign.cash_fee_amount) {
+    parts.push(`원고료 ${formatAmount(campaign.cash_fee_amount)}`);
+  }
+  if (campaign.provided_value_amount) {
+    parts.push(`제공 ${formatAmount(campaign.provided_value_amount)}`);
+  }
+  if (campaign.points_amount) {
+    parts.push(`${campaign.points_amount.toLocaleString("ko-KR")}P`);
+  }
+  if (campaign.reimbursement_amount) {
+    parts.push(`환급 ${formatAmount(campaign.reimbursement_amount)}`);
+  }
+
+  if (parts.length) return parts.join(" · ");
+  if (campaign.reward_kind === "discount") return "할인";
+  if (campaign.reward_kind === "provided") return "제공형";
+  if (campaign.reward_kind === "points") return "포인트";
   return "상세확인";
 }
 
@@ -192,11 +211,16 @@ export default async function Home({
   if (media) addFilter("media_type = ?", media);
   if (campaignType) addFilter("campaign_type = ?", campaignType);
 
-  if (reward === "30000") addFilter("reward_amount >= ?", 30000);
-  if (reward === "50000") addFilter("reward_amount >= ?", 50000);
-  if (reward === "100000") addFilter("reward_amount >= ?", 100000);
-  if (reward === "provided") addFilter("reward_kind = ?", "provided");
-  if (reward === "points") addFilter("reward_kind = ?", "points");
+  const rewardAmountClause =
+    "GREATEST(COALESCE(cash_fee_amount, 0), COALESCE(provided_value_amount, 0), " +
+    "COALESCE(points_amount, 0), COALESCE(reimbursement_amount, 0)) >= ?";
+  if (reward === "30000") addFilter(rewardAmountClause, 30000);
+  if (reward === "50000") addFilter(rewardAmountClause, 50000);
+  if (reward === "100000") addFilter(rewardAmountClause, 100000);
+  if (reward === "cash") where.push("cash_fee_amount IS NOT NULL");
+  if (reward === "provided") where.push("provided_value_amount IS NOT NULL");
+  if (reward === "points") where.push("points_amount IS NOT NULL");
+  if (reward === "reimbursement") where.push("reimbursement_amount IS NOT NULL");
 
   const whereSql = `WHERE ${where.join(" AND ")}`;
   const visibilitySql = `WHERE ${visibilityWhere.join(" AND ")}`;
@@ -219,6 +243,7 @@ export default async function Home({
       const [dataResult, countResult, totalResult] = await Promise.all([
       queryDb<CampaignRow>(
         `SELECT id, platform, title, link, media_type, reward, reward_amount, reward_kind,
+                cash_fee_amount, provided_value_amount, points_amount, reimbursement_amount,
                 apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at
            FROM campaigns
            ${whereSql}
@@ -397,7 +422,7 @@ export default async function Home({
                     <div className="campaign-cell reward-cell">
                       <span className="mobile-cell-label">혜택</span>
                       <strong className="reward-value">
-                        {rewardBadge(campaign.reward_kind, campaign.reward_amount)}
+                        {rewardBadge(campaign)}
                       </strong>
                       <small title={campaign.reward || ""}>
                         {campaign.reward || "상세페이지 확인"}
