@@ -2,7 +2,6 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from time import perf_counter
 
-from reviewnote_crawler import get_reviewnote_data
 from dinnerqueen_crawler import get_dinnerqueen_data
 from mible_crawler import get_mible_data
 from reviewplace_crawler import get_reviewplace_data
@@ -12,12 +11,18 @@ from reviewus_crawler import get_reviewus_data
 Collector = tuple[str, Callable[[], None]]
 
 COLLECTORS: list[Collector] = [
-    ("리뷰노트", get_reviewnote_data),
     ("디너의여왕", get_dinnerqueen_data),
     ("미블", get_mible_data),
     ("리뷰플레이스", get_reviewplace_data),
     ("리뷰어스", get_reviewus_data),
 ]
+
+BLOCKED_COLLECTORS = (
+    "리뷰노트",
+    "레뷰",
+    "강남맛집",
+    "포블로그",
+)
 
 
 def run_all() -> None:
@@ -25,7 +30,11 @@ def run_all() -> None:
     started_at = datetime.now(timezone.utc).isoformat()
 
     print(f"Re:Place crawler batch started at {started_at}")
-    print("레뷰, 강남맛집, 포블로그 수집은 현재 운영 배치에서 일시 제외되어 있습니다.")
+    print(
+        "운영 배치 제외: "
+        + ", ".join(BLOCKED_COLLECTORS)
+        + " (정책/권한/운영 검토 필요)"
+    )
 
     for name, collector in COLLECTORS:
         started = perf_counter()
