@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, type ChangeEvent, useRef, useTransition } from "react";
+import { FormEvent, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type FilterValues = {
@@ -158,8 +158,14 @@ export function FilterPanel({
     navigateFromForm(formRef.current, router, startTransition);
   }
 
-  function handleChange(event: ChangeEvent<HTMLFormElement>) {
-    const target = event.target as HTMLInputElement | HTMLSelectElement;
+  function handleChange(event: FormEvent<HTMLFormElement>) {
+    const target = event.target;
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
     if (!target.name) return;
 
     if (target.name === "region" && target instanceof HTMLInputElement) {
