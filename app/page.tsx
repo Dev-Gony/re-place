@@ -8,7 +8,7 @@ import { FavoriteButton } from "./favorite-button";
 
 const PAGE_SIZE = 40;
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
-const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
+const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백", "기자단"];
 const REGION_GROUPS = [
   "서울",
   "경기·인천",
@@ -230,7 +230,13 @@ export default async function Home({
     where.push(clause.replace("?", "$" + values.length));
   };
 
-  if (q) addFilter("title ILIKE ?", `%${q}%`);
+  if (q) {
+    values.push(`%${q}%`);
+    const queryParam = "$" + values.length;
+    where.push(
+      `(title ILIKE ${queryParam} OR region ILIKE ${queryParam} OR platform ILIKE ${queryParam})`,
+    );
+  }
   if (platforms.length) addFilter("platform = ANY(?::text[])", platforms);
   if (regionGroup) addFilter("region_group = ?", regionGroup);
   if (region) addFilter("region ILIKE ?", `%${region}%`);
