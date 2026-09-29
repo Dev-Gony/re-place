@@ -19,54 +19,41 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install requests beautifulsoup4
-      - name: Inspect Gangnam campaign-list inline JavaScript
+      - run: python -m pip install requests
+      - name: Probe Gangnam public recommendation endpoint
         run: |
           python - <<'PY'
-          import re
+          import json
           import requests
-          from bs4 import BeautifulSoup
 
-          url = "https://gangnam-review.net/cp/?id=2295177"
-          response = requests.get(
-              url,
-              timeout=(8, 20),
-              headers={"User-Agent": "Mozilla/5.0"},
-          )
+          session = requests.Session()
+          session.headers.update({
+              "User-Agent": "Mozilla/5.0",
+              "Referer": "https://gangnam-review.net/cp/?id=2295177",
+          })
+
+          url = "https://gangnam-review.net/index_recommend.php"
+          response = session.get(url, timeout=(8, 20))
+          print("status:", response.status_code)
+          print("content_type:", response.headers.get("content-type"))
+          print("bytes:", len(response.content))
           response.raise_for_status()
-          soup = BeautifulSoup(response.text, "html.parser")
 
-          blocks = [
-              script.get_text("\n", strip=False)
-              for script in soup.find_all("script")
-              if not script.get("src")
-          ]
-
-          needles = (
-              "b_html +=",
-              "$.ajax",
-              "ajax_req",
-              "list_item",
-              "recommend",
-              "relation",
-              "campaign",
-          )
-
-          matches = []
-          for block in blocks:
-              if not any(needle.lower() in block.lower() for needle in needles):
-                  continue
-              lines = block.splitlines()
-              for index, line in enumerate(lines):
-                  if any(needle.lower() in line.lower() for needle in needles):
-                      start = max(0, index - 8)
-                      end = min(len(lines), index + 18)
-                      snippet = "\n".join(lines[start:end]).strip()
-                      if snippet and snippet not in matches:
-                          matches.append(snippet)
-
-          print("candidate_blocks:", len(matches))
-          for i, snippet in enumerate(matches[:30], 1):
-              print(f"--- candidate {i} ---")
-              print(snippet[:5000])
+          data = response.json()
+          print("top_keys:", sorted(data.keys()) if isinstance(data, dict) else type(data).__name__)
+          items = data.get("items", []) if isinstance(data, dict) else []
+          print("items:", len(items))
+          if items:
+              print("item_keys:", sorted(items[0].keys()))
+              for item in items[:10]:
+                  safe = {
+                      key: item.get(key)
+                      for key in (
+                          "href", "title", "subject", "type", "d_gap",
+                          "apply", "apply_cnt", "recruit", "recruit_cnt",
+                          "benefit", "reward", "location", "region"
+                      )
+                      if key in item
+                  }
+                  print("item:", json.dumps(safe, ensure_ascii=False)[:1200])
           PY
