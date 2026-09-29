@@ -36,6 +36,16 @@ class SearchQueryContractTests(unittest.TestCase):
             PAGE,
         )
 
+    def test_reward_amount_filter_does_not_sum_different_components(self):
+        self.assertIn("GREATEST(COALESCE(cash_fee_amount, 0)", PAGE)
+        self.assertNotIn("cash_fee_amount + provided_value_amount", PAGE)
+
+    def test_reward_type_filters_use_component_columns(self):
+        self.assertIn('cash_fee_amount IS NOT NULL', PAGE)
+        self.assertIn('provided_value_amount IS NOT NULL', PAGE)
+        self.assertIn('points_amount IS NOT NULL', PAGE)
+        self.assertIn('reimbursement_amount IS NOT NULL', PAGE)
+
 
 if __name__ == "__main__":
     unittest.main()
