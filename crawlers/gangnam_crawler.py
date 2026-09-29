@@ -1,41 +1,18 @@
 import argparse
-import re
-from collections import deque
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urljoin, urlparse
 from zoneinfo import ZoneInfo
 
 import requests
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from common import (
-    Campaign,
-    extract_region_from_title,
-    get_database_connection,
-    normalize_campaign_type,
-    upsert_campaigns,
-)
+from common import Campaign, extract_region_from_title
 
 
 BASE_URL = "https://gangnam-review.net"
-ENTRY_URLS = (
-    f"{BASE_URL}/",
-    f"{BASE_URL}/business/",
-)
-# Keep request volume bounded because this source is public HTML, not an API.
-MAX_LIST_PAGES = 6
-CAMPAIGN_HREF_RE = re.compile(r"/cp/\?id=(\d+)")
-COUNT_PATTERNS = (
-    re.compile(r"신청\s*([0-9,]+)\s*(?:/|\||·)?\s*모집\s*([0-9,]+)"),
-    re.compile(r"신청자\s*([0-9,]+)\s*/\s*([0-9,]+)"),
-)
-DAYS_LEFT_RE = re.compile(r"([0-9]+)\s*일\s*남음")
-APPLICATION_PERIOD_RE = re.compile(
-    r"캠페인\s*신청기간\s*([0-9]{1,2})[.\-/]([0-9]{1,2})\s*[~～-]\s*"
-    r"([0-9]{1,2})[.\-/]([0-9]{1,2})"
-)
+RECOMMEND_URL = f"{BASE_URL}/index_recommend.php"
 SEOUL = ZoneInfo("Asia/Seoul")
 
 
@@ -59,6 +36,7 @@ def build_session() -> requests.Session:
                 "Chrome/154.0.0.0 Safari/537.36"
             ),
             "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.7",
+            "Referer": f"{BASE_URL}/cp/",
         }
     )
     session.mount("https://", HTTPAdapter(max_retries=retry))
@@ -68,322 +46,168 @@ def build_session() -> requests.Session:
 
 def canonical_source_id(href: str) -> str | None:
     parsed = urlparse(urljoin(BASE_URL, href))
+    if parsed.netloc != urlparse(BASE_URL).netloc:
+        return None
     if parsed.path.rstrip("/") != "/cp":
         return None
 
     values = parse_qs(parsed.query).get("id", [])
     if not values or not values[0].isdigit():
         return None
-
     return values[0]
 
 
-def _find_campaign_container(anchor: Tag) -> Tag:
-    current: Tag | None = anchor
-    fallback = anchor
+def _image_url(image_html: str) -> str:
+    if not image_html:
+        return ""
 
-    for _ in range(6):
-        parent = current.parent if current else None
-        if not isinstance(parent, Tag):
-            break
+    soup = BeautifulSoup(image_html, "html.parser")
+    image = soup.find("img")
+    if not image:
+        return ""
 
-        fallback = parent
-        text = parent.get_text(" ", strip=True)
-        if any(pattern.search(text) for pattern in COUNT_PATTERNS):
-            return parent
-
-        current = parent
-
-    return fallback
+    src = str(image.get("src", "")).strip()
+    return urljoin(BASE_URL, src) if src else ""
 
 
-def _first_text(container: Tag, selectors: tuple[str, ...]) -> str | None:
-    for selector in selectors:
-        found = container.select_one(selector)
-        if found:
-            text = found.get_text(" ", strip=True)
-            if text:
-                return text
+def _campaign_type(raw_type: str, subject: str) -> str | None:
+    if raw_type == "visit":
+        return "방문형"
+    if raw_type == "delivery":
+        if "페이백" in subject:
+            return "페이백"
+        return "배송형"
+    if raw_type == "doc":
+        return "기자단"
     return None
 
 
-def _extract_title(anchor: Tag, container: Tag) -> str | None:
-    title = _first_text(
-        container,
-        (
-            "dt.tit",
-            ".tit",
-            ".campaign-title",
-            ".item-title",
-            "h2",
-            "h3",
-            "h4",
-        ),
-    )
-    if title:
-        return title
-
-    anchor_title = anchor.get("title")
-    if isinstance(anchor_title, str) and anchor_title.strip():
-        return anchor_title.strip()
-
-    text = anchor.get_text(" ", strip=True)
-    return text or None
-
-
-def _extract_reward(container: Tag, title: str) -> str:
-    reward = _first_text(
-        container,
-        (
-            "dd.sub_tit",
-            ".sub_tit",
-            ".reward",
-            ".benefit",
-            ".campaign-benefit",
-        ),
-    )
-    if reward:
-        return reward
-
-    lines = [
-        line.strip()
-        for line in container.get_text("\n", strip=True).splitlines()
-        if line.strip()
-    ]
-    for line in lines:
-        if line == title:
-            continue
-        if any(pattern.search(line) for pattern in COUNT_PATTERNS):
-            continue
-        if any(
-            marker in line
-            for marker in (
-                "체험권",
-                "상당",
-                "제공",
-                "포인트",
-                "페이백",
-                "상품권",
-            )
-        ):
-            return line
-
-    return ""
-
-
-def _extract_media_type(text: str) -> str:
-    lowered = text.lower()
-    if "instagram" in lowered or "인스타" in text:
-        return "인스타그램"
-    if "youtube" in lowered or "유튜브" in text:
-        return "유튜브"
-    if "clip" in lowered or "클립" in text:
-        return "숏폼(클립)"
-    return "블로그"
-
-
-def _deadline_from_text(text: str, *, now: datetime | None = None) -> str | None:
-    base = (now or datetime.now(SEOUL)).astimezone(SEOUL)
-
-    days_match = DAYS_LEFT_RE.search(text)
-    if days_match:
-        deadline = (base + timedelta(days=int(days_match.group(1)))).replace(
-            hour=23,
-            minute=59,
-            second=59,
-            microsecond=0,
-        )
-        return deadline.isoformat()
-
-    period_match = APPLICATION_PERIOD_RE.search(text)
-    if not period_match:
-        return None
-
-    end_month = int(period_match.group(3))
-    end_day = int(period_match.group(4))
+def _deadline_from_gap(
+    d_gap: object,
+    *,
+    now: datetime | None = None,
+) -> str | None:
     try:
-        deadline = datetime(
-            base.year,
-            end_month,
-            end_day,
-            23,
-            59,
-            59,
-            tzinfo=SEOUL,
-        )
-    except ValueError:
+        days = int(str(d_gap))
+    except (TypeError, ValueError):
+        return None
+    if days < 0:
         return None
 
-    if deadline < base - timedelta(days=180):
-        deadline = deadline.replace(year=deadline.year + 1)
-    elif deadline > base + timedelta(days=180):
-        deadline = deadline.replace(year=deadline.year - 1)
-
+    base = (now or datetime.now(SEOUL)).astimezone(SEOUL)
+    deadline = (base + timedelta(days=days)).replace(
+        hour=23,
+        minute=59,
+        second=59,
+        microsecond=0,
+    )
     return deadline.isoformat()
 
 
-def parse_campaigns(html: str, *, page_url: str = BASE_URL) -> list[Campaign]:
-    soup = BeautifulSoup(html, "html.parser")
-    campaigns: dict[str, Campaign] = {}
+def parse_recommend_item(item: dict) -> Campaign | None:
+    source_id = canonical_source_id(str(item.get("href", "")))
+    if source_id is None:
+        return None
 
-    for anchor in soup.find_all("a", href=True):
-        href = str(anchor.get("href", "")).strip()
-        source_id = canonical_source_id(href)
-        if source_id is None or source_id in campaigns:
-            continue
+    subject = str(item.get("subject", "")).strip()
+    if not subject:
+        return None
 
-        container = _find_campaign_container(anchor)
-        title = _extract_title(anchor, container)
-        if not title:
-            continue
+    content = str(item.get("content", "")).strip()
+    raw_type = str(item.get("type", "")).strip()
+    channel = str(item.get("channel", "")).strip()
 
-        text = container.get_text(" ", strip=True)
-        count_match = next(
-            (match for pattern in COUNT_PATTERNS if (match := pattern.search(text))),
-            None,
-        )
-        apply_count = (
-            int(count_match.group(1).replace(",", ""))
-            if count_match
-            else None
-        )
-        recruit_count = (
-            int(count_match.group(2).replace(",", ""))
-            if count_match
-            else None
-        )
+    try:
+        apply_count = int(str(item.get("cmp_ask_num", "")).replace(",", ""))
+    except ValueError:
+        apply_count = None
 
-        reward = _extract_reward(container, title)
-        region = extract_region_from_title(title)
-        campaign_type = normalize_campaign_type(
-            text,
-            title=f"{title} {reward}",
-            region=region,
-        )
+    try:
+        recruit_count = int(str(item.get("cmp_num", "")).replace(",", ""))
+    except ValueError:
+        recruit_count = None
 
-        img = container.find("img")
-        image_url = ""
-        if isinstance(img, Tag):
-            src = str(img.get("src", "")).strip()
-            if src:
-                image_url = urljoin(page_url, src)
+    point_raw = str(item.get("point", "")).replace(",", "").strip()
+    is_points = (
+        (point_raw.isdigit() and int(point_raw) > 0)
+        or "포인트" in content
+    )
 
-        campaigns[source_id] = Campaign(
-            platform="강남맛집",
-            source_campaign_id=source_id,
-            title=title,
-            link=urljoin(BASE_URL, f"/cp/?id={source_id}"),
-            image_url=image_url,
-            media_type=_extract_media_type(text),
-            reward=reward,
-            apply_count=apply_count,
-            recruit_count=recruit_count,
-            region=region,
-            campaign_type=campaign_type,
-            deadline_at=_deadline_from_text(text),
-        )
+    media_map = {
+        "Blog": "블로그",
+        "Instagram": "인스타그램",
+        "Youtube": "유튜브",
+        "YouTube": "유튜브",
+    }
 
-    return list(campaigns.values())
+    region = extract_region_from_title(subject)
+
+    return Campaign(
+        platform="강남맛집",
+        source_campaign_id=source_id,
+        title=subject,
+        link=f"{BASE_URL}/cp/?id={source_id}",
+        image_url=_image_url(str(item.get("img", ""))),
+        media_type=media_map.get(channel, channel or None),
+        reward=content,
+        is_points=is_points,
+        apply_count=apply_count,
+        recruit_count=recruit_count,
+        region=region,
+        campaign_type=_campaign_type(raw_type, subject),
+        deadline_at=_deadline_from_gap(item.get("d_gap")),
+    )
 
 
-def discover_list_pages(html: str, *, page_url: str) -> list[str]:
-    soup = BeautifulSoup(html, "html.parser")
-    found: list[str] = []
-
-    for anchor in soup.find_all("a", href=True):
-        href = str(anchor.get("href", "")).strip()
-        if not href:
-            continue
-
-        absolute = urljoin(page_url, href)
-        parsed = urlparse(absolute)
-        if parsed.netloc != urlparse(BASE_URL).netloc:
-            continue
-
-        lower = absolute.lower()
-        if not (
-            "page=" in lower
-            or "page/" in lower
-            or "pageno=" in lower
-            or "p=" in parsed.query.lower()
-        ):
-            continue
-
-        if absolute not in found:
-            found.append(absolute)
-
-    return found
-
-
-def fetch_campaigns(
+def fetch_recommendation_sample(
     session: requests.Session,
-    *,
-    max_pages: int = MAX_LIST_PAGES,
-) -> tuple[list[Campaign], int]:
-    queue: deque[str] = deque(ENTRY_URLS)
-    visited: set[str] = set()
-    campaigns: dict[str, Campaign] = {}
-    request_count = 0
-    found_primary_source = False
+) -> list[Campaign]:
+    response = session.get(RECOMMEND_URL, timeout=(8, 20))
+    response.raise_for_status()
 
-    while queue and request_count < max_pages:
-        url = queue.popleft()
-        if url in visited:
+    payload = response.json()
+    items = payload.get("items", []) if isinstance(payload, dict) else []
+    campaigns: list[Campaign] = []
+
+    for item in items:
+        if not isinstance(item, dict):
             continue
-        visited.add(url)
+        campaign = parse_recommend_item(item)
+        if campaign is not None:
+            campaigns.append(campaign)
 
-        response = session.get(url, timeout=(8, 20))
-        request_count += 1
-        response.raise_for_status()
-
-        if response.encoding and response.encoding.lower() == "iso-8859-1":
-            response.encoding = "utf-8"
-
-        page_campaigns = parse_campaigns(response.text, page_url=response.url)
-        if page_campaigns:
-            found_primary_source = True
-            for campaign in page_campaigns:
-                campaigns[campaign.source_campaign_id] = campaign
-
-            for page in discover_list_pages(response.text, page_url=response.url):
-                if page not in visited:
-                    queue.append(page)
-
-            # ENTRY_URLS contains fallback pages. Once the primary source works,
-            # do not fetch another landing page just to collect duplicates.
-            queue = deque(
-                page
-                for page in queue
-                if page not in ENTRY_URLS
-            )
-        elif not found_primary_source:
-            continue
-
-    return list(campaigns.values()), request_count
+    return campaigns
 
 
 def get_gangnam_data(*, dry_run: bool = False) -> list[Campaign]:
-    print("강남맛집 current-domain collector 시작...")
+    """
+    Validate the current public Gangnam-review JSON contract.
 
+    The verified endpoint exposes only 10 recommendation campaigns and is not
+    a complete catalogue. Until a stable full-list endpoint is confirmed,
+    production DB writes are intentionally blocked to prevent partial coverage
+    from being mistaken for a complete source integration.
+    """
     with build_session() as session:
-        campaigns, request_count = fetch_campaigns(session)
+        campaigns = fetch_recommendation_sample(session)
 
     if not campaigns:
         raise RuntimeError(
-            "강남맛집 공개 목록에서 캠페인을 찾지 못했습니다. "
-            "사이트 구조 또는 접근 정책을 확인해야 합니다."
+            "강남맛집 공개 JSON에서 캠페인을 찾지 못했습니다. "
+            "endpoint 구조를 다시 확인해야 합니다."
         )
 
     print(
-        f"HTTP {request_count}회 요청으로 "
-        f"{len(campaigns)}개 고유 캠페인을 찾았습니다."
+        "강남맛집 공개 JSON probe 성공: "
+        f"{len(campaigns)}개 추천 캠페인 확인"
     )
 
-    if dry_run:
-        return campaigns
+    if not dry_run:
+        raise RuntimeError(
+            "강남맛집은 전체 목록 endpoint가 아직 확인되지 않아 "
+            "production 저장을 차단합니다."
+        )
 
-    saved = upsert_campaigns(get_database_connection(), campaigns)
-    print(f"{saved}개 캠페인을 DB에 동기화했습니다.")
     return campaigns
 
 
@@ -392,7 +216,7 @@ def main() -> None:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="DB를 쓰지 않고 공개 목록 파싱 결과만 검증합니다.",
+        help="추천 JSON 계약만 검증하고 DB에는 저장하지 않습니다.",
     )
     args = parser.parse_args()
     get_gangnam_data(dry_run=args.dry_run)
