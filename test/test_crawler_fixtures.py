@@ -49,13 +49,23 @@ class CrawlerFixtureTests(unittest.TestCase):
     def test_mible_fixture(self):
         html = (FIXTURES / 'mible.html').read_text(encoding='utf-8')
         campaigns = mible_crawler.parse_page(html)
-        self.assertEqual(len(campaigns), 1)
-        campaign = campaigns[0]
-        self.assertEqual(campaign.source_campaign_id, '3003')
-        self.assertEqual(campaign.campaign_type, '배송형')
-        self.assertEqual(campaign.apply_count, 42)
-        self.assertEqual(campaign.recruit_count, 10)
-        self.assertIsNotNone(campaign.deadline_at)
+        self.assertEqual(len(campaigns), 3)
+
+        local = next(item for item in campaigns if item.source_campaign_id == '3003')
+        self.assertEqual(local.region, '광주 수완동')
+        self.assertEqual(local.campaign_type, '방문형')
+        self.assertEqual(local.apply_count, 42)
+        self.assertEqual(local.recruit_count, 10)
+        self.assertIsNotNone(local.deadline_at)
+
+        station = next(item for item in campaigns if item.source_campaign_id == '3004')
+        self.assertEqual(station.region, '홍대입구역')
+        self.assertEqual(station.campaign_type, '방문형')
+        self.assertIsNotNone(station.deadline_at)
+
+        delivery = next(item for item in campaigns if item.source_campaign_id == '3005')
+        self.assertEqual(delivery.campaign_type, '배송형')
+        self.assertIsNotNone(delivery.deadline_at)
 
     def test_mible_missing_counts_remain_unknown(self):
         html = """<html><body>
@@ -113,6 +123,21 @@ class CrawlerFixtureTests(unittest.TestCase):
                 'https://example.com/cp/?id=123'
             )
         )
+
+    def test_reviewplace_region_tag_fixture(self):
+        html = """<html><body>
+        <a href="/pr/?id=4999">
+          NEW [릴스/경기/시흥] 인생곱창맛집! 품격있는곱창 드셔보세요
+          ♥ [46,000원] 곱창 모듬구이 2인분
+          D - 7 신청 0 / 10명
+        </a>
+        </body></html>"""
+        soup = BeautifulSoup(html, 'html.parser')
+        campaign = reviewplace_crawler.parse_campaign(soup.find('a'), '지역')
+        self.assertIsNotNone(campaign)
+        self.assertEqual(campaign.region, '경기 시흥')
+        self.assertEqual(campaign.campaign_type, '방문형')
+        self.assertEqual(campaign.media_type, '숏폼(릴스)')
 
     def test_reviewplace_fixture(self):
         html = (FIXTURES / 'reviewplace.html').read_text(encoding='utf-8')

@@ -7,7 +7,10 @@ PAGE = (ROOT / "app" / "page.tsx").read_text(encoding="utf-8")
 
 class SearchQueryContractTests(unittest.TestCase):
     def test_search_filters_use_bound_parameters(self):
-        self.assertIn('addFilter("title ILIKE ?",', PAGE)
+        self.assertIn('values.push(`%${q}%`);', PAGE)
+        self.assertIn('title ILIKE ${queryParam}', PAGE)
+        self.assertIn('region ILIKE ${queryParam}', PAGE)
+        self.assertIn('platform ILIKE ${queryParam}', PAGE)
         self.assertIn('addFilter("platform = ANY(?::text[])", platforms)', PAGE)
         self.assertIn('addFilter("region_group = ?", regionGroup)', PAGE)
         self.assertIn('addFilter("region ILIKE ?",', PAGE)

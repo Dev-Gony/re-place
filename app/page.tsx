@@ -8,7 +8,7 @@ import { FavoriteButton } from "./favorite-button";
 
 const PAGE_SIZE = 40;
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
-const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백"];
+const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백", "기자단"];
 const REGION_GROUPS = [
   "서울",
   "경기·인천",
@@ -36,6 +36,8 @@ type ActiveFilters = {
 
 type SourceRow = {
   name: string;
+  status: string;
+  search_enabled: boolean;
   freshness_hours: number;
 };
 
@@ -146,6 +148,19 @@ function formatRecruitCount(value: number | null) {
   return value === null ? "미확인" : `${value.toLocaleString("ko-KR")}명`;
 }
 
+function displayRegion(campaign: CampaignRow) {
+  const values = [campaign.region_group, campaign.region]
+    .filter(Boolean)
+    .filter((value, index, all) => all.indexOf(value) === index);
+
+  if (values.length) return values.join(" · ");
+  if (campaign.campaign_type === "배송형" || campaign.campaign_type === "페이백") {
+    return "지역무관";
+  }
+  if (campaign.campaign_type === "기자단") return "지역무관";
+  return "위치 원문 확인";
+}
+
 function competitionClass(ratio: number | null) {
   if (ratio === null) return "neutral";
   if (ratio <= 1) return "low";
@@ -165,10 +180,8 @@ export default async function Home({
 
   try {
     const sourceResult = await queryDb<SourceRow>(
-      `SELECT name, freshness_hours
+      `SELECT name, status, search_enabled, freshness_hours
          FROM platform_sources
-        WHERE status = 'active'
-          AND search_enabled = true
         ORDER BY priority, name`,
     );
     sourceRows = sourceResult.rows;
@@ -178,7 +191,9 @@ export default async function Home({
     console.error("[Re:Place] source registry query failed");
   }
 
-  const PLATFORMS = sourceRows.map((source) => source.name);
+  const PLATFORMS = sourceRows
+    .filter((source) => source.status === "active" && source.search_enabled)
+    .map((source) => source.name);
   const q = firstValue(resolved.q).trim();
   const platforms = listValue(resolved.platform).filter((item) =>
     PLATFORMS.includes(item),
@@ -215,7 +230,13 @@ export default async function Home({
     where.push(clause.replace("?", "$" + values.length));
   };
 
-  if (q) addFilter("title ILIKE ?", `%${q}%`);
+  if (q) {
+    values.push(`%${q}%`);
+    const queryParam = "$" + values.length;
+    where.push(
+      `(title ILIKE ${queryParam} OR region ILIKE ${queryParam} OR platform ILIKE ${queryParam})`,
+    );
+  }
   if (platforms.length) addFilter("platform = ANY(?::text[])", platforms);
   if (regionGroup) addFilter("region_group = ?", regionGroup);
   if (region) addFilter("region ILIKE ?", `%${region}%`);
@@ -372,6 +393,7 @@ export default async function Home({
               mediaTypes={MEDIA_TYPES}
               campaignTypes={CAMPAIGN_TYPES}
               regionGroups={REGION_GROUPS}
+              sourceStatuses={sourceRows}
               hasActiveFilters={hasActiveFilters}
             />
           </aside>
@@ -479,10 +501,7 @@ export default async function Home({
                       <span className="mobile-cell-label">마감 · 지역</span>
                       <strong>{deadline || "마감 미정"}</strong>
                       <small>
-                        {[campaign.region_group, campaign.region]
-                          .filter(Boolean)
-                          .filter((value, index, all) => all.indexOf(value) === index)
-                          .join(" · ") || "지역 정보 없음"}
+                        {displayRegion(campaign)}
                       </small>
                     </div>
 

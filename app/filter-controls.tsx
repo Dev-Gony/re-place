@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useTransition } from "react";
+import { FormEvent, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type FilterValues = {
@@ -14,6 +14,12 @@ type FilterValues = {
   sort: string;
 };
 
+type SourceStatus = {
+  name: string;
+  status: string;
+  search_enabled: boolean;
+};
+
 type HeroSearchProps = {
   initialQuery: string;
 };
@@ -24,6 +30,7 @@ type FilterPanelProps = {
   mediaTypes: string[];
   campaignTypes: string[];
   regionGroups: string[];
+  sourceStatuses: SourceStatus[];
   hasActiveFilters: boolean;
 };
 
@@ -138,27 +145,55 @@ export function FilterPanel({
   mediaTypes,
   campaignTypes,
   regionGroups,
+  sourceStatuses,
   hasActiveFilters,
 }: FilterPanelProps) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const regionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    navigateFromForm(event.currentTarget, router, startTransition);
+  function applyNow() {
+    if (!formRef.current) return;
+    navigateFromForm(formRef.current, router, startTransition);
+  }
+
+  function handleChange(event: FormEvent<HTMLFormElement>) {
+    const target = event.target;
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
+    if (!target.name) return;
+
+    if (target.name === "region" && target instanceof HTMLInputElement) {
+      if (regionTimer.current) clearTimeout(regionTimer.current);
+      regionTimer.current = setTimeout(applyNow, 350);
+      return;
+    }
+
+    applyNow();
   }
 
   function handleReset() {
+    if (regionTimer.current) clearTimeout(regionTimer.current);
     startTransition(() => {
       router.replace("/", { scroll: false });
     });
   }
 
+  const pausedSources = sourceStatuses.filter(
+    (source) => source.status === "paused" && !source.search_enabled,
+  );
+
   return (
     <form
+      ref={formRef}
       className="filter-panel"
       id="filters"
-      onSubmit={handleSubmit}
+      onChange={handleChange}
       aria-busy={isPending}
     >
       <div className="filter-panel-head">
@@ -178,9 +213,11 @@ export function FilterPanel({
         )}
       </div>
 
+      {isPending && <div className="filter-loading">결과 갱신 중…</div>}
+
       <input type="hidden" name="q" value={values.q} readOnly />
 
-      <FilterSection title="플랫폼" hint="복수 선택">
+      <FilterSection title="플랫폼" hint="누르면 바로 적용">
         <div className="filter-stack">
           {platforms.map((item) => (
             <label className="filter-check" key={item}>
@@ -231,7 +268,7 @@ export function FilterPanel({
         </label>
       </FilterSection>
 
-      <FilterSection title="혜택" hint="합산하지 않음">
+      <FilterSection title="혜택" hint="개별 혜택 기준">
         <div className="filter-chip-grid compact">
           {[
             ["", "전체"],
@@ -292,21 +329,15 @@ export function FilterPanel({
         </div>
       </FilterSection>
 
-      <div className="filter-actions">
-        <button type="submit" className="filter-submit" disabled={isPending}>
-          {isPending ? "적용 중" : "조건 적용"}
-        </button>
-        {hasActiveFilters && (
-          <button
-            type="button"
-            className="filter-reset"
-            onClick={handleReset}
-            disabled={isPending}
-          >
-            초기화
-          </button>
-        )}
-      </div>
+      {pausedSources.length > 0 && (
+        <section className="source-status-panel">
+          <strong>연동 점검 중</strong>
+          <p>
+            {pausedSources.map((source) => source.name).join(" · ")}
+          </p>
+          <small>전체 목록을 안정적으로 가져올 수 있을 때 검색에 추가합니다.</small>
+        </section>
+      )}
     </form>
   );
 }
