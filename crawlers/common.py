@@ -319,8 +319,12 @@ def parse_reward_components(
         return result
 
     point_values = [
-        int(value.replace(",", ""))
-        for value in _POINT_REWARD_RE.findall(text)
+        amount
+        for amount in (
+            int(value.replace(",", ""))
+            for value in _POINT_REWARD_RE.findall(text)
+        )
+        if amount >= 100 or "포인트" in text
     ]
     if point_values:
         result["points_amount"] = max(point_values)
