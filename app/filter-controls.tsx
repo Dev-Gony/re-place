@@ -195,7 +195,7 @@ export function FilterPanel({
       <div className="filter-row reward-filter">
         <div className="filter-label">
           <span>제공내역</span>
-          <small>금액 기준으로 빠르게 선별</small>
+          <small>개별 혜택 금액 기준 · 서로 합산하지 않음</small>
         </div>
         <div className="chip-group">
           {[
@@ -203,8 +203,10 @@ export function FilterPanel({
             ["30000", "3만원+"],
             ["50000", "5만원+"],
             ["100000", "10만원+"],
-            ["provided", "제공형"],
+            ["cash", "원고료"],
+            ["provided", "제공"],
             ["points", "포인트"],
+            ["reimbursement", "환급"],
           ].map(([value, label]) => (
             <label className="radio-chip" key={label}>
               <input
