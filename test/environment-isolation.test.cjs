@@ -35,7 +35,7 @@ test('scheduled collectors use only the production-scoped secret', () => {
 });
 
 test('legacy duplicate pull-request workflows are removed', () => {
-  for (const name of ['cost-regression.yml']) {
+  for (const name of ['cost-regression.yml', 'health-security.yml']) {
     assert.equal(fs.existsSync(path.join(workflowsDir, name)), false, name);
   }
 });
