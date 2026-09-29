@@ -198,8 +198,7 @@ export function FilterPanel({
     >
       <div className="filter-panel-head">
         <div>
-          <span className="filter-overline">FILTER</span>
-          <h2>조건 좁히기</h2>
+          <h2>필터</h2>
         </div>
         {hasActiveFilters && (
           <button
@@ -217,7 +216,7 @@ export function FilterPanel({
 
       <input type="hidden" name="q" value={values.q} readOnly />
 
-      <FilterSection title="플랫폼" hint="누르면 바로 적용">
+      <FilterSection title="플랫폼">
         <div className="filter-stack">
           {platforms.map((item) => (
             <label className="filter-check" key={item}>
@@ -268,7 +267,7 @@ export function FilterPanel({
         </label>
       </FilterSection>
 
-      <FilterSection title="혜택" hint="개별 혜택 기준">
+      <FilterSection title="혜택">
         <div className="filter-chip-grid compact">
           {[
             ["", "전체"],
