@@ -68,10 +68,63 @@ Until then, source registry stays paused.
 
 ## Revu
 
-Existing code depends on `REVU_BEARER_TOKEN`.
+### Verified
 
-RPL-011 will not use copied browser tokens, session extraction, or other authentication bypass as a production collection strategy. A public or official route must be verified.
+- Public web shell at `webview.revu.net` returns HTTP 200 without login.
+- The existing collector targets `api.weble.net/v1/campaigns`.
+- The campaign endpoint returns HTTP 401 without authentication.
+- Current Revu web/search surfaces expose campaign discovery to users, but the verified structured campaign API remains authenticated.
+- Current public terms and operating policy were reviewed. No explicit public API reuse permission was identified.
+
+### Decision
+
+The existing `REVU_BEARER_TOKEN` collector remains out of production.
+
+Re:Place will not use:
+
+- copied browser tokens
+- app tokens
+- session extraction
+- automated account login for token harvesting
+
+Reactivation requires a public catalogue path, official API, or partner feed that can be used without borrowing a member session.
 
 ## Supermembers
 
-The blogger-facing experience is app-centric. Investigation will focus on official/public web, API, or partner routes. App session interception is not a default production strategy.
+### Product-model finding
+
+Supermembers is not a normal apply-and-select campaign board.
+
+The blogger app exposes immediately usable partner stores/products based on membership eligibility. This means a future Re:Place integration should model Supermembers as an available **opportunity/store benefit**, not pretend every row is a normal recruitment campaign.
+
+### Verified technical structure
+
+- Public business website returns HTTP 200.
+- The Nuxt frontend publicly references `api.supermembers.co.kr` and `console-api.supermembers.co.kr`.
+- Public frontend code contains company/store management GET routes.
+- Direct unauthenticated requests to the tested read routes returned HTTP 403.
+- The blogger-facing store list therefore cannot currently be treated as a public catalogue API.
+- Google Play identifies the blogger app package as `kr.co.mayacrew.supermembers`.
+
+### Decision
+
+Do not intercept app sessions or reuse member credentials.
+
+Supermembers remains paused until one of these exists:
+
+1. official/partner data feed
+2. documented API
+3. public, unauthenticated catalogue route intentionally exposed for store/opportunity discovery
+
+If integrated later, use a dedicated opportunity/store-benefit model rather than forcing the data into a recruitment-only campaign schema.
+
+## RPL-011 conclusion
+
+No major source is being falsely marked active.
+
+- ReviewNote: blocked by policy
+- Gangnam-review: technically paused because complete catalogue entry point is not verified
+- Revu: paused because structured campaign API requires authentication
+- Supermembers: paused because blogger catalogue is membership/app gated
+
+The current production collectors stay unchanged. This keeps coverage claims honest while preserving verified parsers/probes and reactivation gates.
