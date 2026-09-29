@@ -11,6 +11,7 @@ FIXTURES = ROOT / 'test' / 'fixtures'
 sys.path.insert(0, str(CRAWLERS))
 
 import dinnerqueen_crawler
+import gangnam_crawler
 import mible_crawler
 import reviewnote_crawler
 import reviewplace_crawler
@@ -68,6 +69,50 @@ class CrawlerFixtureTests(unittest.TestCase):
         self.assertEqual(len(campaigns), 1)
         self.assertIsNone(campaigns[0].apply_count)
         self.assertIsNone(campaigns[0].recruit_count)
+
+    def test_gangnam_recommend_json_fixture(self):
+        payload = json.loads(
+            (FIXTURES / 'gangnam_recommend.json').read_text(encoding='utf-8')
+        )
+        campaigns = [
+            gangnam_crawler.parse_recommend_item(item)
+            for item in payload['items']
+        ]
+        campaigns = [item for item in campaigns if item is not None]
+        self.assertEqual(len(campaigns), 2)
+
+        payback = next(
+            item for item in campaigns
+            if item.source_campaign_id == '2306425'
+        )
+        self.assertEqual(payback.platform, '강남맛집')
+        self.assertEqual(payback.apply_count, 393)
+        self.assertEqual(payback.recruit_count, 5)
+        self.assertEqual(payback.campaign_type, '페이백')
+        self.assertEqual(payback.media_type, '블로그')
+        self.assertTrue(payback.link.endswith('/cp/?id=2306425'))
+
+        reporter = next(
+            item for item in campaigns
+            if item.source_campaign_id == '2313424'
+        )
+        self.assertEqual(reporter.campaign_type, '기자단')
+        self.assertTrue(reporter.is_points)
+
+    def test_gangnam_source_id_is_numeric(self):
+        self.assertEqual(
+            gangnam_crawler.canonical_source_id('/cp/?id=2313424'),
+            '2313424',
+        )
+
+    def test_gangnam_invalid_campaign_link_is_rejected(self):
+        self.assertIsNone(gangnam_crawler.canonical_source_id('/cp/?foo=123'))
+        self.assertIsNone(gangnam_crawler.canonical_source_id('/notice/?id=123'))
+        self.assertIsNone(
+            gangnam_crawler.canonical_source_id(
+                'https://example.com/cp/?id=123'
+            )
+        )
 
     def test_reviewplace_fixture(self):
         html = (FIXTURES / 'reviewplace.html').read_text(encoding='utf-8')

@@ -1,0 +1,40 @@
+{
+  "count": 2,
+  "qr": "",
+  "items": [
+    {
+      "img": "<img src='//gangnam-review.net/data/file/cmp/2026/09/18/thumb-cmp_2306425-test_300x300.png' class='thumb_img'>",
+      "channel_class": "blog",
+      "channel": "Blog",
+      "subject": "[페이백]다다한끼",
+      "content": "다다한끼 묵은지김치찜 300g 8개 체험권",
+      "type": "delivery",
+      "keyword": "다다한끼, 묵은지김치찜",
+      "cmp_num": "5",
+      "cmp_ask_num": "393",
+      "dayy": "<span style='color:#242424; font-weight:600'>오늘마감</span>",
+      "backgroundColor": "",
+      "href": "/cp/?id=2306425",
+      "count": 0,
+      "d_gap": 0,
+      "point": "0"
+    },
+    {
+      "img": "<img src='//gangnam-review.net/data/file/cmp/2026/09/28/thumb-cmp_2313424-test_300x300.png' class='thumb_img'>",
+      "channel_class": "blog",
+      "channel": "Blog",
+      "subject": "[기자단] 도현사주클럽",
+      "content": "포인트 지급",
+      "type": "doc",
+      "keyword": "대구철학관, 대구사주",
+      "cmp_num": "20",
+      "cmp_ask_num": "20",
+      "dayy": "<span><em>7</em>일 남음</span>",
+      "backgroundColor": "",
+      "href": "/cp/?id=2313424",
+      "count": 1,
+      "d_gap": 7,
+      "point": "0"
+    }
+  ]
+}
