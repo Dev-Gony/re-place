@@ -179,7 +179,7 @@ export function FilterPanel({
   }
 
   const pausedSources = sourceStatuses.filter(
-    (source) => !source.search_enabled && source.name !== "리뷰노트",
+    (source) => source.status === "paused" && !source.search_enabled,
   );
 
   return (
