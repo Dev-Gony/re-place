@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@neondatabase/auth-ui/tailwind";
 
 :root {
   --background: #f6f7fa;
@@ -1544,4 +1545,152 @@ select {
   border: 1px solid var(--line);
   background: #fff;
   color: var(--foreground);
+}
+
+
+/* RPL-012 authentication */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-auth-link,
+.header-my-link {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+.header-auth-link:hover,
+.header-my-link:hover {
+  border-color: #cfd3dc;
+  background: #fafbfc;
+}
+.auth-status-loading {
+  color: var(--muted-2);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.auth-page,
+.my-page {
+  min-height: 100vh;
+  background: var(--background);
+}
+.auth-page {
+  display: grid;
+  place-items: center;
+  padding: 72px 20px 40px;
+  position: relative;
+}
+.auth-back-link {
+  position: absolute;
+  top: 24px;
+  left: max(20px, calc((100vw - 1080px) / 2));
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+.auth-card-shell {
+  width: min(100%, 460px);
+}
+
+.my-page {
+  padding-bottom: 64px;
+}
+.my-page-header {
+  width: min(1080px, calc(100% - 40px));
+  min-height: 64px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.my-page-header > a:last-child {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+.my-page-hero,
+.my-page-grid {
+  width: min(1080px, calc(100% - 40px));
+  margin: 0 auto;
+}
+.my-page-hero {
+  padding: 48px 0 26px;
+}
+.my-page-hero > span {
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+.my-page-hero h1 {
+  margin: 8px 0 0;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -.045em;
+}
+.my-page-hero p {
+  max-width: 640px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.my-page-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.my-page-grid article {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.my-page-grid span,
+.my-page-grid small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+}
+.my-page-grid strong {
+  display: block;
+  margin: 12px 0 5px;
+  font-size: 28px;
+  letter-spacing: -.04em;
+}
+
+@media (max-width: 760px) {
+  .header-status {
+    display: none;
+  }
+  .header-actions {
+    margin-left: auto;
+  }
+  .header-my-link {
+    display: none;
+  }
+  .my-page-header,
+  .my-page-hero,
+  .my-page-grid {
+    width: min(100% - 24px, 1080px);
+  }
+  .my-page-hero {
+    padding-top: 30px;
+  }
+  .my-page-grid {
+    grid-template-columns: 1fr;
+  }
 }
