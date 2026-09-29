@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "../../lib/auth/server";
 import { queryDb } from "../../lib/db";
+import { AuthStatus } from "../auth-status";
 import { MyWorkspace } from "./my-workspace";
 import type { FavoriteItem, RecordItem } from "./my-workspace";
 
@@ -39,26 +40,35 @@ export default async function MyPage() {
 
   return (
     <main className="my-page">
-      <header className="my-page-header">
-        <Link href="/" className="brand" aria-label="Re:Place 홈">
-          <span className="brand-mark">R</span>
-          <span className="brand-text">Re:Place</span>
-        </Link>
-        <Link href="/">캠페인 찾기</Link>
+      <header className="site-header">
+        <div className="header-inner">
+          <Link href="/" className="brand" aria-label="Re:Place 홈">
+            <span className="brand-text">Re:Place</span>
+          </Link>
+          <nav className="header-nav" aria-label="주요 메뉴">
+            <Link href="/">캠페인 찾기</Link>
+            <Link href="/my" aria-current="page">내 체험단</Link>
+          </nav>
+          <div className="header-actions">
+            <AuthStatus />
+          </div>
+        </div>
       </header>
 
-      <section className="my-page-hero">
-        <span>MY RE:PLACE</span>
-        <h1>{session.user.name || session.user.email}님의 체험단 관리</h1>
-        <p>
-          찜한 캠페인을 모으고, 지원·선정·방문·리뷰 완료까지 직접 관리하세요.
-        </p>
-      </section>
+      <section className="my-shell">
+        <div className="my-heading">
+          <div>
+            <h1>내 체험단</h1>
+            <p>{session.user.name || session.user.email} 계정의 찜과 참여 기록을 관리합니다.</p>
+          </div>
+          <Link href="/" className="my-find-link">새 캠페인 찾기</Link>
+        </div>
 
-      <MyWorkspace
-        initialFavorites={favoritesResult.rows}
-        initialRecords={recordsResult.rows}
-      />
+        <MyWorkspace
+          initialFavorites={favoritesResult.rows}
+          initialRecords={recordsResult.rows}
+        />
+      </section>
     </main>
   );
 }
