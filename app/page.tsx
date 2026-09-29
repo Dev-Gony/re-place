@@ -321,73 +321,83 @@ export default async function Home({
       </header>
 
       <section className="hero">
-        <div className="hero-orb hero-orb-left" />
-        <div className="hero-orb hero-orb-right" />
-
         <div className="hero-inner">
-          <div className="hero-copy">
-            <span className="eyebrow">CREATOR CAMPAIGN SEARCH</span>
-            <h1>
-              체험단 찾느라
-              <br />
-              <strong>사이트 여러 개 열지 마세요.</strong>
-            </h1>
-            <p>
-              흩어진 체험단 캠페인을 한곳에서 검색하고 비교하세요.
-              사진보다 신청에 필요한 정보를 더 빠르게 보여드립니다.
-            </p>
+          <div className="hero-topline">
+            <div className="hero-copy">
+              <span className="eyebrow">RE:PLACE CAMPAIGN FINDER</span>
+              <h1>체험단 캠페인, <strong>한 번에 비교하세요.</strong></h1>
+              <p>신청 판단에 필요한 혜택·경쟁률·마감·지역만 빠르게 모았습니다.</p>
+            </div>
+            <div className="hero-stats">
+              <div>
+                <span>모집중</span>
+                <strong>{(totalCampaigns ?? 0).toLocaleString("ko-KR")}</strong>
+              </div>
+              <div>
+                <span>플랫폼</span>
+                <strong>{PLATFORMS.length}</strong>
+              </div>
+              <div>
+                <span>갱신</span>
+                <strong>6h</strong>
+              </div>
+            </div>
           </div>
 
           <HeroSearch initialQuery={q} />
 
           <div className="hero-search-meta">
-            <span>빠른 탐색</span>
+            <span>빠른 조건</span>
             <Link href="/?regionGroup=서울">서울</Link>
             <Link href="/?regionGroup=경기·인천">경기·인천</Link>
             <Link href="/?type=배송형">배송형</Link>
-            <Link href="/?reward=50000">5만원 이상</Link>
+            <Link href="/?reward=50000">5만원+</Link>
             <Link href="/?sort=deadline">마감 임박</Link>
-          </div>
-
-          <div className="hero-stats">
-            <div>
-              <span>통합 캠페인</span>
-              <strong>{(totalCampaigns ?? 0).toLocaleString("ko-KR")}+</strong>
-            </div>
-            <div>
-              <span>연결 플랫폼</span>
-              <strong>{PLATFORMS.length}</strong>
-            </div>
-            <div>
-              <span>업데이트</span>
-              <strong>6시간</strong>
-            </div>
           </div>
         </div>
       </section>
 
       <section className="content-wrap" id="campaigns">
-        <FilterPanel
-          key={buildHref(filters, currentPage)}
-          values={filters}
-          platforms={PLATFORMS}
-          mediaTypes={MEDIA_TYPES}
-          campaignTypes={CAMPAIGN_TYPES}
-          regionGroups={REGION_GROUPS}
-          hasActiveFilters={hasActiveFilters}
-        />
+        <div className="workspace">
+          <aside className="filter-sidebar" aria-label="캠페인 필터">
+            <FilterPanel
+              key={buildHref(filters, currentPage)}
+              values={filters}
+              platforms={PLATFORMS}
+              mediaTypes={MEDIA_TYPES}
+              campaignTypes={CAMPAIGN_TYPES}
+              regionGroups={REGION_GROUPS}
+              hasActiveFilters={hasActiveFilters}
+            />
+          </aside>
 
+          <div className="results-pane">
         <div className="results-head">
           <div>
             <span className="results-kicker">CAMPAIGNS</span>
             <h2>{q ? `“${q}” 검색 결과` : "캠페인 한눈에 보기"}</h2>
-            <p>혜택, 경쟁률, 마감일을 먼저 보고 빠르게 결정하세요.</p>
+            <p>마감된 캠페인과 오래된 데이터는 제외하고 현재 모집중인 항목만 보여줍니다.</p>
           </div>
           <div className="results-count">
             <strong>{totalCount.toLocaleString("ko-KR")}</strong>
             <span>개의 결과</span>
           </div>
         </div>
+
+        {hasActiveFilters && (
+          <div className="active-filter-bar">
+            <span>적용 중</span>
+            {q && <strong>검색: {q}</strong>}
+            {platforms.map((item) => <strong key={item}>{item}</strong>)}
+            {regionGroup && <strong>{regionGroup}</strong>}
+            {region && <strong>{region}</strong>}
+            {media && <strong>{media}</strong>}
+            {campaignType && <strong>{campaignType}</strong>}
+            {reward && <strong>혜택 필터</strong>}
+            {sort === "deadline" && <strong>마감임박순</strong>}
+            <Link href="/">모두 해제</Link>
+          </div>
+        )}
 
         {error ? (
           <div className="state-box state-error">
@@ -515,6 +525,8 @@ export default async function Home({
             <Link href="/">전체 캠페인 보기</Link>
           </div>
         )}
+          </div>
+        </div>
       </section>
 
       <footer className="site-footer">
