@@ -16,19 +16,20 @@ test('campaign finder starts with product search rather than marketing hero', ()
   assert.doesNotMatch(page, /CAMPAIGNS|CAMPAIGN FINDER/);
 });
 
-test('workspace keeps search filters and results in the first product flow', () => {
-  assert.match(page, /className="workspace"/);
-  assert.match(page, /className="filter-sidebar"/);
+test('filters sit above a full-width result list', () => {
+  assert.match(page, /className="finder-layout"/);
+  assert.match(page, /className="filter-toolbar-wrap"/);
   assert.match(page, /className="results-pane"/);
-  assert.match(page, /className="active-filter-bar"/);
-  assert.match(page, /모집중 캠페인/);
+  assert.doesNotMatch(page, /className="filter-sidebar"/);
+  assert.match(css, /\.finder-layout\s*\{[\s\S]*?display:\s*block/);
 });
 
-test('desktop filters use an unboxed sticky sidebar', () => {
-  assert.match(css, /\.filter-sidebar\s*\{[\s\S]*?position:\s*sticky/);
-  assert.match(css, /\.filter-panel\s*\{[\s\S]*?border:\s*0[\s\S]*?border-radius:\s*0/);
-  assert.match(filters, /<h2>필터<\/h2>/);
-  assert.doesNotMatch(filters, /filter-overline/);
+test('filter toolbar remains immediate and URL-driven', () => {
+  assert.match(filters, /className="filter-toolbar"/);
+  assert.match(filters, /onChange=\{handleChange\}/);
+  assert.match(filters, /router\.replace/);
+  assert.doesNotMatch(filters, /조건 적용/);
+  assert.match(filters, /setTimeout\(applyNow, 350\)/);
   assert.match(filters, /name="platform"/);
   assert.match(filters, /name="regionGroup"/);
   assert.match(filters, /name="reward"/);
@@ -37,32 +38,31 @@ test('desktop filters use an unboxed sticky sidebar', () => {
   assert.match(filters, /name="sort"/);
 });
 
-test('filters apply immediately without submit button', () => {
-  assert.match(filters, /onChange=\{handleChange\}/);
-  assert.match(filters, /router\.replace/);
-  assert.doesNotMatch(filters, /조건 적용/);
-  assert.match(filters, /setTimeout\(applyNow, 350\)/);
-});
-
-test('desktop campaign rows are table-like instead of rounded AI cards', () => {
+test('desktop campaign list is comparison-table oriented', () => {
+  assert.match(page, /플랫폼 · 캠페인/);
+  assert.match(page, /제공 혜택/);
+  assert.match(page, /신청 \/ 모집/);
+  assert.match(page, /<span>마감<\/span>/);
+  assert.match(page, /<span>지역<\/span>/);
   assert.match(css, /\.campaign-list\s*\{[\s\S]*?border-radius:\s*0/);
-  assert.match(css, /\.campaign-row\s*\{[\s\S]*?border-bottom:\s*1px solid/);
-  assert.match(css, /\.platform-badge,[\s\S]*?\.sub-badge\s*\{[\s\S]*?background:\s*transparent/);
   assert.doesNotMatch(page, /<Image\b|<img\b/i);
-  assert.match(page, /혜택/);
-  assert.match(page, /신청 · 경쟁/);
-  assert.match(page, /마감 · 지역/);
 });
 
-test('decorative gradients and shadows are overridden out of the main product UI', () => {
-  assert.match(css, /\.brand-mark\s*\{[\s\S]*?background:\s*#171717[\s\S]*?box-shadow:\s*none/);
-  assert.match(css, /\.hero-search-main\s*\{[\s\S]*?box-shadow:\s*none/);
+test('decorative gradients and dashboard chrome are removed from active product UI', () => {
+  assert.doesNotMatch(page, /brand-mark/);
   assert.match(css, /\.site-header\s*\{[\s\S]*?backdrop-filter:\s*none/);
+  assert.match(css, /\.hero-search-main\s*\{[\s\S]*?box-shadow:\s*none/);
+  assert.match(css, /\.filter-toolbar\s*\{[\s\S]*?background:\s*#fff/);
 });
 
-test('mobile workspace becomes plain stacked rows without desktop card chrome', () => {
-  assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.campaign-row\s*\{[\s\S]*?border-radius:\s*0/);
-  assert.match(css, /@media \(max-width:\s*480px\)[\s\S]*?\.campaign-row\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+test('metadata badges are visually demoted to inline text', () => {
+  assert.match(css, /\.platform-badge,[\s\S]*?\.sub-badge\s*\{[\s\S]*?background:\s*transparent/);
+  assert.match(css, /\.platform-badge \+ \.sub-badge::before/);
+});
+
+test('mobile layout becomes plain stacked comparison rows', () => {
+  assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.campaign-row\s*\{[\s\S]*?grid-template-columns:\s*1fr 1fr/);
+  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*?\.campaign-row\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
 });
 
 test('paused integrations are visible as status, not selectable filters', () => {
