@@ -165,7 +165,7 @@ export default async function Home({
     Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
   const from = (currentPage - 1) * PAGE_SIZE;
-  const where: string[] = [
+  const visibilityWhere: string[] = [
     `EXISTS (
        SELECT 1
          FROM platform_sources ps
@@ -177,6 +177,7 @@ export default async function Home({
      )`,
     "(campaigns.deadline_at IS NULL OR campaigns.deadline_at >= now())",
   ];
+  const where: string[] = [...visibilityWhere];
   const values: unknown[] = [];
 
   const addFilter = (clause: string, value: unknown) => {
@@ -197,7 +198,8 @@ export default async function Home({
   if (reward === "provided") addFilter("reward_kind = ?", "provided");
   if (reward === "points") addFilter("reward_kind = ?", "points");
 
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const whereSql = `WHERE ${where.join(" AND ")}`;
+  const visibilitySql = `WHERE ${visibilityWhere.join(" AND ")}`;
   const orderSql =
     sort === "deadline"
       ? "ORDER BY deadline_at ASC NULLS LAST, id DESC"
@@ -212,8 +214,9 @@ export default async function Home({
   let totalCampaigns = 0;
   let error: Error | null = registryError;
 
-  if (!error) try {
-    const [dataResult, countResult, totalResult] = await Promise.all([
+  if (!error) {
+    try {
+      const [dataResult, countResult, totalResult] = await Promise.all([
       queryDb<CampaignRow>(
         `SELECT id, platform, title, link, media_type, reward, reward_amount, reward_kind,
                 apply_count, recruit_count, region, region_group, campaign_type, deadline_at, collected_at
@@ -227,15 +230,18 @@ export default async function Home({
         `SELECT count(*)::int AS count FROM campaigns ${whereSql}`,
         values,
       ),
-      queryDb("SELECT count(*)::int AS count FROM campaigns"),
+      queryDb(
+        `SELECT count(*)::int AS count FROM campaigns ${visibilitySql}`,
+      ),
     ]);
 
-    data = dataResult.rows;
-    totalCount = Number(countResult.rows[0]?.count ?? 0);
-    totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
-  } catch (caught) {
-    error = caught instanceof Error ? caught : new Error("Database query failed");
-    console.error("[Re:Place] campaign query failed");
+      data = dataResult.rows;
+      totalCount = Number(countResult.rows[0]?.count ?? 0);
+      totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
+    } catch (caught) {
+      error = caught instanceof Error ? caught : new Error("Database query failed");
+      console.error("[Re:Place] campaign query failed");
+    }
   }
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const filters: ActiveFilters = {
