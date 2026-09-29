@@ -4,7 +4,7 @@
 
 플랫폼마다 데이터 제공 방식이 다르기 때문에 하나의 크롤링 방식에 맞추지 않고, 각 사이트 구조에 맞는 Collector를 구성한 뒤 공통 Campaign 모델로 정규화합니다.
 
-**Live:** https://re-place-rust.vercel.app/
+**Live:** https://re-place.devgony.com/
 
 ## Architecture
 
@@ -69,7 +69,11 @@ Unified Campaign Search
 - 리워드 조건 필터
 - 최신순 / 마감임박순 정렬
 - 서버 페이지네이션
-- 모바일 overflow 대응
+- 즉시 반영 필터와 모바일 overflow 대응
+- Neon Auth 로그인
+- 사용자별 찜 / 내 체험단 / 수동 등록 / 상태 관리
+- 개인정보처리방침 / 이용약관 / SEO metadata
+- Vercel Analytics / Speed Insights
 
 ## Reliability Decisions
 
@@ -148,8 +152,10 @@ DATABASE_URL=...
 - 플랫폼 장애 감지
 - Neon PostgreSQL 기반 운영 데이터 경로
 - Next.js 웹서비스 배포
+- 사용자별 개인 데이터 소유권 경계
+- 런칭용 SEO / 정책 / 오류·로딩 상태
 
-다음 단계는 수집 안정성, fixture 기반 테스트, 데이터 품질과 사용자 기능을 실제 운영 데이터를 기준으로 개선하는 것입니다.
+현재 새 Production 배포는 Vercel Hobby build-rate 제한의 영향을 받을 수 있습니다. 제한 해제 후 최신 main commit을 Production에서 최종 검증합니다.
 
 ## Why This Project Matters
 
