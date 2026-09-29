@@ -87,7 +87,8 @@ class CrawlerFixtureTests(unittest.TestCase):
             first.link,
             'https://gangnam-review.net/cp/?id=2295177',
         )
-        self.assertIn('65000', str(first.reward_amount))
+        record = first.to_record()
+        self.assertEqual(record['provided_value_amount'], 65000)
 
     def test_gangnam_source_id_is_numeric_and_deduplicated(self):
         html = (FIXTURES / 'gangnam.html').read_text(encoding='utf-8')
