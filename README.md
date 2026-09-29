@@ -26,11 +26,11 @@ Unified Campaign Search
 
 ## Production Collection
 
-현재 운영 배치에서 수집하는 플랫폼:
+현재 운영 배치 및 정책 상태:
 
 | Platform | Status |
 | --- | --- |
-| 리뷰노트 | Active |
+| 리뷰노트 | Blocked by source policy |
 | 디너의여왕 | Active |
 | 미블 | Active |
 | 리뷰플레이스 | Active |
@@ -39,7 +39,7 @@ Unified Campaign Search
 | 강남맛집 | Temporarily excluded |
 | 포블로그 | Temporarily excluded |
 
-운영 대상 Collector 중 하나라도 실패하면 배치가 실패하도록 구성해 조용히 데이터가 끊기는 상황을 줄였습니다.
+운영 대상 Collector 중 하나라도 실패하면 배치가 실패하도록 구성해 조용히 데이터가 끊기는 상황을 줄였습니다. 외부 소스 이용 범위는 `docs/SOURCE_USAGE_REGISTER.md`에서 관리합니다.
 
 ## What Is Implemented
 
@@ -140,7 +140,7 @@ DATABASE_URL=...
 
 현재 구현된 핵심 흐름:
 
-- 5개 플랫폼 운영 수집
+- 4개 플랫폼 운영 수집
 - 공통 데이터 모델 및 Upsert
 - 중복 방지
 - 검색 / 필터 / 정렬 / 페이지네이션
