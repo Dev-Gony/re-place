@@ -20,6 +20,12 @@ update public.campaigns
    and reward ~ '([0-9][0-9,]*)\s*(?:P|p|포인트)';
 
 update public.campaigns
+   set points_amount = null
+ where points_amount is not null
+   and points_amount < 100
+   and reward !~ '포인트';
+
+update public.campaigns
    set cash_fee_amount = reward_amount
  where cash_fee_amount is null
    and reward_amount is not null
