@@ -43,3 +43,27 @@ test('hero is compact search workspace rather than full landing page', () => {
   assert.match(page, /체험단 캠페인,/);
   assert.match(page, /HeroSearch initialQuery=\{q\}/);
 });
+
+
+test('filters apply immediately without submit button', () => {
+  assert.match(filters, /onChange=\{handleChange\}/);
+  assert.match(filters, /router\.replace/);
+  assert.doesNotMatch(filters, /조건 적용/);
+  assert.match(filters, /setTimeout\(applyNow, 350\)/);
+});
+
+test('campaign list uses readable font sizes', () => {
+  assert.match(css, /\.campaign-main h3\s*\{[\s\S]*?font-size:\s*14px/);
+  assert.match(css, /\.filter-check\s*\{[\s\S]*?font-size:\s*13px/);
+  assert.match(css, /\.campaign-cell small\s*\{[\s\S]*?font-size:\s*11px/);
+});
+
+test('paused integrations are visible as status, not selectable filters', () => {
+  assert.match(filters, /연동 점검 중/);
+  assert.match(filters, /source\.status === "paused"/);
+});
+
+test('unknown visit locations are not rendered as fake region values', () => {
+  assert.match(page, /위치 원문 확인/);
+  assert.match(page, /지역무관/);
+});
