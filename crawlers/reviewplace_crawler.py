@@ -93,6 +93,7 @@ def parse_region_from_tag(text: str) -> str | None:
         token
         for token in tokens
         if token not in ignored
+        and not token.lower().startswith(("n인플", "인플루언서"))
         and not re.search(r"\d+\s*만?\s*원|\d+P|상당", token, re.IGNORECASE)
     ]
 
