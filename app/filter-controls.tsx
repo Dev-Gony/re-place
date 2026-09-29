@@ -237,4 +237,4 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
       </div>
     </form>
   );
-}}
+}
