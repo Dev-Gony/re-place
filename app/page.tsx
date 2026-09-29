@@ -555,7 +555,10 @@ export default async function Home({
           <strong>Re:Place</strong>
           <p>여러 플랫폼의 체험단 캠페인을 한곳에서 더 빠르게 찾는 방법.</p>
         </div>
-        <span>Campaign discovery, simplified.</span>
+        <nav className="footer-links" aria-label="서비스 정책">
+          <Link href="/privacy">개인정보처리방침</Link>
+          <Link href="/terms">이용약관</Link>
+        </nav>
       </footer>
     </main>
   );
