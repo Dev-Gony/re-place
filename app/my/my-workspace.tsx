@@ -74,6 +74,12 @@ export function MyWorkspace({
   const [records, setRecords] = useState<RecordItem[]>(initialRecords);
   const [manualOpen, setManualOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function showError(message: string) {
+    setNotice(message);
+    window.setTimeout(() => setNotice(null), 3500);
+  }
 
   async function reload() {
     const [favoritesResponse, recordsResponse] = await Promise.all([
@@ -123,6 +129,8 @@ export function MyWorkspace({
       setFavorites((items) =>
         items.filter((item) => item.campaign_id !== campaignId),
       );
+    } else {
+      showError("찜을 해제하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
@@ -132,7 +140,11 @@ export function MyWorkspace({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ campaignId }),
     });
-    if (response.ok) await reload();
+    if (response.ok) {
+      await reload();
+    } else {
+      showError("내 체험단에 추가하지 못했습니다. 다시 시도해 주세요.");
+    }
   }
 
   async function createManual(event: FormEvent<HTMLFormElement>) {
@@ -158,6 +170,8 @@ export function MyWorkspace({
       form.reset();
       setManualOpen(false);
       await reload();
+    } else {
+      showError("캠페인을 등록하지 못했습니다. 입력값을 확인해 주세요.");
     }
   }
 
@@ -172,7 +186,11 @@ export function MyWorkspace({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, note, deadlineAt }),
     });
-    if (response.ok) await reload();
+    if (response.ok) {
+      await reload();
+    } else {
+      showError("변경사항을 저장하지 못했습니다. 다시 시도해 주세요.");
+    }
   }
 
   async function deleteRecord(id: number) {
@@ -181,11 +199,18 @@ export function MyWorkspace({
     });
     if (response.ok) {
       setRecords((items) => items.filter((item) => item.id !== id));
+    } else {
+      showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
   return (
     <div className="my-workspace">
+      {notice && (
+        <div className="my-notice" role="status" aria-live="polite">
+          {notice}
+        </div>
+      )}
       <section className="my-summary-bar" aria-label="내 체험단 요약">
         <div><strong>{activeCount}</strong><span>진행중</span></div>
         <div><strong>{upcoming}</strong><span>마감 있음</span></div>
