@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../lib/auth/server";
+import { queryDb } from "../../lib/db";
 import { MyWorkspace } from "./my-workspace";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,28 @@ export default async function MyPage() {
   if (!session?.user) {
     redirect("/auth/sign-in?callbackURL=/my");
   }
+
+  const [favoritesResult, recordsResult] = await Promise.all([
+    queryDb(
+      `select id, campaign_id, campaign_snapshot, created_at
+         from user_favorites
+        where auth_user_id = $1
+        order by created_at desc`,
+      [session.user.id],
+    ),
+    queryDb(
+      `select id, campaign_id, source_type, status, title, platform, link,
+              reward, region, deadline_at, note, campaign_snapshot,
+              created_at, updated_at
+         from user_campaign_records
+        where auth_user_id = $1
+        order by
+          case when status in ('completed','cancelled') then 1 else 0 end,
+          deadline_at asc nulls last,
+          created_at desc`,
+      [session.user.id],
+    ),
+  ]);
 
   return (
     <main className="my-page">
@@ -31,7 +54,10 @@ export default async function MyPage() {
         </p>
       </section>
 
-      <MyWorkspace />
+      <MyWorkspace
+        initialFavorites={favoritesResult.rows}
+        initialRecords={recordsResult.rows}
+      />
     </main>
   );
 }
