@@ -2,6 +2,7 @@ import Link from "next/link";
 import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
 import { FilterPanel, HeroSearch } from "./filter-controls";
 import { AuthStatus } from "./auth-status";
+import { FavoriteButton } from "./favorite-button";
 
 // searchParams keeps this page request-rendered; public DB reads are cached separately.
 
@@ -416,7 +417,7 @@ export default async function Home({
                 <span>혜택</span>
                 <span>신청 · 경쟁</span>
                 <span>마감 · 지역</span>
-                <span />
+                <span>액션</span>
               </div>
 
               {data.map((campaign) => {
@@ -485,18 +486,24 @@ export default async function Home({
                       </small>
                     </div>
 
-                    <a
-                      href={campaign.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="row-cta"
-                      aria-label={`${campaign.title} 원문 보기`}
-                    >
-                      보기
-                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                        <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </a>
+                    <div className="campaign-actions">
+                      <FavoriteButton
+                        campaignId={campaign.id}
+                        title={campaign.title}
+                      />
+                      <a
+                        href={campaign.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="row-cta"
+                        aria-label={`${campaign.title} 원문 보기`}
+                      >
+                        보기
+                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                          <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </a>
+                    </div>
                   </article>
                 );
               })}
