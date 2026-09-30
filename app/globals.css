@@ -5606,3 +5606,115 @@ body {
     bottom: calc(74px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* RPL-027 V2 lifecycle handoff */
+.my-v2-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.my-v2-flow a {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "step title"
+    "step detail";
+  column-gap: 7px;
+  align-items: center;
+  padding: 8px 9px;
+  border: 1px solid #e4e4df;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.my-v2-flow span {
+  grid-area: step;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f0efff;
+  color: #4b46c7;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.my-v2-flow strong {
+  grid-area: title;
+  min-width: 0;
+  overflow: hidden;
+  color: #41413d;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-v2-flow em {
+  grid-area: detail;
+  min-width: 0;
+  overflow: hidden;
+  color: #96968f;
+  font-size: 7px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-task-empty-callout {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.my-task-empty-callout a,
+.my-empty-action a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #d8d8d2;
+  border-radius: 6px;
+  background: #fff;
+  color: #5f5f59;
+  font-size: 8px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.my-empty-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .my-v2-flow {
+    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .my-v2-flow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .my-task-empty-callout,
+  .my-empty-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .my-task-empty-callout a,
+  .my-empty-action a {
+    justify-content: center;
+  }
+}
