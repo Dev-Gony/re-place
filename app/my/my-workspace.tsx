@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 
 import { MonthCalendar } from "./month-calendar";
+import { MyOverview } from "./my-overview";
 import { ContentDeadlineBoard } from "./content-deadline-board";
 import { SettlementSection } from "./settlement-section";
 import type { SettlementItem } from "./settlement-section";
@@ -370,23 +371,25 @@ export function MyWorkspace({
         </div>
       )}
 
-      <section className="my-summary-bar" aria-label="내 체험단 요약">
-        <div><strong>{activeCount}</strong><span>진행중</span></div>
-        <div><strong>{openTaskCount}</strong><span>남은 할 일</span></div>
-        <div><strong>{overdueTaskCount}</strong><span>지연</span></div>
-        <div><strong>{favorites.length}</strong><span>찜</span></div>
-        <div><strong>{records.length}</strong><span>전체 기록</span></div>
-      </section>
+      <MyOverview
+        records={records}
+        tasks={tasks}
+        settlements={settlements}
+        favoritesCount={favorites.length}
+        todayKey={todayKey}
+      />
 
-      <ContentDeadlineBoard
+      <div id="content-deadlines" className="my-anchor-target">
+        <ContentDeadlineBoard
         tasks={tasks}
         records={records}
         todayKey={todayKey}
         onCreate={createDeadlineTask}
         onToggle={toggleTask}
-      />
+        />
+      </div>
 
-      <section className="my-section my-task-section">
+      <section id="schedule" className="my-section my-task-section my-anchor-target">
         <div className="my-section-head">
           <div>
             <h2>일정 · 할 일</h2>
@@ -501,9 +504,11 @@ export function MyWorkspace({
         )}
       </section>
 
-      <SettlementSection items={settlements} onSaved={reload} />
+      <div id="settlements" className="my-anchor-target">
+        <SettlementSection items={settlements} onSaved={reload} />
+      </div>
 
-      <section className="my-section">
+      <section id="records" className="my-section my-anchor-target">
         <div className="my-section-head">
           <div>
             <h2>참여 기록</h2>
@@ -572,7 +577,7 @@ export function MyWorkspace({
         </div>
       </section>
 
-      <section className="my-section">
+      <section id="favorites" className="my-section my-anchor-target">
         <div className="my-section-head">
           <div>
             <h2>찜한 캠페인</h2>
