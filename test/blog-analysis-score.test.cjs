@@ -30,6 +30,11 @@ test("normalizes bare and naver blog URLs", async () => {
     "https://blog.naver.com/sample_user",
   );
 
+  assert.equal(
+    normalizeNaverBlogIdentity("m.blog.naver.com/sample_user").canonicalUrl,
+    "https://blog.naver.com/sample_user",
+  );
+
   assert.throws(
     () => normalizeNaverBlogIdentity("https://example.com/sample_user"),
     /INVALID_BLOG_IDENTITY/,
