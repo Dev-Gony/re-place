@@ -1,5 +1,5 @@
-import { analyzeBlog, normalizeNaverBlogIdentity } from "../../../../lib/blog-analysis-score.mjs";
-import { fetchNaverBlogRss } from "../../../../lib/naver-blog-rss.mjs";
+import { analyzeBlog, normalizeNaverBlogIdentity } from "../../../../../lib/blog-analysis-score.mjs";
+import { fetchNaverBlogRss } from "../../../../../lib/naver-blog-rss.mjs";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
