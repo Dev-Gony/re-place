@@ -194,11 +194,10 @@ function SettlementEditor({
     setMessage(null);
 
     try {
-      const response = await fetch("/api/private/settlements", {
+      const response = await fetch(`/api/v1/me/settlements/${item.record_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recordId: item.record_id,
           expectedCashAmount: expectedCash,
           expectedProvidedValueAmount: expectedProvidedValue,
           expectedPointsAmount: expectedPoints,
