@@ -11,6 +11,7 @@ const itemRoute = read("app/api/private/tasks/[id]/route.ts");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
 const workspaceData = read("lib/workspace-data.ts");
+const client = read("lib/workspace-client.ts");
 const css = read("app/globals.css");
 const migration = read("db/migrations/20260929_user_campaign_tasks.sql");
 
@@ -62,7 +63,10 @@ test("workspace supports adding completing reverting and deleting tasks", () => 
   assert.match(workspace, /createTask/);
   assert.match(workspace, /toggleTask/);
   assert.match(workspace, /deleteTask/);
-  assert.match(workspace, /\/api\/v1\/me\/tasks/);
+  assert.match(workspace, /createTaskRequest/);
+  assert.match(workspace, /updateTaskRequest/);
+  assert.match(workspace, /deleteTaskRequest/);
+  assert.match(client, /"\/api\/v1\/me\/tasks"/);
   assert.match(workspace, /일정 · 할 일/);
   assert.match(workspace, /방문/);
   assert.match(workspace, /콘텐츠 작성/);
