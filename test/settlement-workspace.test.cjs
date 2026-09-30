@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const route = read("app/api/private/settlements/route.ts");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
+const workspaceData = read("lib/workspace-data.ts");
 const section = read("app/my/settlement-section.tsx");
 const css = read("app/globals.css");
 
@@ -23,12 +24,12 @@ test("settlement API derives owner from the session and validates record ownersh
   assert.match(route, /privateHeaders\(\)/);
 });
 
-test("settlement workspace server-loads settlement rows", () => {
-  assert.match(page, /settlementsResult/);
-  assert.match(page, /left join user_campaign_settlements s/);
-  assert.match(page, /initialSettlements=\{settlementsResult\.rows\}/);
+test("settlement workspace server-loads settlement rows through the shared loader", () => {
+  assert.match(page, /loadWorkspace\(session\.user\.id\)/);
+  assert.match(workspaceData, /left join user_campaign_settlements s/);
+  assert.match(page, /initialSettlements=\{workspace\.settlements\}/);
   assert.match(workspace, /initialSettlements/);
-  assert.match(workspace, /\/api\/private\/settlements/);
+  assert.match(workspace, /\/api\/v1\/me\/workspace/);
 });
 
 test("settlement UI keeps reward categories separate", () => {

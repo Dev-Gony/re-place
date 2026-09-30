@@ -10,6 +10,7 @@ const listRoute = read("app/api/private/tasks/route.ts");
 const itemRoute = read("app/api/private/tasks/[id]/route.ts");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
+const workspaceData = read("lib/workspace-data.ts");
 const css = read("app/globals.css");
 const migration = read("db/migrations/20260929_user_campaign_tasks.sql");
 
@@ -49,10 +50,12 @@ test("task mutation requires owner and task id and hides foreign rows", () => {
   assert.match(itemRoute, /privateHeaders\(\)/);
 });
 
-test("my page server loads tasks with records and favorites", () => {
-  assert.match(page, /tasksResult/);
-  assert.match(page, /from user_campaign_tasks t/);
-  assert.match(page, /initialTasks=\{tasksResult\.rows\}/);
+test("my page server loads tasks with records and favorites through the shared loader", () => {
+  assert.match(page, /loadWorkspace\(session\.user\.id\)/);
+  assert.match(workspaceData, /from user_campaign_tasks t/);
+  assert.match(page, /initialTasks=\{workspace\.tasks\}/);
+  assert.match(page, /initialRecords=\{workspace\.records\}/);
+  assert.match(page, /initialFavorites=\{workspace\.favorites\}/);
 });
 
 test("workspace supports adding completing reverting and deleting tasks", () => {
