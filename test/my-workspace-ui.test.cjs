@@ -16,10 +16,11 @@ test("my page uses the same plain product shell as search", () => {
   assert.doesNotMatch(page, /brand-mark/);
 });
 
-test("personal metrics are a compact summary bar rather than KPI cards", () => {
-  assert.match(workspace, /className="my-summary-bar"/);
+test("personal metrics use the priority overview rather than legacy KPI chrome", () => {
+  assert.match(workspace, /<MyOverview/);
+  assert.doesNotMatch(workspace, /className="my-summary-bar"/);
   assert.doesNotMatch(workspace, /className="my-page-grid"/);
-  assert.match(css, /\.my-summary-bar\s*\{/);
+  assert.match(css, /\.my-overview\s*\{/);
 });
 
 test("records support client-side status filtering", () => {
