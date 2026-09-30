@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { PwaRegister } from "./pwa-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,6 +15,13 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  themeColor: "#171717",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://re-place.devgony.com"),
@@ -33,6 +41,15 @@ export const metadata: Metadata = {
   ],
   category: "lifestyle",
   creator: "Re:Place",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Re:Place",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/apple-touch-icon.svg",
+  },
   alternates: {
     canonical: "/",
   },
@@ -66,6 +83,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
+        <PwaRegister />
         <Analytics />
         <SpeedInsights />
       </body>
