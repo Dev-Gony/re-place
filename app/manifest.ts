@@ -16,21 +16,21 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["lifestyle", "productivity"],
     icons: [
       {
-        src: "/pwa/icon-192",
+        src: "/pwa/icon-192.svg",
         sizes: "192x192",
-        type: "image/png",
+        type: "image/svg+xml",
         purpose: "any maskable",
       },
       {
-        src: "/pwa/icon-512",
+        src: "/pwa/icon-512.svg",
         sizes: "512x512",
-        type: "image/png",
+        type: "image/svg+xml",
         purpose: "any maskable",
       },
       {
-        src: "/apple-touch-icon",
+        src: "/apple-touch-icon.svg",
         sizes: "180x180",
-        type: "image/png",
+        type: "image/svg+xml",
       },
     ],
   };
