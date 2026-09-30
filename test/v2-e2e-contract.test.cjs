@@ -42,7 +42,7 @@ test("workspace lifecycle anchors exist and overview links follow lifecycle orde
 });
 
 test("favorite handoff moves the user to record management after add", () => {
-  assert.match(workspace, /window\.location\.hash = "records"/);
+  assert.match(workspace, /document\.getElementById\("records"\)\?\.scrollIntoView/);
   assert.match(workspace, /내 체험단에 추가했습니다/);
 });
 

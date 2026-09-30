@@ -173,7 +173,10 @@ export function MyWorkspace({
       await createRecord({ campaignId });
       await reload();
       setNotice("내 체험단에 추가했습니다. 상태와 캠페인 마감을 확인해 주세요.");
-      window.location.hash = "records";
+      document.getElementById("records")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
       window.setTimeout(() => setNotice(null), 3500);
     } catch {
       showError("내 체험단에 추가하지 못했습니다. 다시 시도해 주세요.");
