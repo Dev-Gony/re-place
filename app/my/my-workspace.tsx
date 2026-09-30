@@ -2,50 +2,19 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
+import type {
+  FavoriteItem,
+  RecordItem,
+  SettlementItem,
+  TaskItem,
+  WorkspaceSnapshot,
+} from "../../lib/workspace-contract";
 import { MonthCalendar } from "./month-calendar";
 import { MyOverview } from "./my-overview";
 import { ContentDeadlineBoard } from "./content-deadline-board";
 import { SettlementSection } from "./settlement-section";
-import type { SettlementItem } from "./settlement-section";
 
-export type FavoriteItem = {
-  id: number;
-  campaign_id: number;
-  campaign_snapshot: {
-    title?: string;
-    platform?: string;
-    link?: string;
-    reward?: string;
-    region?: string;
-    deadline_at?: string;
-  };
-  created_at: string;
-};
-
-export type RecordItem = {
-  id: number;
-  campaign_id: number | null;
-  source_type: "linked" | "manual";
-  status: string;
-  title: string;
-  platform: string | null;
-  link: string | null;
-  reward: string | null;
-  region: string | null;
-  deadline_at: string | null;
-  note: string | null;
-};
-
-export type TaskItem = {
-  id: number;
-  record_id: number;
-  task_type: "visit" | "content" | "submit" | "other";
-  title: string;
-  due_at: string;
-  completed_at: string | null;
-  record_title: string;
-  record_platform: string | null;
-};
+export type { FavoriteItem, RecordItem, TaskItem };
 
 const STATUS_LABELS: Record<string, string> = {
   saved: "저장",
@@ -155,29 +124,18 @@ export function MyWorkspace({
   }
 
   async function reload() {
-    const [favoritesResponse, recordsResponse, tasksResponse, settlementsResponse] = await Promise.all([
-      fetch("/api/private/favorites", { cache: "no-store" }),
-      fetch("/api/private/records", { cache: "no-store" }),
-      fetch("/api/private/tasks", { cache: "no-store" }),
-      fetch("/api/private/settlements", { cache: "no-store" }),
-    ]);
+    const response = await fetch("/api/v1/me/workspace", { cache: "no-store" });
 
-    if (favoritesResponse.ok) {
-      const data = await favoritesResponse.json();
-      setFavorites(data.items ?? []);
+    if (!response.ok) {
+      showError("내 체험단 정보를 새로고침하지 못했습니다. 다시 시도해 주세요.");
+      return;
     }
-    if (recordsResponse.ok) {
-      const data = await recordsResponse.json();
-      setRecords(data.items ?? []);
-    }
-    if (tasksResponse.ok) {
-      const data = await tasksResponse.json();
-      setTasks(data.items ?? []);
-    }
-    if (settlementsResponse.ok) {
-      const data = await settlementsResponse.json();
-      setSettlements(data.items ?? []);
-    }
+
+    const data = (await response.json()) as WorkspaceSnapshot;
+    setFavorites(data.favorites ?? []);
+    setRecords(data.records ?? []);
+    setTasks(data.tasks ?? []);
+    setSettlements(data.settlements ?? []);
   }
 
   const openTaskCount = useMemo(
