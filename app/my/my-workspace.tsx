@@ -153,7 +153,7 @@ export function MyWorkspace({
 
   async function removeFavorite(campaignId: number) {
     const response = await fetch(
-      `/api/private/favorites?campaignId=${campaignId}`,
+      `/api/v1/me/favorites/${campaignId}`,
       { method: "DELETE" },
     );
     if (response.ok) {
@@ -166,7 +166,7 @@ export function MyWorkspace({
   }
 
   async function addFavoriteToRecords(campaignId: number) {
-    const response = await fetch("/api/private/records", {
+    const response = await fetch("/api/v1/me/records", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ campaignId }),
@@ -184,7 +184,7 @@ export function MyWorkspace({
     title: string;
     dueAt: string;
   }) {
-    const response = await fetch("/api/private/tasks", {
+    const response = await fetch("/api/v1/me/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -204,7 +204,7 @@ export function MyWorkspace({
     const form = event.currentTarget;
     const data = new FormData(form);
 
-    const response = await fetch("/api/private/tasks", {
+    const response = await fetch("/api/v1/me/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -224,7 +224,7 @@ export function MyWorkspace({
   }
 
   async function toggleTask(task: TaskItem) {
-    const response = await fetch(`/api/private/tasks/${task.id}`, {
+    const response = await fetch(`/api/v1/me/tasks/${task.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: !task.completed_at }),
@@ -238,7 +238,7 @@ export function MyWorkspace({
   }
 
   async function deleteTask(id: number) {
-    const response = await fetch(`/api/private/tasks/${id}`, {
+    const response = await fetch(`/api/v1/me/tasks/${id}`, {
       method: "DELETE",
     });
 
@@ -254,7 +254,7 @@ export function MyWorkspace({
     const form = event.currentTarget;
     const data = new FormData(form);
 
-    const response = await fetch("/api/private/records", {
+    const response = await fetch("/api/v1/me/records", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -283,7 +283,7 @@ export function MyWorkspace({
     note: string,
     deadlineAt: string,
   ) {
-    const response = await fetch(`/api/private/records/${item.id}`, {
+    const response = await fetch(`/api/v1/me/records/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, note, deadlineAt }),
@@ -296,7 +296,7 @@ export function MyWorkspace({
   }
 
   async function deleteRecord(id: number) {
-    const response = await fetch(`/api/private/records/${id}`, {
+    const response = await fetch(`/api/v1/me/records/${id}`, {
       method: "DELETE",
     });
     if (response.ok) {
