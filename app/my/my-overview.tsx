@@ -143,13 +143,21 @@ export function MyOverview({
           <p>진행 중 캠페인, 임박한 일정, 아직 받지 못한 정산을 한 번에 확인합니다.</p>
         </div>
         <nav className="my-overview-links" aria-label="내 체험단 빠른 이동">
-          <a href="#content-deadlines">작성·제출</a>
-          <a href="#schedule">일정</a>
-          <a href="#settlements">정산</a>
-          <a href="#records">참여 기록</a>
           <a href="#favorites">찜 {favoritesCount}</a>
+          <a href="#records">참여 기록</a>
+          <a href="#schedule">일정</a>
+          <a href="#content-deadlines">작성·제출</a>
+          <a href="#settlements">정산</a>
         </nav>
       </div>
+
+      <nav className="my-v2-flow" aria-label="V2 관리 흐름">
+        <a href="#favorites"><span>1</span><strong>찜</strong><em>후보 저장</em></a>
+        <a href="#records"><span>2</span><strong>참여 기록</strong><em>상태·마감 관리</em></a>
+        <a href="#schedule"><span>3</span><strong>일정</strong><em>방문·할 일</em></a>
+        <a href="#content-deadlines"><span>4</span><strong>작성·제출</strong><em>리뷰 마감</em></a>
+        <a href="#settlements"><span>5</span><strong>정산</strong><em>현금·환급 확인</em></a>
+      </nav>
 
       <div className="my-overview-metrics">
         <a href="#records">

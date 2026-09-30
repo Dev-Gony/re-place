@@ -201,7 +201,8 @@ export function ContentDeadlineBoard({
         </form>
       ) : (
         <div className="my-task-empty-callout">
-          선정 이후 상태의 체험단이 생기면 작성일과 제출일을 빠르게 추가할 수 있습니다.
+          <span>선정 이후 상태의 체험단이 생기면 작성일과 제출일을 빠르게 추가할 수 있습니다.</span>
+          <a href="#records">참여 상태 확인하기</a>
         </div>
       )}
 

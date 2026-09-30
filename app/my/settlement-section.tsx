@@ -126,8 +126,9 @@ export function SettlementSection({
             <SettlementEditor item={item} onSaved={onSaved} key={item.record_id} />
           ))
         ) : (
-          <div className="my-empty-row">
-            정산할 참여 기록이 없습니다. 참여 기록을 추가하면 여기에서 제공 내역과 입금 상태를 관리할 수 있습니다.
+          <div className="my-empty-row my-empty-action">
+            <span>정산할 참여 기록이 없습니다. 참여 기록을 추가하면 제공 내역과 입금 상태를 관리할 수 있습니다.</span>
+            <a href="#records">참여 기록 추가하기</a>
           </div>
         )}
       </div>
