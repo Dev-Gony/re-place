@@ -32,6 +32,11 @@ test("settlement workspace server-loads settlement rows through the shared loade
   assert.match(workspace, /\/api\/v1\/me\/workspace/);
 });
 
+test("settlement UI saves through the v1 mutation API", () => {
+  assert.match(section, /\/api\/v1\/me\/settlements\/\$\{item\.record_id\}/);
+  assert.doesNotMatch(section, /\/api\/private\/settlements/);
+});
+
 test("settlement UI keeps reward categories separate", () => {
   assert.match(section, /예상 현금/);
   assert.match(section, /제공가치/);

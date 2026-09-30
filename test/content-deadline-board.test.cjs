@@ -8,14 +8,14 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 const workspace = read("app/my/my-workspace.tsx");
 const board = read("app/my/content-deadline-board.tsx");
-const tasksRoute = read("app/api/private/tasks/route.ts");
+const tasksRoute = read("app/api/v1/me/tasks/route.ts");
 const css = read("app/globals.css");
 
 test("deadline board reuses existing task types without a new persistence path", () => {
   assert.match(board, /task\.task_type === "content" \|\| task\.task_type === "submit"/);
   assert.match(workspace, /createDeadlineTask/);
-  assert.match(workspace, /fetch\("\/api\/private\/tasks"/);
-  assert.doesNotMatch(board, /\/api\/private\/deadlines/);
+  assert.match(workspace, /fetch\("\/api\/v1\/me\/tasks"/);
+  assert.doesNotMatch(board, /\/api\/v1\/me\/deadlines/);
 });
 
 test("deadline board separates campaign recruitment deadline from review workflow copy", () => {
@@ -39,7 +39,7 @@ test("deadline board derives overdue today and d-day state from task dates", () 
 });
 
 test("deadline creation continues to use server-side owner-scoped task API", () => {
-  assert.match(tasksRoute, /await auth\.getSession\(\)/);
+  assert.match(tasksRoute, /currentOwnerId\(\)/);
   assert.match(tasksRoute, /where auth_user_id = \$1[\s\S]*and id = \$2/);
   assert.doesNotMatch(tasksRoute, /body\?\.auth_user_id|body\?\.userId/);
 });
