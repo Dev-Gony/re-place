@@ -7,8 +7,17 @@ import type {
   RecordItem,
   SettlementItem,
   TaskItem,
-  WorkspaceSnapshot,
 } from "../../lib/workspace-contract";
+import {
+  createRecord,
+  createTask as createTaskRequest,
+  deleteRecord as deleteRecordRequest,
+  deleteTask as deleteTaskRequest,
+  getWorkspace,
+  removeFavorite as removeFavoriteRequest,
+  updateRecord as updateRecordRequest,
+  updateTask as updateTaskRequest,
+} from "../../lib/workspace-client";
 import { MonthCalendar } from "./month-calendar";
 import { MyOverview } from "./my-overview";
 import { ContentDeadlineBoard } from "./content-deadline-board";
@@ -124,18 +133,15 @@ export function MyWorkspace({
   }
 
   async function reload() {
-    const response = await fetch("/api/v1/me/workspace", { cache: "no-store" });
-
-    if (!response.ok) {
+    try {
+      const data = await getWorkspace();
+      setFavorites(data.favorites ?? []);
+      setRecords(data.records ?? []);
+      setTasks(data.tasks ?? []);
+      setSettlements(data.settlements ?? []);
+    } catch {
       showError("내 체험단 정보를 새로고침하지 못했습니다. 다시 시도해 주세요.");
-      return;
     }
-
-    const data = (await response.json()) as WorkspaceSnapshot;
-    setFavorites(data.favorites ?? []);
-    setRecords(data.records ?? []);
-    setTasks(data.tasks ?? []);
-    setSettlements(data.settlements ?? []);
   }
 
   const openTaskCount = useMemo(
@@ -152,28 +158,21 @@ export function MyWorkspace({
   }, [records, statusFilter]);
 
   async function removeFavorite(campaignId: number) {
-    const response = await fetch(
-      `/api/v1/me/favorites/${campaignId}`,
-      { method: "DELETE" },
-    );
-    if (response.ok) {
+    try {
+      await removeFavoriteRequest(campaignId);
       setFavorites((items) =>
         items.filter((item) => item.campaign_id !== campaignId),
       );
-    } else {
+    } catch {
       showError("찜을 해제하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
   async function addFavoriteToRecords(campaignId: number) {
-    const response = await fetch("/api/v1/me/records", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaignId }),
-    });
-    if (response.ok) {
+    try {
+      await createRecord({ campaignId });
       await reload();
-    } else {
+    } catch {
       showError("내 체험단에 추가하지 못했습니다. 다시 시도해 주세요.");
     }
   }
@@ -184,19 +183,14 @@ export function MyWorkspace({
     title: string;
     dueAt: string;
   }) {
-    const response = await fetch("/api/v1/me/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
-
-    if (response.ok) {
+    try {
+      await createTaskRequest(input);
       await reload();
       return true;
+    } catch {
+      showError("마감을 추가하지 못했습니다. 입력값을 확인해 주세요.");
+      return false;
     }
-
-    showError("마감을 추가하지 못했습니다. 입력값을 확인해 주세요.");
-    return false;
   }
 
   async function createTask(event: FormEvent<HTMLFormElement>) {
@@ -204,47 +198,34 @@ export function MyWorkspace({
     const form = event.currentTarget;
     const data = new FormData(form);
 
-    const response = await fetch("/api/v1/me/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await createTaskRequest({
         recordId: data.get("recordId"),
         taskType: data.get("taskType"),
         title: data.get("taskTitle"),
         dueAt: data.get("taskDueAt"),
-      }),
-    });
-
-    if (response.ok) {
+      });
       form.reset();
       await reload();
-    } else {
+    } catch {
       showError("할 일을 추가하지 못했습니다. 입력값을 확인해 주세요.");
     }
   }
 
   async function toggleTask(task: TaskItem) {
-    const response = await fetch(`/api/v1/me/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: !task.completed_at }),
-    });
-
-    if (response.ok) {
+    try {
+      await updateTaskRequest(task.id, { completed: !task.completed_at });
       await reload();
-    } else {
+    } catch {
       showError("할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
   async function deleteTask(id: number) {
-    const response = await fetch(`/api/v1/me/tasks/${id}`, {
-      method: "DELETE",
-    });
-
-    if (response.ok) {
+    try {
+      await deleteTaskRequest(id);
       setTasks((items) => items.filter((item) => item.id !== id));
-    } else {
+    } catch {
       showError("할 일을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
   }
@@ -254,10 +235,8 @@ export function MyWorkspace({
     const form = event.currentTarget;
     const data = new FormData(form);
 
-    const response = await fetch("/api/v1/me/records", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await createRecord({
         title: data.get("title"),
         platform: data.get("platform"),
         link: data.get("link"),
@@ -265,14 +244,11 @@ export function MyWorkspace({
         region: data.get("region"),
         deadlineAt: data.get("deadlineAt"),
         note: data.get("note"),
-      }),
-    });
-
-    if (response.ok) {
+      });
       form.reset();
       setManualOpen(false);
       await reload();
-    } else {
+    } catch {
       showError("캠페인을 등록하지 못했습니다. 입력값을 확인해 주세요.");
     }
   }
@@ -283,27 +259,21 @@ export function MyWorkspace({
     note: string,
     deadlineAt: string,
   ) {
-    const response = await fetch(`/api/v1/me/records/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, note, deadlineAt }),
-    });
-    if (response.ok) {
+    try {
+      await updateRecordRequest(item.id, { status, note, deadlineAt });
       await reload();
-    } else {
+    } catch {
       showError("변경사항을 저장하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
   async function deleteRecord(id: number) {
-    const response = await fetch(`/api/v1/me/records/${id}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
+    try {
+      await deleteRecordRequest(id);
       setRecords((items) => items.filter((item) => item.id !== id));
       setTasks((items) => items.filter((item) => item.record_id !== id));
       setSettlements((items) => items.filter((item) => item.record_id !== id));
-    } else {
+    } catch {
       showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
   }
