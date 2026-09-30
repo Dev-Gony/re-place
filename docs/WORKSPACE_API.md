@@ -50,18 +50,53 @@ Bearer-token / OAuth authentication for a standalone mobile app is intentionally
 
 Clients should branch on `error.code`, not on the human-readable message.
 
-## Mutation compatibility
+## Mutation API
 
-RPL-023 does not replace existing write endpoints.
+RPL-024 adds versioned workspace mutation endpoints.
 
-- `/api/private/favorites`
-- `/api/private/records`
-- `/api/private/records/:id`
-- `/api/private/tasks`
-- `/api/private/tasks/:id`
-- `/api/private/settlements`
+### Favorites
+- `POST /api/v1/me/favorites`
+- `DELETE /api/v1/me/favorites/:campaignId`
 
-After a successful mutation, the web client refreshes from `/api/v1/me/workspace` so all workspace collections move to the same snapshot together.
+### Records
+- `POST /api/v1/me/records`
+- `PATCH /api/v1/me/records/:id`
+- `DELETE /api/v1/me/records/:id`
+
+### Tasks
+- `POST /api/v1/me/tasks`
+- `PATCH /api/v1/me/tasks/:id`
+- `DELETE /api/v1/me/tasks/:id`
+
+### Settlements
+- `PUT /api/v1/me/settlements/:recordId`
+
+Successful mutations use this envelope:
+
+```json
+{
+  "schemaVersion": 1,
+  "mutatedAt": "2026-09-30T00:00:00.000Z",
+  "data": {}
+}
+```
+
+Mutation errors use the same structured error shape as workspace reads:
+
+```json
+{
+  "error": {
+    "code": "INVALID_INPUT",
+    "message": "..."
+  }
+}
+```
+
+Supported v1 error codes for this phase are `UNAUTHORIZED`, `INVALID_INPUT`, and `NOT_FOUND`.
+
+The owner ID always comes from the authenticated server session. Client-provided `auth_user_id` or `userId` values are not trusted.
+
+The existing `/api/private/*` write endpoints remain available as backward-compatible routes during this migration phase. The web workspace now uses the v1 mutation routes directly and refreshes from `GET /api/v1/me/workspace` after mutations that need a full workspace resync.
 
 ## Future mobile step
 
