@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import type { RecordItem, TaskItem } from "./my-workspace";
-import type { SettlementItem } from "./settlement-section";
+import type {
+  RecordItem,
+  SettlementItem,
+  TaskItem,
+} from "../../lib/workspace-contract";
 
 function dateKey(value: string) {
   const date = new Date(value);
