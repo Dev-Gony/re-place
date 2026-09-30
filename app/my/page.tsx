@@ -6,6 +6,7 @@ import { queryDb } from "../../lib/db";
 import { AuthStatus } from "../auth-status";
 import { MyWorkspace } from "./my-workspace";
 import type { FavoriteItem, RecordItem, TaskItem } from "./my-workspace";
+import type { SettlementItem } from "./settlement-section";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function MyPage() {
     redirect("/auth/sign-in?callbackURL=/my");
   }
 
-  const [favoritesResult, recordsResult, tasksResult] = await Promise.all([
+  const [favoritesResult, recordsResult, tasksResult, settlementsResult] = await Promise.all([
     queryDb<FavoriteItem>(
       `select id, campaign_id, campaign_snapshot, created_at::text as created_at
          from user_favorites
@@ -68,6 +69,38 @@ export default async function MyPage() {
           t.created_at desc`,
       [session.user.id],
     ),
+    queryDb<SettlementItem>(
+      `select
+          r.id as record_id,
+          r.title as record_title,
+          r.platform as record_platform,
+          r.status as record_status,
+          s.expected_cash_amount,
+          s.expected_provided_value_amount,
+          s.expected_points_amount,
+          s.expected_reimbursement_amount,
+          s.actual_cash_received_amount,
+          s.actual_reimbursement_received_amount,
+          s.cash_received_at::text as cash_received_at,
+          s.reimbursement_received_at::text as reimbursement_received_at,
+          s.note,
+          c.cash_fee_amount as source_cash_amount,
+          c.provided_value_amount as source_provided_value_amount,
+          c.points_amount as source_points_amount,
+          c.reimbursement_amount as source_reimbursement_amount
+         from user_campaign_records r
+         left join user_campaign_settlements s
+           on s.record_id = r.id
+          and s.auth_user_id = r.auth_user_id
+         left join campaigns c
+           on c.id = r.campaign_id
+        where r.auth_user_id = $1
+          and r.status <> 'cancelled'
+        order by
+          case when r.status = 'completed' then 1 else 0 end,
+          r.updated_at desc`,
+      [session.user.id],
+    ),
   ]);
 
   return (
@@ -100,6 +133,7 @@ export default async function MyPage() {
           initialFavorites={favoritesResult.rows}
           initialRecords={recordsResult.rows}
           initialTasks={tasksResult.rows}
+          initialSettlements={settlementsResult.rows}
           todayKey={seoulDateKey()}
         />
       </section>
