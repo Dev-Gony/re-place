@@ -62,7 +62,7 @@ test("workspace supports adding completing reverting and deleting tasks", () => 
   assert.match(workspace, /createTask/);
   assert.match(workspace, /toggleTask/);
   assert.match(workspace, /deleteTask/);
-  assert.match(workspace, /\/api\/private\/tasks/);
+  assert.match(workspace, /\/api\/v1\/me\/tasks/);
   assert.match(workspace, /일정 · 할 일/);
   assert.match(workspace, /방문/);
   assert.match(workspace, /콘텐츠 작성/);
