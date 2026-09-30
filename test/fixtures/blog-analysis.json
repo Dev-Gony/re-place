@@ -1,0 +1,196 @@
+{
+  "full": {
+    "identity": "https://blog.naver.com/sample_blog",
+    "signals": {
+      "postsLast30Days": {
+        "value": 10,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "daysSinceLastPost": {
+        "value": 2,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchVisibleCount": {
+        "value": 7,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchObservedCount": {
+        "value": 10,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "topicConcentration": {
+        "value": 0.72,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "returningAudienceRatio": {
+        "value": 0.55,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "recentPostCompleteness": {
+        "value": 0.81,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "historicalLegacyGrade": {
+        "value": "OLD-A",
+        "available": true,
+        "source": "historical-import",
+        "observedAt": "2025-01-01T00:00:00Z"
+      }
+    }
+  },
+  "partial": {
+    "identity": "m.blog.naver.com/partial_user",
+    "signals": {
+      "postsLast30Days": {
+        "value": 4,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "daysSinceLastPost": {
+        "value": 8,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchVisibleCount": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchObservedCount": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "topicConcentration": {
+        "value": 0.45,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "returningAudienceRatio": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "recentPostCompleteness": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      }
+    }
+  },
+  "empty": {
+    "identity": "empty_user",
+    "signals": {
+      "postsLast30Days": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "daysSinceLastPost": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchVisibleCount": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchObservedCount": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "topicConcentration": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "returningAudienceRatio": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "recentPostCompleteness": {
+        "value": null,
+        "available": false,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      }
+    }
+  },
+  "extreme": {
+    "identity": "extreme_user",
+    "signals": {
+      "postsLast30Days": {
+        "value": 999,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "daysSinceLastPost": {
+        "value": 999,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchVisibleCount": {
+        "value": 50,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "searchObservedCount": {
+        "value": 10,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "topicConcentration": {
+        "value": 4,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "returningAudienceRatio": {
+        "value": -2,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      },
+      "recentPostCompleteness": {
+        "value": 2,
+        "available": true,
+        "source": "fixture",
+        "observedAt": "2026-09-30T00:00:00Z"
+      }
+    }
+  }
+}
