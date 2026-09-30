@@ -106,3 +106,36 @@ RPL-028에는 실 NAVER API credential이나 크롤러를 넣지 않는다.
 - historical reference 비가산 테스트
 - TypeScript contract와 runtime engine의 필드 의미 일치
 - 기존 CI 전체 통과
+
+
+## RPL-029 RSS live adapter
+
+첫 live adapter는 공개 RSS만 사용한다.
+
+- RSS URL: `https://rss.blog.naver.com/{blogId}.xml`
+- client가 제출한 임의 URL을 fetch하지 않는다.
+- normalize된 blogId로 서버에서 RSS URL을 조립한다.
+- timeout: 5초
+- 최대 응답: 1 MiB
+- 최근 evidence: 최대 10 posts
+- DB 저장 없음
+- API credential 없음
+
+RSS에서 직접 채우는 signal:
+- `postsLast30Days`
+- `daysSinceLastPost`
+- category evidence가 충분할 때 `topicConcentration`
+
+RSS만으로 확정하지 않는 signal:
+- `searchVisibleCount`
+- `searchObservedCount`
+- `returningAudienceRatio`
+- `recentPostCompleteness`
+
+category 기반 consistency는 최근 evidence 중 category가 붙은 post가 3개 이상이고 coverage가 60% 이상일 때만 계산한다.
+
+Preview API:
+
+`POST /api/v1/blog-analysis/preview`
+
+이 endpoint는 분석 결과를 저장하지 않고 현재 RSS 관측값을 기존 score engine에 넣어 반환한다.

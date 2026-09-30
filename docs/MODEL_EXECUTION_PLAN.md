@@ -27,6 +27,7 @@
 | RPL-013 | 관심 저장·직접 등록·스냅샷 | GPT-5.6 Sol | High | 소유권/동시 수정/삭제는 Extra High |
 | RPL-014 | 네이버 검수·개인정보 문서 | GPT-5.6 Sol | High | 실제 사용처와 최신 검수·법적 요건 확인 |
 | RPL-028 | V3 블로그 분석 지표·근거 데이터 기반 | GPT-5.6 Sol | Extra High | 점수 의미, missing-data 처리, provenance, 오인 가능성 검토 |
+| RPL-029 | V3 네이버 블로그 RSS live-data adapter | GPT-5.6 Sol | High | 고정 origin, timeout/size 제한, missing signal 경계 검증 |
 
 Medium은 의미가 바뀌지 않는 문구·단순 스타일·문서 오탈자 정리에 한정한다. Pro 사용이 코드 실행·시험·사람의 승인·법적 판단을 대체하지 않는다. Pro 접근이 없으면 Extra High로 진행하고 별도 검토와 테스트를 강화한다. 구매나 요금제 변경을 자동 요구하지 않는다.
 
