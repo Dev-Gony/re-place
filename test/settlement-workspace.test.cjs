@@ -30,7 +30,8 @@ test("settlement workspace server-loads settlement rows through the shared loade
   assert.match(workspaceData, /left join user_campaign_settlements s/);
   assert.match(page, /initialSettlements=\{workspace\.settlements\}/);
   assert.match(workspace, /initialSettlements/);
-  assert.match(workspace, /\/api\/v1\/me\/workspace/);
+  assert.match(workspace, /getWorkspace\(\)/);
+  assert.match(client, /"\/api\/v1\/me\/workspace"/);
 });
 
 test("settlement UI saves through the shared v1 client", () => {
