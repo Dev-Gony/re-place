@@ -2,25 +2,10 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
-export type SettlementItem = {
-  record_id: number;
-  record_title: string;
-  record_platform: string | null;
-  record_status: string;
-  expected_cash_amount: number | null;
-  expected_provided_value_amount: number | null;
-  expected_points_amount: number | null;
-  expected_reimbursement_amount: number | null;
-  actual_cash_received_amount: number | null;
-  actual_reimbursement_received_amount: number | null;
-  cash_received_at: string | null;
-  reimbursement_received_at: string | null;
-  note: string | null;
-  source_cash_amount: number | null;
-  source_provided_value_amount: number | null;
-  source_points_amount: number | null;
-  source_reimbursement_amount: number | null;
-};
+import type { SettlementItem } from "../../lib/workspace-contract";
+
+export type { SettlementItem };
+
 
 const STATUS_LABELS: Record<string, string> = {
   saved: "저장",
