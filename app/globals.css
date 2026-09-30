@@ -4939,3 +4939,248 @@ body {
     justify-content: space-between;
   }
 }
+
+
+/* RPL-021 content/submission deadline board */
+.my-content-deadline-section {
+  margin-top: 28px;
+}
+
+.my-content-deadline-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid #e1e1dc;
+  border-radius: 6px;
+  background: #e1e1dc;
+}
+
+.my-content-deadline-summary > div {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  background: #fafaf8;
+}
+
+.my-content-deadline-summary span {
+  color: #85857f;
+  font-size: 9px;
+}
+
+.my-content-deadline-summary strong {
+  color: #262624;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.my-content-deadline-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(120px, .8fr) minmax(140px, .9fr) auto;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.my-content-deadline-form select,
+.my-content-deadline-form input {
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #dcdcd7;
+  border-radius: 5px;
+  background: #fff;
+  color: #30302d;
+  font-size: 10px;
+}
+
+.my-content-deadline-form button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid #2b2b29;
+  border-radius: 5px;
+  background: #2b2b29;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-content-deadline-list {
+  border-top: 1px solid #dcdcd7;
+}
+
+.my-content-deadline-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 120px auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 64px;
+  padding: 10px 6px;
+  border-bottom: 1px solid #ecece8;
+}
+
+.my-content-deadline-row.is-complete {
+  opacity: .56;
+}
+
+.my-content-deadline-kind span {
+  display: inline-flex;
+  min-width: 38px;
+  justify-content: center;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.my-content-deadline-kind .content {
+  background: #f1efe8;
+  color: #676151;
+}
+
+.my-content-deadline-kind .submit {
+  background: #edf0f3;
+  color: #596471;
+}
+
+.my-content-deadline-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.my-content-deadline-main small {
+  color: #93938d;
+  font-size: 8px;
+}
+
+.my-content-deadline-main strong,
+.my-content-deadline-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-content-deadline-main strong {
+  color: #2c2c29;
+  font-size: 11px;
+}
+
+.my-content-deadline-main span {
+  color: #85857f;
+  font-size: 9px;
+}
+
+.my-content-deadline-date {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.my-content-deadline-date strong {
+  color: #42423e;
+  font-size: 10px;
+}
+
+.my-content-deadline-date span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #f2f2ef;
+  color: #74746d;
+  font-size: 8px;
+  font-weight: 720;
+}
+
+.my-content-deadline-date span.overdue {
+  background: #f8e9eb;
+  color: #a33f49;
+}
+
+.my-content-deadline-date span.today {
+  background: #f4eee0;
+  color: #856f3c;
+}
+
+.my-content-deadline-date span.soon {
+  background: #edf0e8;
+  color: #687357;
+}
+
+.my-content-deadline-date span.done {
+  background: #eceeea;
+  color: #73786e;
+}
+
+.my-content-deadline-complete {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #d5d5d0;
+  border-radius: 5px;
+  background: #fff;
+  color: #51514c;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .my-content-deadline-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .my-content-deadline-form select:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .my-content-deadline-form button {
+    grid-column: 1 / -1;
+  }
+
+  .my-content-deadline-row {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+  }
+
+  .my-content-deadline-complete {
+    grid-column: 2 / -1;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 520px) {
+  .my-content-deadline-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .my-content-deadline-summary > div {
+    padding: 9px 8px;
+  }
+
+  .my-content-deadline-form {
+    grid-template-columns: 1fr;
+  }
+
+  .my-content-deadline-form select:first-child,
+  .my-content-deadline-form button {
+    grid-column: 1;
+  }
+
+  .my-content-deadline-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .my-content-deadline-date {
+    grid-column: 2;
+    grid-row: 2;
+    justify-items: start;
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+  }
+
+  .my-content-deadline-complete {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
