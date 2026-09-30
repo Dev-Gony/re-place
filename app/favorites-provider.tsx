@@ -12,6 +12,11 @@ import {
 import { useRouter } from "next/navigation";
 
 import { authClient } from "../lib/auth/client";
+import {
+  addFavorite,
+  getWorkspace,
+  removeFavorite,
+} from "../lib/workspace-client";
 
 type FavoritesContextValue = {
   ready: boolean;
@@ -35,11 +40,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
-    fetch("/api/private/favorites", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
+    getWorkspace()
       .then((data) => {
         if (cancelled) return;
-        setIds(new Set((data?.campaignIds ?? []).map(Number)));
+        setIds(new Set(data.favorites.map((item) => Number(item.campaign_id))));
         setLoadedUserId(session.data?.user?.id ?? null);
       })
       .catch(() => {
@@ -59,29 +63,25 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       }
 
       const currentlyFavorited = ids.has(campaignId);
-      const response = await fetch(
-        currentlyFavorited
-          ? `/api/private/favorites?campaignId=${campaignId}`
-          : "/api/private/favorites",
-        currentlyFavorited
-          ? { method: "DELETE" }
-          : {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ campaignId }),
-            },
-      );
 
-      if (!response.ok) return currentlyFavorited;
+      try {
+        if (currentlyFavorited) {
+          await removeFavorite(campaignId);
+        } else {
+          await addFavorite(campaignId);
+        }
 
-      setIds((previous) => {
-        const next = new Set(previous);
-        if (currentlyFavorited) next.delete(campaignId);
-        else next.add(campaignId);
-        return next;
-      });
+        setIds((previous) => {
+          const next = new Set(previous);
+          if (currentlyFavorited) next.delete(campaignId);
+          else next.add(campaignId);
+          return next;
+        });
 
-      return !currentlyFavorited;
+        return !currentlyFavorited;
+      } catch {
+        return currentlyFavorited;
+      }
     },
     [ids, router, session.data?.user],
   );
