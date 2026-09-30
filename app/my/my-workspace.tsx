@@ -3,6 +3,8 @@
 import { FormEvent, useMemo, useState } from "react";
 
 import { MonthCalendar } from "./month-calendar";
+import { SettlementSection } from "./settlement-section";
+import type { SettlementItem } from "./settlement-section";
 
 export type FavoriteItem = {
   id: number;
@@ -127,16 +129,19 @@ export function MyWorkspace({
   initialFavorites,
   initialRecords,
   initialTasks,
+  initialSettlements,
   todayKey,
 }: {
   initialFavorites: FavoriteItem[];
   initialRecords: RecordItem[];
   initialTasks: TaskItem[];
+  initialSettlements: SettlementItem[];
   todayKey: string;
 }) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>(initialFavorites);
   const [records, setRecords] = useState<RecordItem[]>(initialRecords);
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
+  const [settlements, setSettlements] = useState<SettlementItem[]>(initialSettlements);
   const [manualOpen, setManualOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
@@ -148,10 +153,11 @@ export function MyWorkspace({
   }
 
   async function reload() {
-    const [favoritesResponse, recordsResponse, tasksResponse] = await Promise.all([
+    const [favoritesResponse, recordsResponse, tasksResponse, settlementsResponse] = await Promise.all([
       fetch("/api/private/favorites", { cache: "no-store" }),
       fetch("/api/private/records", { cache: "no-store" }),
       fetch("/api/private/tasks", { cache: "no-store" }),
+      fetch("/api/private/settlements", { cache: "no-store" }),
     ]);
 
     if (favoritesResponse.ok) {
@@ -165,6 +171,10 @@ export function MyWorkspace({
     if (tasksResponse.ok) {
       const data = await tasksResponse.json();
       setTasks(data.items ?? []);
+    }
+    if (settlementsResponse.ok) {
+      const data = await settlementsResponse.json();
+      setSettlements(data.items ?? []);
     }
   }
 
@@ -324,6 +334,7 @@ export function MyWorkspace({
     if (response.ok) {
       setRecords((items) => items.filter((item) => item.id !== id));
       setTasks((items) => items.filter((item) => item.record_id !== id));
+      setSettlements((items) => items.filter((item) => item.record_id !== id));
     } else {
       showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
@@ -459,6 +470,8 @@ export function MyWorkspace({
           </div>
         )}
       </section>
+
+      <SettlementSection items={settlements} onSaved={reload} />
 
       <section className="my-section">
         <div className="my-section-head">

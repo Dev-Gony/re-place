@@ -4682,3 +4682,260 @@ body {
     align-items: flex-start;
   }
 }
+
+
+/* RPL-020 settlement management */
+.my-settlement-section {
+  margin-top: 28px;
+}
+
+.my-settlement-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr minmax(240px, 1.4fr);
+  gap: 1px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e2dd;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #e2e2dd;
+}
+
+.my-settlement-summary > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #fafaf8;
+}
+
+.my-settlement-summary span,
+.my-settlement-summary em {
+  color: #85857f;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.my-settlement-summary strong {
+  color: #242422;
+  font-size: 14px;
+  letter-spacing: -0.025em;
+}
+
+.my-settlement-list {
+  border-top: 1px solid #dcdcd7;
+}
+
+.my-settlement-row {
+  padding: 14px 8px;
+  border-bottom: 1px solid #ecece9;
+  background: #fff;
+}
+
+.my-settlement-row:hover {
+  background: #fcfcfa;
+}
+
+.my-settlement-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.my-settlement-row-head > div:first-child {
+  min-width: 0;
+}
+
+.my-settlement-row-head span {
+  color: #7d7d77;
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.my-settlement-row-head h3 {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #222220;
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-settlement-pending {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.my-settlement-pending span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f3f3ef;
+  color: #666660;
+  font-size: 9px;
+}
+
+.my-settlement-reference {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 7px 9px;
+  border-radius: 5px;
+  background: #f7f7f4;
+}
+
+.my-settlement-reference strong {
+  flex: 0 0 auto;
+  color: #575752;
+  font-size: 9px;
+}
+
+.my-settlement-reference span {
+  min-width: 0;
+  overflow: hidden;
+  color: #898983;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-settlement-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.my-settlement-fields label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.my-settlement-fields label > span {
+  color: #83837d;
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.my-settlement-fields input {
+  width: 100%;
+  min-width: 0;
+  height: 33px;
+  padding: 0 8px;
+  border: 1px solid #dcdcd7;
+  border-radius: 5px;
+  outline: none;
+  background: #fff;
+  color: #30302d;
+  font-size: 10px;
+}
+
+.my-settlement-fields input:focus {
+  border-color: #999992;
+}
+
+.my-settlement-note {
+  grid-column: 3;
+}
+
+.my-settlement-actions {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 9px;
+}
+
+.my-settlement-actions span {
+  color: #697265;
+  font-size: 10px;
+  font-weight: 680;
+}
+
+.my-settlement-actions span.error {
+  color: #a33f49;
+}
+
+.my-settlement-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #2b2b29;
+  border-radius: 5px;
+  background: #2b2b29;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-settlement-actions button:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .my-settlement-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .my-settlement-summary > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .my-settlement-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .my-settlement-note {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .my-settlement-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .my-settlement-summary > div:last-child {
+    grid-column: 1;
+  }
+
+  .my-settlement-row {
+    padding: 14px 0;
+  }
+
+  .my-settlement-row-head {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .my-settlement-pending {
+    flex-wrap: wrap;
+  }
+
+  .my-settlement-reference {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .my-settlement-reference span {
+    white-space: normal;
+  }
+
+  .my-settlement-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .my-settlement-note {
+    grid-column: 1;
+  }
+
+  .my-settlement-actions {
+    justify-content: space-between;
+  }
+}
