@@ -180,22 +180,9 @@ export function MyWorkspace({
     }
   }
 
-  const activeCount = useMemo(
-    () => records.filter((item) => !["completed", "cancelled"].includes(item.status)).length,
-    [records],
-  );
-
   const openTaskCount = useMemo(
     () => tasks.filter((task) => !task.completed_at).length,
     [tasks],
-  );
-
-  const overdueTaskCount = useMemo(
-    () =>
-      tasks.filter(
-        (task) => !task.completed_at && taskUrgency(task, todayKey).tone === "overdue",
-      ).length,
-    [tasks, todayKey],
   );
 
   const filteredRecords = useMemo(() => {
