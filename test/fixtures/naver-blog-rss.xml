@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Sample Blog</title>
+    <link>https://blog.naver.com/sample_user</link>
+    <item>
+      <title><![CDATA[첫 번째 글]]></title>
+      <link>https://blog.naver.com/sample_user/1</link>
+      <category><![CDATA[맛집]]></category>
+      <pubDate>Tue, 29 Sep 2026 12:00:00 +0900</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[두 번째 글]]></title>
+      <link>https://blog.naver.com/sample_user/2</link>
+      <category><![CDATA[맛집]]></category>
+      <pubDate>Sun, 20 Sep 2026 09:00:00 +0900</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[세 번째 글]]></title>
+      <link>https://blog.naver.com/sample_user/3</link>
+      <category><![CDATA[여행]]></category>
+      <pubDate>Tue, 01 Sep 2026 09:00:00 +0900</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[오래된 글]]></title>
+      <link>https://blog.naver.com/sample_user/4</link>
+      <category><![CDATA[맛집]]></category>
+      <pubDate>Sat, 01 Aug 2026 09:00:00 +0900</pubDate>
+    </item>
+  </channel>
+</rss>
