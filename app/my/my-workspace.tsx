@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 
 import { MonthCalendar } from "./month-calendar";
+import { ContentDeadlineBoard } from "./content-deadline-board";
 import { SettlementSection } from "./settlement-section";
 import type { SettlementItem } from "./settlement-section";
 
@@ -231,6 +232,27 @@ export function MyWorkspace({
     }
   }
 
+  async function createDeadlineTask(input: {
+    recordId: number;
+    taskType: "content" | "submit";
+    title: string;
+    dueAt: string;
+  }) {
+    const response = await fetch("/api/private/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+
+    if (response.ok) {
+      await reload();
+      return true;
+    }
+
+    showError("마감을 추가하지 못했습니다. 입력값을 확인해 주세요.");
+    return false;
+  }
+
   async function createTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -355,6 +377,14 @@ export function MyWorkspace({
         <div><strong>{favorites.length}</strong><span>찜</span></div>
         <div><strong>{records.length}</strong><span>전체 기록</span></div>
       </section>
+
+      <ContentDeadlineBoard
+        tasks={tasks}
+        records={records}
+        todayKey={todayKey}
+        onCreate={createDeadlineTask}
+        onToggle={toggleTask}
+      />
 
       <section className="my-section my-task-section">
         <div className="my-section-head">
