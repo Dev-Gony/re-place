@@ -5491,3 +5491,55 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* RPL-025 public offline fallback */
+.offline-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f5f5f1;
+}
+
+.offline-card {
+  width: min(100%, 480px);
+  padding: 28px;
+  border: 1px solid #deded8;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.offline-card > span {
+  color: #8b8b84;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.offline-card h1 {
+  margin: 8px 0 10px;
+  color: #252522;
+  font-size: 22px;
+  letter-spacing: -.035em;
+}
+
+.offline-card p {
+  margin: 0 0 18px;
+  color: #74746d;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.offline-card a {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: #252522;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: none;
+}
