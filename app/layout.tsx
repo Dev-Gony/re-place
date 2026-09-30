@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { PwaRegister } from "./pwa-register";
+import { MobileBottomNav } from "./mobile-bottom-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,6 +85,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
         <PwaRegister />
+        <MobileBottomNav />
         <Analytics />
         <SpeedInsights />
       </body>
