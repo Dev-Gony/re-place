@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 
 import type { SettlementItem } from "../../lib/workspace-contract";
+import { saveSettlement } from "../../lib/workspace-client";
 
 export type { SettlementItem };
 
@@ -194,29 +195,22 @@ function SettlementEditor({
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/v1/me/settlements/${item.record_id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expectedCashAmount: expectedCash,
-          expectedProvidedValueAmount: expectedProvidedValue,
-          expectedPointsAmount: expectedPoints,
-          expectedReimbursementAmount: expectedReimbursement,
-          actualCashReceivedAmount: actualCash,
-          actualReimbursementReceivedAmount: actualReimbursement,
-          cashReceivedAt,
-          reimbursementReceivedAt,
-          note,
-        }),
+      await saveSettlement(item.record_id, {
+        expectedCashAmount: expectedCash,
+        expectedProvidedValueAmount: expectedProvidedValue,
+        expectedPointsAmount: expectedPoints,
+        expectedReimbursementAmount: expectedReimbursement,
+        actualCashReceivedAmount: actualCash,
+        actualReimbursementReceivedAmount: actualReimbursement,
+        cashReceivedAt,
+        reimbursementReceivedAt,
+        note,
       });
-
-      if (!response.ok) {
-        setMessage("정산 정보를 저장하지 못했습니다. 금액과 날짜를 확인해 주세요.");
-        return;
-      }
 
       await onSaved();
       setMessage("저장됨");
+    } catch {
+      setMessage("정산 정보를 저장하지 못했습니다. 금액과 날짜를 확인해 주세요.");
     } finally {
       setSaving(false);
     }

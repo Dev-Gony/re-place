@@ -16,6 +16,7 @@ const taskItem = read("app/api/v1/me/tasks/[id]/route.ts");
 const settlement = read("app/api/v1/me/settlements/[recordId]/route.ts");
 const workspace = read("app/my/my-workspace.tsx");
 const settlementUi = read("app/my/settlement-section.tsx");
+const client = read("lib/workspace-client.ts");
 const legacyFavorites = read("app/api/private/favorites/route.ts");
 const legacyRecords = read("app/api/private/records/route.ts");
 const legacyTasks = read("app/api/private/tasks/route.ts");
@@ -66,16 +67,21 @@ test("v1 settlement mutation scopes upsert to an owned record", () => {
   assert.doesNotMatch(settlement, /body\?\.(auth_user_id|userId|recordId)/);
 });
 
-test("workspace UI uses v1 mutation routes and no private write routes", () => {
+test("workspace UI uses the shared client for v1 mutations", () => {
+  assert.match(workspace, /from "..\/..\/lib\/workspace-client"/);
+  assert.match(settlementUi, /saveSettlement/);
   for (const pattern of [
     /\/api\/v1\/me\/favorites/,
     /\/api\/v1\/me\/records/,
     /\/api\/v1\/me\/tasks/,
+    /\/api\/v1\/me\/settlements/,
   ]) {
-    assert.match(workspace, pattern);
+    assert.match(client, pattern);
   }
-  assert.match(settlementUi, /\/api\/v1\/me\/settlements/);
-  assert.doesNotMatch(workspace + settlementUi, /\/api\/private\/(favorites|records|tasks|settlements)/);
+  assert.doesNotMatch(
+    workspace + settlementUi,
+    /\/api\/private\/(favorites|records|tasks|settlements)/,
+  );
 });
 
 test("legacy private write routes remain available for rollback compatibility", () => {

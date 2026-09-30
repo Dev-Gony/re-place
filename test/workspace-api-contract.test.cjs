@@ -11,6 +11,7 @@ const loader = read("lib/workspace-data.ts");
 const route = read("app/api/v1/me/workspace/route.ts");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
+const client = read("lib/workspace-client.ts");
 const favorites = read("app/api/private/favorites/route.ts");
 const records = read("app/api/private/records/route.ts");
 const tasks = read("app/api/private/tasks/route.ts");
@@ -52,7 +53,8 @@ test("SSR uses the same workspace loader instead of duplicating workspace SQL", 
 });
 
 test("client reload refreshes all collections from one workspace snapshot", () => {
-  assert.match(workspace, /fetch\("\/api\/v1\/me\/workspace"/);
+  assert.match(workspace, /getWorkspace\(\)/);
+  assert.match(client, /requestJson<WorkspaceSnapshot>\("\/api\/v1\/me\/workspace"\)/);
   assert.match(workspace, /setFavorites\(data\.favorites/);
   assert.match(workspace, /setRecords\(data\.records/);
   assert.match(workspace, /setTasks\(data\.tasks/);

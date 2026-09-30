@@ -11,6 +11,7 @@ const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
 const workspaceData = read("lib/workspace-data.ts");
 const section = read("app/my/settlement-section.tsx");
+const client = read("lib/workspace-client.ts");
 const css = read("app/globals.css");
 
 test("settlement API derives owner from the session and validates record ownership", () => {
@@ -29,11 +30,13 @@ test("settlement workspace server-loads settlement rows through the shared loade
   assert.match(workspaceData, /left join user_campaign_settlements s/);
   assert.match(page, /initialSettlements=\{workspace\.settlements\}/);
   assert.match(workspace, /initialSettlements/);
-  assert.match(workspace, /\/api\/v1\/me\/workspace/);
+  assert.match(workspace, /getWorkspace\(\)/);
+  assert.match(client, /"\/api\/v1\/me\/workspace"/);
 });
 
-test("settlement UI saves through the v1 mutation API", () => {
-  assert.match(section, /\/api\/v1\/me\/settlements\/\$\{item\.record_id\}/);
+test("settlement UI saves through the shared v1 client", () => {
+  assert.match(section, /saveSettlement\(item\.record_id/);
+  assert.match(client, /\/api\/v1\/me\/settlements\/\$\{recordId\}/);
   assert.doesNotMatch(section, /\/api\/private\/settlements/);
 });
 

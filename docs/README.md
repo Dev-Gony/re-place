@@ -10,6 +10,8 @@
 - [개발 운영 규칙](../AGENTS.md)
 - [기존 비용 최적화 기록](COST_OPTIMIZATION.md)
 - [기존 수집 플랫폼 후보](platform-candidates.md)
+- [Workspace API v1 계약](WORKSPACE_API.md)
+- [PWA·모바일 클라이언트 기반](PWA_CLIENT.md)
 
 ## 제품 단계
 
