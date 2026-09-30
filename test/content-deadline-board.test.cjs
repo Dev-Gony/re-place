@@ -9,12 +9,14 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const workspace = read("app/my/my-workspace.tsx");
 const board = read("app/my/content-deadline-board.tsx");
 const tasksRoute = read("app/api/v1/me/tasks/route.ts");
+const client = read("lib/workspace-client.ts");
 const css = read("app/globals.css");
 
 test("deadline board reuses existing task types without a new persistence path", () => {
   assert.match(board, /task\.task_type === "content" \|\| task\.task_type === "submit"/);
   assert.match(workspace, /createDeadlineTask/);
-  assert.match(workspace, /fetch\("\/api\/v1\/me\/tasks"/);
+  assert.match(workspace, /createTaskRequest/);
+  assert.match(client, /"\/api\/v1\/me\/tasks"/);
   assert.doesNotMatch(board, /\/api\/v1\/me\/deadlines/);
 });
 
