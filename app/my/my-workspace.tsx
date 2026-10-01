@@ -19,7 +19,7 @@ import {
   updateTask as updateTaskRequest,
 } from "../../lib/workspace-client";
 import { MonthCalendar } from "./month-calendar";
-import { MyOverview } from "./my-overview";
+import { MyCampaignBoard } from "./my-campaign-board";
 import { ContentDeadlineBoard } from "./content-deadline-board";
 import { SettlementSection } from "./settlement-section";
 
@@ -292,13 +292,20 @@ export function MyWorkspace({
         </div>
       )}
 
-      <MyOverview
+      <MyCampaignBoard
         records={records}
         tasks={tasks}
         settlements={settlements}
-        favoritesCount={favorites.length}
         todayKey={todayKey}
       />
+
+      <div className="my-detail-management-head" id="detail-management">
+        <div>
+          <span>DETAIL MANAGEMENT</span>
+          <h2>상세 관리</h2>
+          <p>작성·제출 마감, 일정, 정산, 상태 수정과 찜 관리를 세부적으로 편집합니다.</p>
+        </div>
+      </div>
 
       <div id="content-deadlines" className="my-anchor-target">
         <ContentDeadlineBoard

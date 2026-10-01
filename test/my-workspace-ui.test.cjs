@@ -6,21 +6,25 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const page = fs.readFileSync(path.join(root, "app/my/page.tsx"), "utf8");
 const workspace = fs.readFileSync(path.join(root, "app/my/my-workspace.tsx"), "utf8");
+const board = fs.readFileSync(path.join(root, "app/my/my-campaign-board.tsx"), "utf8");
+const header = fs.readFileSync(path.join(root, "app/web-header.tsx"), "utf8");
 const css = fs.readFileSync(path.join(root, "app/globals.css"), "utf8");
 
-test("my page uses the same plain product shell as search", () => {
-  assert.match(page, /className="site-header"/);
-  assert.match(page, /className="my-shell"/);
+test("my page uses the shared final web header and workspace shell", () => {
+  assert.match(page, /<WebHeader active="my" \/>/);
+  assert.match(page, /className="my-shell my-shell-final"/);
   assert.match(page, /<h1>내 체험단<\/h1>/);
-  assert.doesNotMatch(page, /MY RE:PLACE/);
-  assert.doesNotMatch(page, /brand-mark/);
+  assert.match(header, /href="\/calendar"/);
+  assert.match(header, /블로그 분석/);
 });
 
-test("personal metrics use the priority overview rather than legacy KPI chrome", () => {
-  assert.match(workspace, /<MyOverview/);
-  assert.doesNotMatch(workspace, /className="my-summary-bar"/);
-  assert.doesNotMatch(workspace, /className="my-page-grid"/);
-  assert.match(css, /\.my-overview\s*\{/);
+test("personal workspace leads with the compact campaign board", () => {
+  assert.match(workspace, /<MyCampaignBoard/);
+  assert.match(board, /오늘 일정/);
+  assert.match(board, /마감 임박/);
+  assert.match(board, /일정 미등록/);
+  assert.match(board, /제공 혜택/);
+  assert.match(css, /\.my-final-table\s*\{/);
 });
 
 test("records support client-side status filtering", () => {

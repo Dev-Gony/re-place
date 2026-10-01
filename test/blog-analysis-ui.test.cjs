@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const page = read("app/blog-analysis/page.tsx");
 const client = read("app/blog-analysis/blog-analysis-client.tsx");
 const home = read("app/page.tsx");
+const header = read("app/web-header.tsx");
 const mobile = read("app/mobile-bottom-nav.tsx");
 const css = read("app/globals.css");
 const api = read("app/api/v1/blog-analysis/preview/route.js");
@@ -16,7 +17,8 @@ const api = read("app/api/v1/blog-analysis/preview/route.js");
 test("public blog analysis page exposes navigation and metadata", () => {
   assert.match(page, /title: "블로그 분석"/);
   assert.match(page, /<BlogAnalysisClient \/>/);
-  assert.match(home, /href="\/blog-analysis"/);
+  assert.match(home, /<WebHeader active="explore" \/>/);
+  assert.match(header, /href: "\/blog-analysis"/);
   assert.match(mobile, /href: "\/blog-analysis"/);
   assert.match(mobile, /label: "분석"/);
 });
