@@ -37,10 +37,6 @@ export function WebHeader({ active }: WebHeaderProps) {
         </div>
 
         <div className="web-header-actions">
-          <Link href="/my#favorites" className="web-saved-link">
-            <span aria-hidden="true">♡</span>
-            <span>저장</span>
-          </Link>
           <AuthStatus />
         </div>
       </div>

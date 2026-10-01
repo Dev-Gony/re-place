@@ -25,7 +25,7 @@ test('provided reference navigation is translated to real product routes', () =>
   assert.match(header, /href: "\/my"/);
   assert.match(header, /href: "\/calendar"/);
   assert.match(header, /href: "\/blog-analysis"/);
-  assert.match(header, /href="\/my#favorites"/);
+  assert.doesNotMatch(header, /href="\/my#favorites"|web-saved-link/);
   assert.doesNotMatch(header, /김민서|>Pro<|프로 요금제|Pro 배지/);
 });
 

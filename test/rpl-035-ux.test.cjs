@@ -28,21 +28,22 @@ test("campaign inspector has one primary action and a light source link", () => 
   assert.match(workbench, /campaign-source-note/);
 });
 
-test("my campaigns can open detail and delete from the main table", () => {
-  assert.match(board, /onOpenDetail/);
-  assert.match(board, /onDelete/);
-  assert.match(board, /삭제/);
-  assert.match(workspace, /setDetailOpen\(true\)/);
-  assert.match(workspace, /setDetailOpen\(false\)/);
-  assert.match(workspace, /window\.confirm/);
+test("my campaign rows open detail directly and deletion uses product dialog", () => {
+  assert.match(board, /role="button"/);
+  assert.match(board, /onClick=\{\(\) => onOpenDetail\(record\.id\)\}/);
+  assert.doesNotMatch(board, />\s*상세\s*</);
+  assert.match(board, /event\.stopPropagation\(\)/);
+  assert.match(workspace, /my-confirm-dialog/);
+  assert.doesNotMatch(workspace, /window\.confirm/);
 });
 
-test("campaign deadline is used as automatic next schedule fallback", () => {
-  assert.match(board, /nextTask\?\.due_at \?\? record\.deadline_at/);
+test("my campaign table uses explicit campaign and review deadlines", () => {
+  assert.doesNotMatch(board, /다음 일정/);
   assert.match(board, /캠페인 마감/);
-  assert.match(board, /미확인/);
+  assert.match(board, /리뷰 마감/);
+  assert.match(board, /record\.deadline_at/);
+  assert.match(board, /reviewTask/);
   assert.match(calendar, /캠페인 마감은 내 체험단에 추가하면 자동 반영/);
-  assert.match(calendar, /직접 일정 추가/);
 });
 
 test("duplicate task/calendar controls are hidden from the my detail drawer", () => {
@@ -57,9 +58,10 @@ test("pagination preserves the current viewport", () => {
   assert.match(page, /currentPage \+ 1\)\} scroll=\{false\}/);
 });
 
-test("filter groups are visually separated and blog analysis readability is raised", () => {
-  assert.match(css, /\.editorial-filter-toolbar \.filter-toolbar-main\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3/);
-  assert.match(css, /\.editorial-filter-toolbar \.filter-toolbar-label\s*\{[\s\S]*?display:\s*block/);
+test("filters use one compact surface and blog analysis readability is raised", () => {
+  assert.match(css, /RPL-035 stabilization C/);
+  assert.match(css, /\.editorial-filter-toolbar \.filter-toolbar-group\s*\{[\s\S]*?grid-template-columns:\s*64px/);
+  assert.match(css, /\.editorial-filter-toolbar \.filter-toolbar-label/);
   assert.match(css, /\.blog-analysis-score\s*\{[\s\S]*?font-size:\s*64px/);
   assert.match(css, /--rp-pink:/);
 });
@@ -70,4 +72,15 @@ test("blog analysis missing-data states and small labels are accessible", () => 
   assert.match(css, /background:\s*#eee8fb/);
   assert.match(css, /\.blog-analysis-disclaimer,[\s\S]*?font-size:\s*12px/);
   assert.match(css, /\.blog-analysis-dimension-head strong,[\s\S]*?font-size:\s*13px/);
+});
+
+
+test("detail management removes low-value manual note/date editing and header saved shortcut", () => {
+  const header = read("app/web-header.tsx");
+  assert.doesNotMatch(workspace, /방문 일정, 리뷰 조건/);
+  assert.match(workspace, /my-record-facts/);
+  assert.match(workspace, /상태 저장/);
+  assert.match(workspace, /원문 보기/);
+  assert.match(workspace, />캘린더</);
+  assert.doesNotMatch(header, /web-saved-link/);
 });

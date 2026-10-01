@@ -20,10 +20,11 @@ test("my page uses the shared final web header and workspace shell", () => {
 
 test("personal workspace leads with the compact campaign board", () => {
   assert.match(workspace, /<MyCampaignBoard/);
-  assert.match(board, /오늘 일정/);
+  assert.match(board, /캠페인 마감/);
+  assert.match(board, /리뷰 마감/);
   assert.match(board, /마감 임박/);
-  assert.match(board, /일정 미등록/);
   assert.match(board, /제공 혜택/);
+  assert.doesNotMatch(board, /오늘 일정|일정 미등록|다음 일정/);
   assert.match(css, /\.my-final-table\s*\{/);
 });
 
