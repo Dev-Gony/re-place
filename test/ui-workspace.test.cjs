@@ -84,3 +84,15 @@ test('unknown visit locations are not rendered as fake region values', () => {
   assert.match(page, /위치 원문 확인/);
   assert.match(page, /지역무관/);
 });
+
+
+test('campaign inspector can add a campaign directly to my campaigns', () => {
+  const provider = read('app/favorites-provider.tsx');
+  assert.match(workbench, /내 체험단 추가/);
+  assert.match(workbench, /추가됨 · 내 체험단 보기/);
+  assert.match(workbench, /addToMyCampaign\(item\.id\)/);
+  assert.match(provider, /createRecord\(\{ campaignId \}\)/);
+  assert.match(provider, /data\.records/);
+  assert.match(provider, /recordIds\.has\(campaignId\)/);
+  assert.match(provider, /callbackURL=\//);
+});

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FavoriteButton } from "./favorite-button";
+import { useFavorites } from "./favorites-provider";
 
 export type CampaignWorkbenchItem = {
   id: number;
@@ -32,6 +34,27 @@ function DetailInspector({
   mobile?: boolean;
   onClose?: () => void;
 }) {
+  const { ready, recordIds, addToMyCampaign } = useFavorites();
+  const [adding, setAdding] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const added = recordIds.has(item.id);
+
+  async function handleAdd() {
+    if (adding || added) return;
+    setAdding(true);
+    setFeedback("");
+
+    const result = await addToMyCampaign(item.id);
+
+    if (result === "added") {
+      setFeedback("내 체험단에 추가했습니다.");
+    } else if (result === "error") {
+      setFeedback("추가하지 못했습니다. 다시 시도해 주세요.");
+    }
+
+    setAdding(false);
+  }
+
   return (
     <aside className={mobile ? "campaign-inspector mobile" : "campaign-inspector"} aria-label="선택 캠페인 상세">
       <div className="campaign-inspector-head">
@@ -54,11 +77,26 @@ function DetailInspector({
 
       <div className="campaign-inspector-actions">
         <FavoriteButton campaignId={item.id} title={item.title} />
-        <a href={item.link} target="_blank" rel="noreferrer">
+        {added ? (
+          <Link className="campaign-add-record added" href="/my">
+            추가됨 · 내 체험단 보기
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="campaign-add-record"
+            onClick={handleAdd}
+            disabled={!ready || adding}
+          >
+            {adding ? "추가 중..." : "내 체험단 추가"}
+          </button>
+        )}
+        <a className="campaign-origin-link" href={item.link} target="_blank" rel="noreferrer">
           원문 보기
           <span aria-hidden="true">↗</span>
         </a>
       </div>
+      {feedback && <p className="campaign-add-feedback" role="status">{feedback}</p>}
 
       <section className="campaign-inspector-panel">
         <div className="inspector-section-title">
