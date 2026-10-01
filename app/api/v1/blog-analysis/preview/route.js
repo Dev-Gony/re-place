@@ -1,5 +1,6 @@
 import { analyzeBlog, normalizeNaverBlogIdentity } from "../../../../../lib/blog-analysis-score.mjs";
 import { fetchNaverBlogRss } from "../../../../../lib/naver-blog-rss.mjs";
+import { generateSearchCandidates } from "../../../../../lib/blog-search-candidates.mjs";
 import { auth } from "../../../../../lib/auth/server";
 import {
   fetchNaverSearchVisibility,
@@ -20,10 +21,12 @@ function errorResponse(code, message, status) {
   );
 }
 
-function searchEvidenceWithoutObservation(status, requestedCount) {
+function searchEvidenceWithoutObservation(status, queries, querySource) {
   return {
     status,
-    requestedCount,
+    querySource,
+    queries,
+    requestedCount: queries.length,
     observedCount: 0,
     visibleCount: null,
     observations: [],
@@ -41,10 +44,17 @@ export async function POST(request) {
   }
 
   let identity;
-  let searchQueries;
+  let manualSearchQueries = [];
+  const hasManualSearchQueries = Object.prototype.hasOwnProperty.call(
+    body,
+    "searchQueries",
+  );
+
   try {
     identity = normalizeNaverBlogIdentity(body.blog);
-    searchQueries = normalizeSearchQueries(body.searchQueries);
+    if (hasManualSearchQueries) {
+      manualSearchQueries = normalizeSearchQueries(body.searchQueries);
+    }
   } catch (error) {
     const code = error instanceof Error ? error.message : "INVALID_INPUT";
     if (code === "TOO_MANY_SEARCH_QUERIES") {
@@ -65,9 +75,19 @@ export async function POST(request) {
 
   try {
     const live = await fetchNaverBlogRss(identity.blogId);
+    const searchQueries = hasManualSearchQueries
+      ? manualSearchQueries
+      : generateSearchCandidates(live.evidence.posts);
+    const querySource = hasManualSearchQueries
+      ? "user"
+      : searchQueries.length > 0
+        ? "auto"
+        : "none";
+
     let searchEvidence = searchEvidenceWithoutObservation(
       searchQueries.length > 0 ? "not_configured" : "not_requested",
-      searchQueries.length,
+      searchQueries,
+      querySource,
     );
 
     const searchClientId = process.env.NAVER_API_HUB_CLIENT_ID?.trim();
@@ -79,7 +99,8 @@ export async function POST(request) {
       if (!session?.user) {
         searchEvidence = searchEvidenceWithoutObservation(
           "auth_required",
-          searchQueries.length,
+          searchQueries,
+          querySource,
         );
       } else {
         const search = await fetchNaverSearchVisibility(
@@ -96,7 +117,11 @@ export async function POST(request) {
           ...live.signals,
           ...search.signals,
         };
-        searchEvidence = search.evidence;
+        searchEvidence = {
+          ...search.evidence,
+          querySource,
+          queries: searchQueries,
+        };
       }
     }
 

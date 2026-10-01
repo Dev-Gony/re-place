@@ -23,12 +23,13 @@ test("public blog analysis page exposes navigation and metadata", () => {
   assert.match(mobile, /label: "분석"/);
 });
 
-test("analysis form posts to the live preview API", () => {
+test("analysis form posts blog identity and lets the server create search candidates", () => {
   assert.match(client, /fetch\("\/api\/v1\/blog-analysis\/preview"/);
   assert.match(client, /method: "POST"/);
-  assert.match(client, /searchQueries:/);
-  assert.match(client, /\.slice\(0, 5\)/);
+  assert.match(client, /JSON\.stringify\(\{ blog: value \}\)/);
+  assert.doesNotMatch(client, /name="searchQueries"|setSearchTerms|관측 검색어/);
   assert.match(api, /fetchNaverBlogRss/);
+  assert.match(api, /generateSearchCandidates/);
   assert.match(api, /analyzeBlog/);
 });
 
@@ -70,14 +71,16 @@ test("mobile navigation now has five destinations", () => {
 });
 
 
-test("search visibility input and evidence stay optional and explicit", () => {
-  assert.match(client, /관측 검색어/);
-  assert.match(client, /최대 5개/);
+test("search visibility candidates are automatic and evidence stays explicit", () => {
+  assert.match(client, /검색 후보도 자동으로 확인합니다/);
+  assert.match(client, /자동 검색 후보/);
+  assert.match(client, /실제 유입 검색어/);
   assert.match(client, /searchVisibility/);
   assert.match(client, /API HUB가 아직 연결되지 않아 미관측/);
   assert.match(client, /외부 API 쿼터 보호를 위해 로그인 사용자에게만/);
   assert.match(client, /성공한 검색 관측이 2개 미만/);
-  assert.match(client, /검색 순위나 상위 노출을 보장하지/);
+  assert.match(api, /generateSearchCandidates/);
+  assert.match(api, /querySource/);
   assert.match(api, /NAVER_API_HUB_CLIENT_ID/);
   assert.match(api, /searchVisibilityConfigured/);
   assert.match(api, /auth\.getSession\(\)/);
