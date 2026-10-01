@@ -68,3 +68,45 @@ main protection은 별도 관리자 설정으로 남긴다. 권장값:
 - CI required before merge
 - force push 차단
 - branch deletion 차단
+
+
+## 1차 cleanup 실행 결과
+
+RPL-037 PR #127 merge 후 Branch hygiene 실행 성공.
+
+- 실행 전: 91 branches
+- 실행 후: 3 branches
+- 삭제: 88 branches
+- 남은 branch:
+  - `main`
+  - `chore/rpl-024-production-auth-smoke`
+  - `feat/rpl-026-mobile-app-shell`
+
+## 남은 2개 재검증
+
+### chore/rpl-024-production-auth-smoke
+
+`branch...main` 비교 결과:
+- status: ahead
+- main ahead: 34
+- branch unique commits: 0
+
+즉 branch tip이 main history에 완전히 포함되어 있으므로 삭제 가능하다.
+
+### feat/rpl-026-mobile-app-shell
+
+- PR #99: stacked draft, closed without merge
+- PR #100: 같은 RPL-026 기능을 main 기준 clean branch로 재구성해 merge
+- 두 PR 모두 모바일 shell 기능 범위가 동일하며 #100이 최종 main 반영본이다.
+
+따라서 #99 head branch는 retired legacy branch로 삭제한다.
+
+## 최종 정책
+
+Branch hygiene는 다음 순서로 stale branch를 삭제한다.
+
+1. merged PR head
+2. main에 완전히 포함된 ancestor branch
+3. 명시적으로 retired 처리된 legacy branch
+
+`main`만 영구 보존한다.

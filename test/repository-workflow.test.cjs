@@ -31,8 +31,10 @@ test("RPL-037 records observed repository hygiene facts", () => {
   assert.match(spec, /delete_branch_on_merge.*false/);
   assert.match(spec, /main.*branch protection.*disabled/s);
   assert.match(audit, /merged PR의 head branch와 정확히 일치: \*\*87\*\*/);
-  assert.match(audit, /chore\/rpl-024-production-auth-smoke/);
-  assert.match(audit, /feat\/rpl-026-mobile-app-shell/);
+  assert.match(audit, /91 branches/);
+  assert.match(audit, /실행 후: 3 branches/);
+  assert.match(audit, /branch unique commits: 0/);
+  assert.match(audit, /PR #100/);
 });
 
 test("pull request template links work to issue, spec and cleanup", () => {
@@ -40,4 +42,14 @@ test("pull request template links work to issue, spec and cleanup", () => {
   assert.match(prTemplate, /Spec:/);
   assert.match(prTemplate, /Base SHA:/);
   assert.match(prTemplate, /작업 branch 삭제/);
+});
+
+
+test("branch hygiene keeps only main and cleans merged, contained, and retired branches", () => {
+  const workflow = read(".github/workflows/branch-hygiene.yml");
+  assert.match(workflow, /const keep = new Set\(\["main"\]\)/);
+  assert.match(workflow, /const retired = new Set\(\["feat\/rpl-026-mobile-app-shell"\]\)/);
+  assert.match(workflow, /compareCommits/);
+  assert.match(workflow, /comparison\.data\.status === "ahead"/);
+  assert.match(workflow, /comparison\.data\.behind_by === 0/);
 });

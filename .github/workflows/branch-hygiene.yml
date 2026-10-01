@@ -22,11 +22,8 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const keep = new Set([
-              "main",
-              "chore/rpl-024-production-auth-smoke",
-              "feat/rpl-026-mobile-app-shell",
-            ]);
+            const keep = new Set(["main"]);
+            const retired = new Set(["feat/rpl-026-mobile-app-shell"]);
 
             async function deleteBranch(branch) {
               if (!branch || keep.has(branch)) return false;
@@ -89,13 +86,36 @@ jobs:
             );
 
             let deleted = 0;
-            for (const branch of mergedHeads) {
-              if (!existing.has(branch) || keep.has(branch)) continue;
-              if (await deleteBranch(branch)) deleted += 1;
+            for (const branch of currentBranches.map((item) => item.name)) {
+              if (keep.has(branch)) continue;
+
+              if (mergedHeads.has(branch) || retired.has(branch)) {
+                if (await deleteBranch(branch)) deleted += 1;
+                continue;
+              }
+
+              try {
+                const comparison = await github.rest.repos.compareCommits({
+                  owner,
+                  repo,
+                  base: branch,
+                  head: "main",
+                });
+
+                const fullyContained =
+                  comparison.data.status === "ahead" &&
+                  comparison.data.behind_by === 0;
+
+                if (fullyContained && (await deleteBranch(branch))) {
+                  deleted += 1;
+                }
+              } catch (error) {
+                core.warning(`Could not compare ${branch} with main: ${error.message}`);
+              }
             }
 
             core.summary
               .addHeading("Branch hygiene")
-              .addRaw(`Deleted ${deleted} merged branch(es).\n`)
-              .addRaw(`Preserved: ${[...keep].join(", ")}\n`)
+              .addRaw(`Deleted ${deleted} stale branch(es).\n`)
+              .addRaw("Preserved: main\n")
               .write();
