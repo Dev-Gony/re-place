@@ -73,15 +73,33 @@ export function CalendarWorkspace({
   const [tasks, setTasks] = useState(initialTasks);
   const [formOpen, setFormOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"month" | "week" | "list">("month");
+  const [taskFilter, setTaskFilter] = useState<"all" | "visit" | "content" | "submit">("all");
+
+  const visibleTasks = useMemo(
+    () =>
+      tasks
+        .filter((task) => taskFilter === "all" || task.task_type === taskFilter)
+        .sort((a, b) => Date.parse(a.due_at) - Date.parse(b.due_at)),
+    [taskFilter, tasks],
+  );
 
   const upcoming = useMemo(
     () =>
-      tasks
+      visibleTasks
         .filter((task) => !task.completed_at)
         .filter((task) => dayDiff(task.due_at, todayKey) >= 0)
-        .sort((a, b) => Date.parse(a.due_at) - Date.parse(b.due_at))
         .slice(0, 8),
-    [tasks, todayKey],
+    [todayKey, visibleTasks],
+  );
+
+  const weekTasks = useMemo(
+    () =>
+      visibleTasks.filter((task) => {
+        const days = dayDiff(task.due_at, todayKey);
+        return days >= 0 && days <= 6;
+      }),
+    [todayKey, visibleTasks],
   );
 
   async function reloadTasks() {
@@ -170,9 +188,77 @@ export function CalendarWorkspace({
         </form>
       )}
 
+      <div className="calendar-toolbar-final">
+        <div className="calendar-view-tabs" role="tablist" aria-label="캘린더 보기">
+          {[
+            ["month", "월간 보기"],
+            ["week", "주간 보기"],
+            ["list", "목록 보기"],
+          ].map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={viewMode === value ? "active" : ""}
+              onClick={() => setViewMode(value as "month" | "week" | "list")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="calendar-filter-tabs" aria-label="일정 필터">
+          {[
+            ["all", "전체"],
+            ["visit", "방문"],
+            ["content", "작성"],
+            ["submit", "제출"],
+          ].map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={taskFilter === value ? "active" : ""}
+              onClick={() => setTaskFilter(value as "all" | "visit" | "content" | "submit")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="calendar-layout">
         <div className="calendar-main-panel">
-          <MonthCalendar tasks={tasks} records={records} todayKey={todayKey} />
+          {viewMode === "month" ? (
+            <MonthCalendar tasks={visibleTasks} records={records} todayKey={todayKey} />
+          ) : (
+            <div className="calendar-agenda-view">
+              <div className="calendar-agenda-head">
+                <strong>{viewMode === "week" ? "이번 주 일정" : "전체 일정"}</strong>
+                <span>{(viewMode === "week" ? weekTasks : visibleTasks).length}개</span>
+              </div>
+              {(viewMode === "week" ? weekTasks : visibleTasks).length ? (
+                (viewMode === "week" ? weekTasks : visibleTasks).map((task) => {
+                  const state = dday(task.due_at, todayKey);
+                  return (
+                    <article className="calendar-agenda-row" key={task.id}>
+                      <div className="calendar-agenda-date">
+                        <strong>{shortDate(task.due_at)}</strong>
+                        <em className={state.tone}>{state.label}</em>
+                      </div>
+                      <div>
+                        <strong>{task.record_title}</strong>
+                        <span>{TASK_LABELS[task.task_type]} · {task.title}</span>
+                      </div>
+                      <button type="button" onClick={() => toggleTask(task)}>
+                        {task.completed_at ? "되돌리기" : "완료"}
+                      </button>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="calendar-empty">표시할 일정이 없습니다.</div>
+              )}
+            </div>
+          )}
         </div>
 
         <aside className="calendar-upcoming-panel">

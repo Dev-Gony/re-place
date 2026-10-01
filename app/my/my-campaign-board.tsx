@@ -262,7 +262,7 @@ export function MyCampaignBoard({
 
                   <div className="my-final-benefit">{benefit}</div>
 
-                  <a className="my-final-detail-link" href="#records">
+                  <a className="my-final-detail-link" href="#workspace-detail-tools">
                     상세
                   </a>
                 </article>
@@ -277,8 +277,8 @@ export function MyCampaignBoard({
       </div>
 
       <div className="my-final-detail-note">
-        <span>직접 등록, 상태 변경, 메모, 정산 수정은 아래 상세 관리에서 계속 사용할 수 있습니다.</span>
-        <a href="#records">상세 관리로 이동</a>
+        <span>직접 등록, 상태 변경, 메모, 정산 수정은 상세 관리 도구에서 계속 사용할 수 있습니다.</span>
+        <a href="#workspace-detail-tools">상세 관리 열기</a>
       </div>
     </section>
   );
