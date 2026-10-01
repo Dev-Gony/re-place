@@ -4,88 +4,81 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
-const page = fs.readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
-const filters = fs.readFileSync(path.join(root, 'app/filter-controls.tsx'), 'utf8');
-const css = fs.readFileSync(path.join(root, 'app/globals.css'), 'utf8');
+const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const page = read('app/page.tsx');
+const filters = read('app/filter-controls.tsx');
+const workbench = read('app/campaign-workbench.tsx');
+const css = read('app/globals.css');
 
-test('campaign finder starts with product search rather than marketing hero', () => {
-  assert.match(page, /className="search-workspace"/);
+test('campaign finder follows the editorial utility reference structure', () => {
+  assert.match(page, /className="site-shell editorial-home"/);
+  assert.match(page, /className="editorial-heading-row"/);
   assert.match(page, /<h1>체험단 찾기<\/h1>/);
   assert.match(page, /HeroSearch initialQuery=\{q\}/);
   assert.doesNotMatch(page, /className="hero-copy"/);
-  assert.doesNotMatch(page, /CAMPAIGNS|CAMPAIGN FINDER/);
 });
 
-test('filters sit above a full-width result list', () => {
-  assert.match(page, /className="finder-layout"/);
-  assert.match(page, /className="filter-toolbar-wrap"/);
-  assert.match(page, /className="results-pane"/);
-  assert.doesNotMatch(page, /className="filter-sidebar"/);
-  assert.match(css, /\.finder-layout\s*\{[\s\S]*?display:\s*block/);
+test('provided reference navigation is translated to real product routes', () => {
+  assert.match(page, /aria-current="page">탐색/);
+  assert.match(page, /href="\/my">내 체험단/);
+  assert.match(page, /href="\/my#schedule">캘린더/);
+  assert.match(page, /href="\/blog-analysis">블로그 분석/);
+  assert.match(page, /href="\/my#favorites"/);
+  assert.doesNotMatch(page, /김민서|Pro/);
 });
 
-test('filter toolbar remains immediate and URL-driven', () => {
+test('filters remain URL-driven while adopting compact reference controls', () => {
   assert.match(filters, /className="filter-toolbar"/);
   assert.match(filters, /onChange=\{handleChange\}/);
   assert.match(filters, /router\.replace/);
-  assert.doesNotMatch(filters, /조건 적용/);
   assert.match(filters, /setTimeout\(applyNow, 350\)/);
-  assert.match(filters, /name="platform"/);
-  assert.match(filters, /name="regionGroup"/);
-  assert.match(filters, /name="reward"/);
-  assert.match(filters, /name="media"/);
-  assert.match(filters, /name="type"/);
-  assert.match(filters, /name="sort"/);
+  assert.match(filters, /inputRef\.current\?\.focus/);
+  assert.match(filters, /search-shortcut/);
+  assert.match(page, /방문형/);
+  assert.match(page, /배송형/);
+  assert.match(page, /5만원\+/);
+  assert.match(page, /마감 임박/);
 });
 
-test('desktop campaign list is comparison-table oriented', () => {
-  assert.match(page, /플랫폼 · 캠페인/);
-  assert.match(page, /제공 혜택/);
-  assert.match(page, /신청 \/ 모집/);
-  assert.match(page, /<span>마감<\/span>/);
-  assert.match(page, /<span>지역<\/span>/);
-  assert.match(css, /\.campaign-list\s*\{[\s\S]*?border-radius:\s*0/);
-  assert.doesNotMatch(page, /<Image\b|<img\b/i);
+test('desktop campaign workbench has dense list plus persistent inspector', () => {
+  assert.match(page, /<CampaignWorkbench items=\{workbenchItems\} \/>/);
+  assert.match(workbench, /campaign-workbench-head/);
+  assert.match(workbench, /campaign-inspector/);
+  assert.match(workbench, /setSelectedId/);
+  assert.match(css, /\.campaign-workbench\s*\{[\s\S]*?grid-template-columns:/);
+  assert.match(css, /\.campaign-inspector\s*\{[\s\S]*?position:\s*sticky/);
 });
 
-test('decorative gradients and dashboard chrome are removed from active product UI', () => {
-  assert.doesNotMatch(page, /brand-mark/);
-  assert.match(css, /\.site-header\s*\{[\s\S]*?backdrop-filter:\s*none/);
-  assert.match(css, /\.hero-search-main\s*\{[\s\S]*?box-shadow:\s*none/);
-  assert.match(css, /\.filter-toolbar\s*\{[\s\S]*?background:\s*#fff/);
+test('detail inspector uses only grounded campaign fields', () => {
+  for (const phrase of ['제공 혜택', '신청 / 모집', '경쟁률', '마감일', '지역', '수집']) {
+    assert.ok(workbench.includes(phrase));
+  }
+  assert.doesNotMatch(workbench, /선정 발표|체험 가능 기간|리뷰 등록 마감|필수 키워드/);
+  assert.match(workbench, /현재 확인되지 않은 값은 임의로 만들지 않습니다/);
 });
 
-test('metadata badges are visually demoted to inline text', () => {
-  assert.match(css, /\.platform-badge,[\s\S]*?\.sub-badge\s*\{[\s\S]*?background:\s*transparent/);
-  assert.match(css, /\.platform-badge \+ \.sub-badge::before/);
+test('campaign rows remain thumbnail-free and comparison oriented', () => {
+  assert.match(workbench, /플랫폼 · 캠페인 정보/);
+  assert.match(workbench, /제공 혜택/);
+  assert.match(workbench, /신청 \/ 모집/);
+  assert.match(workbench, /마감일 · 지역/);
+  assert.doesNotMatch(workbench, /<Image\b|<img\b/i);
 });
 
-test('mobile layout becomes plain stacked comparison rows', () => {
-  assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.campaign-row\s*\{[\s\S]*?grid-template-columns:\s*1fr 1fr/);
-  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*?\.campaign-row\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+test('mobile rows open a bottom-sheet inspector above the global navigation', () => {
+  assert.match(workbench, /campaign-mobile-inspector/);
+  assert.match(workbench, /aria-modal="true"/);
+  assert.match(css, /@media \(max-width:\s*900px\)[\s\S]*?\.campaign-inspector\.mobile\s*\{[\s\S]*?bottom:\s*calc\(66px \+ env\(safe-area-inset-bottom\)\)/);
 });
 
-test('paused integrations are visible as status, not selectable filters', () => {
-  assert.match(filters, /연동 점검 중/);
-  assert.match(filters, /source\.status === "paused"/);
+test('reference visual language uses warm canvas forest accent and hairline borders', () => {
+  assert.match(css, /--editorial-bg:\s*#faf9f6/);
+  assert.match(css, /--editorial-green:\s*#1b3b30/);
+  assert.match(css, /--editorial-border:\s*#e6e5e1/);
+  assert.match(css, /\.campaign-workbench-row\.active\s*\{[\s\S]*?border-left-color:\s*var\(--editorial-green\)/);
 });
 
 test('unknown visit locations are not rendered as fake region values', () => {
   assert.match(page, /위치 원문 확인/);
   assert.match(page, /지역무관/);
-});
-
-
-test('production header keeps auth controls on the far right', () => {
-  assert.match(css, /\.header-actions\s*\{[\s\S]*?margin-left:\s*auto/);
-});
-
-test('campaign action label never wraps vertically', () => {
-  assert.match(css, /\.row-cta\s*\{[\s\S]*?white-space:\s*nowrap/);
-  assert.match(css, /\.campaign-actions\s*\{[\s\S]*?grid-template-columns:\s*30px 56px/);
-});
-
-test('deadline formatter removes the Korean trailing period', () => {
-  assert.match(page, /formatToParts/);
-  assert.match(page, /month \+ "\." \+ day/);
 });

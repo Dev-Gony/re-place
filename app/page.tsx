@@ -2,7 +2,7 @@ import Link from "next/link";
 import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
 import { FilterPanel, HeroSearch } from "./filter-controls";
 import { AuthStatus } from "./auth-status";
-import { FavoriteButton } from "./favorite-button";
+import { CampaignWorkbench, type CampaignWorkbenchItem } from "./campaign-workbench";
 
 // searchParams keeps this page request-rendered; public DB reads are cached separately.
 
@@ -39,6 +39,11 @@ type SourceRow = {
   status: string;
   search_enabled: boolean;
   freshness_hours: number;
+};
+
+type CampaignCountRow = {
+  count: number;
+  latest_collected_at: string | null;
 };
 
 type CampaignRow = {
@@ -172,6 +177,34 @@ function competitionClass(ratio: number | null) {
   return "high";
 }
 
+function relativeFreshness(value: string | null) {
+  if (!value) return "업데이트 시간 미확인";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "업데이트 시간 미확인";
+  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (minutes < 60) return `${Math.max(1, minutes)}분 전 업데이트`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전 업데이트`;
+  return `${Math.floor(hours / 24)}일 전 업데이트`;
+}
+
+function deadlineState(value: string | null) {
+  if (!value) {
+    return { label: "마감 미정", className: "unknown" as const };
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { label: "마감 미정", className: "unknown" as const };
+  }
+
+  const days = Math.ceil((date.getTime() - Date.now()) / 86400000);
+  if (days <= 0) return { label: "오늘 마감", className: "urgent" as const };
+  if (days === 1) return { label: "D-1 마감", className: "urgent" as const };
+  if (days <= 3) return { label: `D-${days} 마감`, className: "soon" as const };
+  return { label: `D-${days}`, className: "normal" as const };
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -272,6 +305,7 @@ export default async function Home({
   let data: CampaignRow[] = [];
   let totalCount = 0;
   let totalCampaigns = 0;
+  let latestCollectedAt: string | null = null;
   let error: Error | null = registryError;
 
   if (!error) {
@@ -291,14 +325,17 @@ export default async function Home({
         `SELECT count(*)::int AS count FROM campaigns ${whereSql}`,
         values,
       ),
-      queryDb(
-        `SELECT count(*)::int AS count FROM campaigns ${visibilitySql}`,
+      queryDb<CampaignCountRow>(
+        `SELECT count(*)::int AS count,
+                max(collected_at)::text AS latest_collected_at
+           FROM campaigns ${visibilitySql}`,
       ),
     ]);
 
       data = dataResult.rows;
       totalCount = Number(countResult.rows[0]?.count ?? 0);
       totalCampaigns = Number(totalResult.rows[0]?.count ?? 0);
+      latestCollectedAt = totalResult.rows[0]?.latest_collected_at ?? null;
     } catch (caught) {
       error = caught instanceof Error ? caught : new Error("Database query failed");
       console.error("[Re:Place] campaign query failed");
@@ -326,60 +363,86 @@ export default async function Home({
       sort === "deadline",
   );
 
+  const workbenchItems: CampaignWorkbenchItem[] = data.map((campaign) => {
+    const ratio = competitionRatio(campaign.apply_count, campaign.recruit_count);
+    const deadline = deadlineState(campaign.deadline_at);
+
+    return {
+      id: campaign.id,
+      platform: campaign.platform,
+      title: campaign.title,
+      link: campaign.link,
+      mediaType: campaign.media_type,
+      campaignType: campaign.campaign_type,
+      rewardLabel: rewardBadge(campaign),
+      rewardDetail: campaign.reward || "원문에서 상세 혜택 확인",
+      applyLabel: formatApplicantCount(campaign.apply_count),
+      recruitLabel: formatRecruitCount(campaign.recruit_count),
+      competitionLabel: ratio !== null ? `${ratio}:1` : "집계 전",
+      competitionClass: competitionClass(ratio),
+      deadlineLabel: formatDate(campaign.deadline_at) || "마감 미정",
+      deadlineState: deadline.label,
+      deadlineClass: deadline.className,
+      regionLabel: displayRegion(campaign),
+      collectedLabel: relativeFreshness(campaign.collected_at).replace("업데이트", "수집"),
+    };
+  });
+
   return (
-    <main className="site-shell">
-      <header className="site-header">
-        <div className="header-inner">
-          <Link href="/" className="brand" aria-label="Re:Place 홈">
-            <span className="brand-text">Re:Place</span>
-          </Link>
+    <main className="site-shell editorial-home">
+      <header className="site-header editorial-header">
+        <div className="header-inner editorial-header-inner">
+          <div className="editorial-brand-nav">
+            <Link href="/" className="brand editorial-brand" aria-label="Re:Place 홈">
+              <span className="editorial-brand-dot" aria-hidden="true" />
+              <span className="brand-text">Re:Place</span>
+            </Link>
 
-          <nav className="header-nav" aria-label="주요 메뉴">
-            <a href="#campaigns">캠페인 찾기</a>
-            <Link href="/blog-analysis">블로그 분석</Link>
-            <Link href="/my">내 체험단</Link>
-          </nav>
+            <nav className="header-nav editorial-nav" aria-label="주요 메뉴">
+              <a href="#campaigns" aria-current="page">탐색</a>
+              <Link href="/my">내 체험단</Link>
+              <Link href="/my#schedule">캘린더</Link>
+              <Link href="/blog-analysis">블로그 분석</Link>
+            </nav>
+          </div>
 
-          <div className="header-actions">
-            <div className="header-status">
-              <span className="status-dot" />
-              6시간 주기 업데이트
-            </div>
+          <div className="header-actions editorial-header-actions">
+            <Link href="/my#favorites" className="editorial-saved-link" aria-label="저장된 캠페인">
+              <span aria-hidden="true">♡</span>
+              <span>저장</span>
+            </Link>
             <AuthStatus />
           </div>
         </div>
       </header>
 
-      <section className="search-workspace">
-        <div className="search-workspace-inner">
-          <div className="search-heading-row">
-            <div>
-              <h1>체험단 찾기</h1>
-              <p>여러 플랫폼의 모집중 캠페인을 지역, 혜택, 경쟁률 기준으로 비교하세요.</p>
-            </div>
-            <div className="source-summary" aria-label="수집 현황">
-              <span><strong>{totalCampaigns.toLocaleString("ko-KR")}</strong>개 모집중</span>
-              <span><strong>{PLATFORMS.length}</strong>개 플랫폼</span>
-              <span>6시간 주기 갱신</span>
-            </div>
+      <section className="editorial-main">
+        <div className="editorial-heading-row">
+          <div>
+            <h1>체험단 찾기</h1>
+            <p>여러 체험단 플랫폼의 캠페인을 한곳에서 비교하고 관리하세요.</p>
           </div>
-
-          <HeroSearch initialQuery={q} />
-
-          <div className="quick-filters">
-            <span>빠른 필터</span>
-            <Link href="/?regionGroup=서울">서울</Link>
-            <Link href="/?regionGroup=경기·인천">경기·인천</Link>
-            <Link href="/?type=배송형">배송형</Link>
-            <Link href="/?reward=50000">5만원+</Link>
-            <Link href="/?sort=deadline">마감 임박</Link>
+          <div className="source-summary editorial-source-summary" aria-label="수집 현황">
+            <span><strong>{totalCampaigns.toLocaleString("ko-KR")}</strong>개 모집 중</span>
+            <span>·</span>
+            <span>{PLATFORMS.length}개 플랫폼</span>
+            <span>·</span>
+            <span>{relativeFreshness(latestCollectedAt)}</span>
           </div>
         </div>
-      </section>
 
-      <section className="content-wrap" id="campaigns">
-        <div className="finder-layout">
-          <div className="filter-toolbar-wrap" aria-label="캠페인 필터">
+        <section className="editorial-search-filters" aria-label="검색과 필터">
+          <HeroSearch initialQuery={q} />
+
+          <div className="quick-filters editorial-quick-filters">
+            <span>빠른 필터:</span>
+            <Link href="/?type=방문형">방문형</Link>
+            <Link href="/?type=배송형">배송형</Link>
+            <Link href="/?reward=50000">5만원+</Link>
+            <Link className="urgent" href="/?sort=deadline">마감 임박</Link>
+          </div>
+
+          <div className="filter-toolbar-wrap editorial-filter-toolbar" aria-label="캠페인 필터">
             <FilterPanel
               key={buildHref(filters, currentPage)}
               values={filters}
@@ -391,174 +454,78 @@ export default async function Home({
               hasActiveFilters={hasActiveFilters}
             />
           </div>
+        </section>
 
-          <div className="results-pane">
-        <div className="results-head">
-          <div>
-            <h2>{q ? `“${q}” 검색 결과` : "모집중 캠페인"}</h2>
-            <p>마감된 캠페인과 오래된 데이터는 제외합니다.</p>
-          </div>
-          <div className="results-count">
-            <strong>{totalCount.toLocaleString("ko-KR")}</strong>
-            <span>개의 결과</span>
-          </div>
-        </div>
-
-        {hasActiveFilters && (
-          <div className="active-filter-bar">
-            <span>적용 중</span>
-            {q && <strong>검색: {q}</strong>}
-            {platforms.map((item) => <strong key={item}>{item}</strong>)}
-            {regionGroup && <strong>{regionGroup}</strong>}
-            {region && <strong>{region}</strong>}
-            {media && <strong>{media}</strong>}
-            {campaignType && <strong>{campaignType}</strong>}
-            {reward && <strong>혜택 필터</strong>}
-            {sort === "deadline" && <strong>마감임박순</strong>}
-            <Link href="/">모두 해제</Link>
-          </div>
-        )}
-
-        {error ? (
-          <div className="state-box state-error">
-            <strong>캠페인을 불러오지 못했습니다.</strong>
-            <p>잠시 후 다시 시도해주세요.</p>
-          </div>
-        ) : data && data.length > 0 ? (
-          <>
-            <div className="campaign-list">
-              <div className="campaign-list-head" aria-hidden="true">
-                <span>플랫폼 · 캠페인</span>
-                <span>제공 혜택</span>
-                <span>신청 / 모집</span>
-                <span>마감</span>
-                <span>지역</span>
-                <span />
-              </div>
-
-              {data.map((campaign) => {
-                const deadline = formatDate(campaign.deadline_at);
-                const ratio = competitionRatio(
-                  campaign.apply_count,
-                  campaign.recruit_count,
-                );
-                const ratioClass = competitionClass(ratio);
-
-                return (
-                  <article key={campaign.id} className="campaign-row">
-                    <div className="campaign-main">
-                      <div className="campaign-meta-line">
-                        <span className="platform-badge">{campaign.platform}</span>
-                        {campaign.media_type && (
-                          <span className="sub-badge">{campaign.media_type}</span>
-                        )}
-                        {campaign.campaign_type && (
-                          <span className="sub-badge">{campaign.campaign_type}</span>
-                        )}
-                      </div>
-                      <h3>{campaign.title}</h3>
-                    </div>
-
-                    <div className="campaign-cell reward-cell">
-                      <span className="mobile-cell-label">혜택</span>
-                      <strong className="reward-value">
-                        {rewardBadge(campaign)}
-                      </strong>
-                      <small title={campaign.reward || ""}>
-                        {campaign.reward || "상세페이지 확인"}
-                      </small>
-                    </div>
-
-                    <div className="campaign-cell competition-cell">
-                      <span className="mobile-cell-label">신청 · 경쟁</span>
-                      {campaign.apply_count !== null ||
-                      campaign.recruit_count !== null ? (
-                        <>
-                          <strong className="application-count">
-                            {formatApplicantCount(campaign.apply_count)}
-                            <span className="metric-divider"> / </span>
-                            {formatRecruitCount(campaign.recruit_count)}
-                          </strong>
-                          <span className={`competition-pill ${ratioClass}`}>
-                            {ratio !== null ? `${ratio}:1` : "일부 미확인"}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <strong className="muted-value">집계 전</strong>
-                          <small>원문에서 확인</small>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="campaign-cell deadline-cell">
-                      <span className="mobile-cell-label">마감</span>
-                      <strong>{deadline || "마감 미정"}</strong>
-                    </div>
-
-                    <div className="campaign-cell region-cell">
-                      <span className="mobile-cell-label">지역</span>
-                      <strong>{displayRegion(campaign)}</strong>
-                    </div>
-
-                    <div className="campaign-actions">
-                      <FavoriteButton
-                        campaignId={campaign.id}
-                        title={campaign.title}
-                      />
-                      <a
-                        href={campaign.link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="row-cta"
-                        aria-label={`${campaign.title} 원문 보기`}
-                      >
-                        보기
-                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                          <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </a>
-                    </div>
-                  </article>
-                );
-              })}
+        <section id="campaigns" className="editorial-results">
+          <div className="results-head editorial-results-head">
+            <div>
+              <h2>{q ? `“${q}” 검색 결과` : "모집중 캠페인"}</h2>
+              <p>마감되었거나 오래된 데이터는 자동으로 제외합니다.</p>
             </div>
-
-            <nav className="pagination" aria-label="페이지 이동">
-              {currentPage > 1 ? (
-                <Link href={buildHref(filters, currentPage - 1)}>이전</Link>
-              ) : (
-                <span className="disabled">이전</span>
-              )}
-
-              <span className="pagination-current">
-                <strong>{currentPage}</strong>
-                <span>/</span>
-                <span>{totalPages}</span>
-              </span>
-
-              {currentPage < totalPages ? (
-                <Link href={buildHref(filters, currentPage + 1)}>다음</Link>
-              ) : (
-                <span className="disabled">다음</span>
-              )}
-            </nav>
-          </>
-        ) : (
-          <div className="state-box">
-            <strong>조건에 맞는 캠페인이 없습니다.</strong>
-            <p>검색어나 필터 조건을 조금 넓혀보세요.</p>
-            <Link href="/">전체 캠페인 보기</Link>
+            <div className="results-count">
+              <strong>{totalCount.toLocaleString("ko-KR")}</strong>
+              <span>개의 결과</span>
+            </div>
           </div>
-        )}
-          </div>
-        </div>
+
+          {hasActiveFilters && (
+            <div className="active-filter-bar editorial-active-filters">
+              <span>적용 중</span>
+              {q && <strong>검색: {q}</strong>}
+              {platforms.map((item) => <strong key={item}>{item}</strong>)}
+              {regionGroup && <strong>{regionGroup}</strong>}
+              {region && <strong>{region}</strong>}
+              {media && <strong>{media}</strong>}
+              {campaignType && <strong>{campaignType}</strong>}
+              {reward && <strong>혜택 필터</strong>}
+              {sort === "deadline" && <strong>마감임박순</strong>}
+              <Link href="/">모두 해제</Link>
+            </div>
+          )}
+
+          {error ? (
+            <div className="state-box state-error">
+              <strong>캠페인을 불러오지 못했습니다.</strong>
+              <p>잠시 후 다시 시도해주세요.</p>
+            </div>
+          ) : workbenchItems.length > 0 ? (
+            <>
+              <CampaignWorkbench items={workbenchItems} />
+
+              <nav className="pagination editorial-pagination" aria-label="페이지 이동">
+                {currentPage > 1 ? (
+                  <Link href={buildHref(filters, currentPage - 1)}>이전</Link>
+                ) : (
+                  <span className="disabled">이전</span>
+                )}
+
+                <span className="pagination-current">
+                  <strong>{currentPage}</strong>
+                  <span>/</span>
+                  <span>{totalPages}</span>
+                </span>
+
+                {currentPage < totalPages ? (
+                  <Link href={buildHref(filters, currentPage + 1)}>다음</Link>
+                ) : (
+                  <span className="disabled">다음</span>
+                )}
+              </nav>
+            </>
+          ) : (
+            <div className="state-box">
+              <strong>조건에 맞는 캠페인이 없습니다.</strong>
+              <p>검색어나 필터 조건을 조금 넓혀보세요.</p>
+              <Link href="/">전체 캠페인 보기</Link>
+            </div>
+          )}
+        </section>
       </section>
 
-      <footer className="site-footer">
+      <footer className="site-footer editorial-footer">
         <div>
           <strong>Re:Place</strong>
-          <p>여러 플랫폼의 체험단 캠페인을 한곳에서 더 빠르게 찾는 방법.</p>
+          <p>여러 플랫폼의 체험단 캠페인을 한곳에서 비교하고 관리합니다.</p>
         </div>
         <nav className="footer-links" aria-label="서비스 정책">
           <Link href="/privacy">개인정보처리방침</Link>
@@ -567,4 +534,5 @@ export default async function Home({
       </footer>
     </main>
   );
+}
 }

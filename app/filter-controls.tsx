@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type FilterValues = {
@@ -77,7 +77,28 @@ function navigateFromForm(
 
 export function HeroSearch({ initialQuery }: HeroSearchProps) {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+
+      if (typing) return;
+
+      if (event.key === "/" || (event.metaKey && event.key.toLowerCase() === "k")) {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,12 +126,14 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
           </svg>
         </div>
         <input
+          ref={inputRef}
           id="q"
           name="q"
           defaultValue={initialQuery}
           placeholder="캠페인명, 지역, 브랜드를 검색하세요"
           aria-label="캠페인 검색"
         />
+        <kbd className="search-shortcut" aria-hidden="true">⌘K</kbd>
         <button type="submit" disabled={isPending}>
           {isPending ? "검색 중" : "검색"}
         </button>
