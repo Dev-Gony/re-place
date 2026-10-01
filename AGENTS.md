@@ -2,9 +2,12 @@
 
 ## 시작 순서
 
-1. `docs/README.md`, `docs/MODEL_EXECUTION_PLAN.md`, 해당 이슈와 최신 운영 기록을 읽는다.
-2. 최신 main SHA, 열린 PR, 실제 작업 브랜치를 조회한다. 기획 문서를 구현 증거로 사용하지 않는다.
-3. 이슈 하나를 작은 브랜치와 PR로 처리한다. main 직접 수정, 강제 push, 사용자 승인 없는 병합은 하지 않는다.
+1. `docs/README.md`, `docs/BRANCHING.md`, `docs/MODEL_EXECUTION_PLAN.md`, 해당 이슈와 최신 운영 기록을 읽는다.
+2. 새 RPL 작업이면 `docs/specs/RPL-XXX-<slug>.md`를 먼저 작성한다. Spec은 장기 브랜치가 아니라 저장소 문서다.
+3. 최신 main SHA, 열린 PR, 실제 작업 브랜치를 조회한다. 기획 문서를 구현 증거로 사용하지 않는다.
+4. 최신 main에서 short-lived `feat/`, `fix/`, `hotfix/`, `chore/` 작업 브랜치를 만든다.
+5. 이슈 하나를 작은 브랜치와 PR로 처리한다. main 직접 수정, 강제 push, 사용자 승인 없는 큰 기능 병합은 하지 않는다.
+6. 병합·필요한 Production 검증이 끝나면 작업 브랜치를 삭제한다.
 
 ## 빌드·푸시 예산
 
@@ -38,3 +41,13 @@
 
 각 결과에는 기준 SHA, 브랜치/커밋/PR, 변경 파일, 실행 시험, 미검증 항목, 배포 여부, 다음 이슈와 권장 모델 설정을 남긴다.
 권장 모델과 실제 실행 모델을 혼동하지 않는다. 모델 선택기의 설정을 사용자가 변경해야 하는 경우 이를 분명히 한다.
+
+
+## Branch lifecycle
+
+- 영구 브랜치는 `main` 하나다.
+- `dev`, `develop`, `spec`을 장기 브랜치로 추가하지 않는다.
+- 요구사항과 Acceptance Criteria는 `docs/specs/`에서 관리한다.
+- 완료된 작업 브랜치는 백업 목적으로 남겨두지 않는다. PR과 Git history가 기록이다.
+- 닫혔지만 미병합된 PR branch 또는 PR 없는 branch는 자동 삭제하지 않고 별도 확인한다.
+- 상세 규칙은 `docs/BRANCHING.md`를 따른다.
