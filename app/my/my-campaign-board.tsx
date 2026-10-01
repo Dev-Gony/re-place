@@ -21,11 +21,9 @@ const STATUS_LABELS: Record<string, string> = {
 const FILTERS = [
   ["all", "전체"],
   ["active", "진행중"],
-  ["visit", "방문예정"],
   ["review", "리뷰작성"],
-  ["today", "오늘 일정"],
   ["urgent", "마감 임박"],
-  ["unscheduled", "일정 미등록"],
+  ["completed", "완료"],
 ] as const;
 
 function keyOf(value: string | null) {
@@ -54,9 +52,9 @@ function diffDays(value: string | null, todayKey: string) {
 }
 
 function shortDate(value: string | null) {
-  if (!value) return "-";
+  if (!value) return "미확인";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+  if (Number.isNaN(date.getTime())) return "미확인";
   return new Intl.DateTimeFormat("ko-KR", {
     month: "numeric",
     day: "numeric",
@@ -66,7 +64,7 @@ function shortDate(value: string | null) {
 
 function deadlineLabel(value: string | null, todayKey: string) {
   const days = diffDays(value, todayKey);
-  if (days === null) return { label: "-", tone: "muted" };
+  if (days === null) return { label: "미확인", tone: "muted" };
   if (days < 0) return { label: `D+${Math.abs(days)}`, tone: "overdue" };
   if (days === 0) return { label: "D-DAY", tone: "today" };
   if (days <= 3) return { label: `D-${days}`, tone: "soon" };
@@ -115,7 +113,7 @@ export function MyCampaignBoard({
   settlements: SettlementItem[];
   todayKey: string;
   onOpenDetail: (recordId: number) => void;
-  onDelete: (recordId: number) => Promise<void>;
+  onDelete: (recordId: number) => void;
 }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
 
@@ -125,22 +123,23 @@ export function MyCampaignBoard({
     );
 
     return records.map((record) => {
-      const recordTasks = tasks
-        .filter((task) => task.record_id === record.id && !task.completed_at)
-        .sort((a, b) => Date.parse(a.due_at) - Date.parse(b.due_at));
-      const nextTask = recordTasks[0] ?? null;
       const reviewTask =
-        recordTasks.find(
-          (task) => task.task_type === "content" || task.task_type === "submit",
-        ) ?? null;
-      const nextDays = nextTask ? diffDays(nextTask.due_at, todayKey) : null;
+        tasks
+          .filter(
+            (task) =>
+              task.record_id === record.id &&
+              !task.completed_at &&
+              (task.task_type === "content" || task.task_type === "submit"),
+          )
+          .sort((a, b) => Date.parse(a.due_at) - Date.parse(b.due_at))[0] ?? null;
+
+      const campaignDays = diffDays(record.deadline_at, todayKey);
       const reviewDays = reviewTask ? diffDays(reviewTask.due_at, todayKey) : null;
 
       return {
         record,
-        nextTask,
         reviewTask,
-        nextDays,
+        campaignDays,
         reviewDays,
         benefit: benefitLabel(record, settlementsByRecord.get(record.id)),
       };
@@ -149,30 +148,21 @@ export function MyCampaignBoard({
 
   const filtered = useMemo(
     () =>
-      rows.filter(({ record, nextTask, nextDays, reviewDays }) => {
+      rows.filter(({ record, campaignDays, reviewDays }) => {
         if (filter === "all") return true;
         if (filter === "active") {
           return !["completed", "cancelled"].includes(record.status);
         }
-        if (filter === "visit") {
-          return nextTask?.task_type === "visit";
-        }
         if (filter === "review") {
           return ["visited", "review_pending"].includes(record.status);
         }
-        if (filter === "today") return nextDays === 0;
         if (filter === "urgent") {
           return (
-            (nextDays !== null && nextDays >= 0 && nextDays <= 3) ||
+            (campaignDays !== null && campaignDays >= 0 && campaignDays <= 3) ||
             (reviewDays !== null && reviewDays >= 0 && reviewDays <= 3)
           );
         }
-        if (filter === "unscheduled") {
-          return (
-            !["completed", "cancelled"].includes(record.status) &&
-            nextTask === null
-          );
-        }
+        if (filter === "completed") return record.status === "completed";
         return true;
       }),
     [filter, rows],
@@ -187,7 +177,7 @@ export function MyCampaignBoard({
       <div className="my-final-board-heading">
         <div>
           <h2>내 체험단</h2>
-          <p>진행 상태와 다음 일정, 리뷰 마감을 한 화면에서 확인합니다.</p>
+          <p>캠페인 마감과 리뷰 마감을 중심으로 진행 상태를 확인합니다.</p>
         </div>
         <span>
           <strong>{activeCount}</strong>개 진행중
@@ -211,7 +201,7 @@ export function MyCampaignBoard({
         <div className="my-final-table-head" aria-hidden="true">
           <span>캠페인</span>
           <span>상태</span>
-          <span>다음 일정</span>
+          <span>캠페인 마감</span>
           <span>리뷰 마감</span>
           <span>제공 혜택</span>
           <span />
@@ -219,21 +209,29 @@ export function MyCampaignBoard({
 
         <div className="my-final-table-body">
           {filtered.length ? (
-            filtered.map(({ record, nextTask, reviewTask, benefit }) => {
-              const nextDate = nextTask?.due_at ?? record.deadline_at;
-              const nextLabel = nextTask?.title ?? (record.deadline_at ? "캠페인 마감" : null);
-              const nextState = deadlineLabel(nextDate, todayKey);
-              const reviewState = deadlineLabel(
-                reviewTask?.due_at ?? null,
-                todayKey,
-              );
+            filtered.map(({ record, reviewTask, benefit }) => {
+              const campaignState = deadlineLabel(record.deadline_at, todayKey);
+              const reviewState = deadlineLabel(reviewTask?.due_at ?? null, todayKey);
 
               return (
-                <article className="my-final-row" key={record.id}>
+                <article
+                  className="my-final-row"
+                  key={record.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${record.title} 상세 열기`}
+                  onClick={() => onOpenDetail(record.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onOpenDetail(record.id);
+                    }
+                  }}
+                >
                   <div className="my-final-campaign">
                     <span>{record.platform || "수동 등록"}</span>
                     <strong>{record.title}</strong>
-                    <small>{record.region || "지역 미입력"}</small>
+                    <small>{record.region || "지역 미확인"}</small>
                   </div>
 
                   <div className="my-final-status">
@@ -243,39 +241,36 @@ export function MyCampaignBoard({
                   </div>
 
                   <div className="my-final-date">
-                    <strong>
-                      {nextDate ? shortDate(nextDate) : "예정 없음"}
-                    </strong>
-                    {nextDate && nextLabel && (
+                    <strong>{shortDate(record.deadline_at)}</strong>
+                    {record.deadline_at && (
                       <small>
-                        {nextLabel} ·{" "}
-                        <em className={nextState.tone}>{nextState.label}</em>
+                        모집 마감 · <em className={campaignState.tone}>{campaignState.label}</em>
                       </small>
                     )}
                   </div>
 
                   <div className="my-final-date">
-                    <strong>
-                      {reviewTask ? shortDate(reviewTask.due_at) : "미확인"}
-                    </strong>
-                    {reviewTask && (
+                    <strong>{shortDate(reviewTask?.due_at ?? null)}</strong>
+                    {reviewTask ? (
                       <small>
                         {reviewTask.task_type === "content" ? "작성" : "제출"} ·{" "}
                         <em className={reviewState.tone}>{reviewState.label}</em>
                       </small>
+                    ) : (
+                      <small>원문에서 확인되지 않음</small>
                     )}
                   </div>
 
                   <div className="my-final-benefit">{benefit}</div>
 
                   <div className="my-final-row-actions">
-                    <button type="button" onClick={() => onOpenDetail(record.id)}>
-                      상세
-                    </button>
                     <button
                       type="button"
                       className="danger-text"
-                      onClick={() => onDelete(record.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete(record.id);
+                      }}
                     >
                       삭제
                     </button>
@@ -289,18 +284,6 @@ export function MyCampaignBoard({
             </div>
           )}
         </div>
-      </div>
-
-      <div className="my-final-detail-note">
-        <span>직접 등록, 상태 변경, 메모, 정산 수정은 상세 관리 도구에서 계속 사용할 수 있습니다.</span>
-        <button
-          type="button"
-          className="my-detail-open-button"
-          onClick={() => records[0] && onOpenDetail(records[0].id)}
-          disabled={!records.length}
-        >
-          상세 관리 열기
-        </button>
       </div>
     </section>
   );

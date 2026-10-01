@@ -8741,3 +8741,282 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* RPL-035 stabilization C: compact discovery + interaction-first My Campaigns */
+.editorial-filter-toolbar .filter-toolbar-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 2px 14px;
+  border: 1px solid var(--rp-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 8px 24px rgba(98, 73, 83, .035);
+}
+
+.editorial-filter-toolbar .filter-toolbar-group {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rp-divider);
+  border-radius: 0;
+  background: transparent;
+}
+
+.editorial-filter-toolbar .filter-toolbar-label {
+  margin: 0;
+  color: #716a77;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.editorial-filter-toolbar .filter-inline-options {
+  gap: 5px;
+}
+
+.editorial-filter-toolbar .filter-check,
+.editorial-filter-toolbar .radio-chip span {
+  min-height: 28px;
+}
+
+.editorial-filter-toolbar .filter-toolbar-detail {
+  grid-column: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.editorial-filter-toolbar .filter-compact-field:first-child {
+  flex: 1 1 240px;
+  max-width: 320px;
+}
+
+.my-final-table-head,
+.my-final-row {
+  grid-template-columns:
+    minmax(300px, 2.5fr)
+    minmax(88px, .7fr)
+    minmax(132px, .9fr)
+    minmax(140px, 1fr)
+    minmax(170px, 1.2fr)
+    62px;
+}
+
+.my-final-row {
+  cursor: pointer;
+}
+
+.my-final-row:focus-visible {
+  outline: 2px solid rgba(53, 107, 90, .38);
+  outline-offset: -2px;
+}
+
+.my-final-row-actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.my-final-row-actions button {
+  min-width: 46px;
+  min-height: 30px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.my-final-row-actions .danger-text:hover {
+  border-color: #f0d0d2;
+  background: var(--rp-red-soft);
+}
+
+.my-final-detail-note {
+  display: none;
+}
+
+.my-detail-drawer-actions {
+  gap: 7px;
+}
+
+.my-detail-drawer-actions a,
+.my-detail-drawer-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+
+.my-detail-drawer-actions a:first-child {
+  border-color: rgba(53, 107, 90, .2);
+  background: var(--rp-green-soft);
+  color: var(--rp-green-dark);
+}
+
+.my-detail-drawer-panel .my-record-row {
+  gap: 16px;
+  padding: 18px;
+}
+
+.my-record-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.my-record-facts > div {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--rp-surface-muted);
+}
+
+.my-record-facts span,
+.my-record-facts strong {
+  display: block;
+}
+
+.my-record-facts span {
+  margin-bottom: 4px;
+  color: var(--rp-faint);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.my-record-facts strong {
+  color: var(--rp-ink);
+  font-size: 11px;
+}
+
+.my-detail-drawer-panel .my-status-field {
+  grid-template-columns: 92px minmax(0, 180px);
+}
+
+.my-detail-drawer-panel .my-record-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  padding-top: 4px;
+}
+
+.my-save-action {
+  min-width: 84px;
+  background: var(--rp-green) !important;
+  color: #fff !important;
+  border-color: var(--rp-green) !important;
+}
+
+.my-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(43, 35, 41, .34);
+  backdrop-filter: blur(3px);
+}
+
+.my-confirm-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid var(--rp-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(54, 39, 47, .2);
+}
+
+.my-confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: var(--rp-red-soft);
+  color: var(--rp-red);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.my-confirm-dialog h2 {
+  margin: 0;
+  color: var(--rp-ink);
+  font-size: 18px;
+}
+
+.my-confirm-dialog p {
+  margin: 8px 0 0;
+  color: var(--rp-copy);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.my-confirm-dialog small {
+  display: block;
+  margin-top: 5px;
+  color: var(--rp-faint);
+  font-size: 10px;
+}
+
+.my-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 20px;
+}
+
+.my-confirm-actions button {
+  min-width: 72px;
+  min-height: 36px;
+  border: 1px solid var(--rp-border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--rp-copy);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.my-confirm-actions .danger {
+  border-color: var(--rp-red);
+  background: var(--rp-red);
+  color: #fff;
+}
+
+@media (max-width: 980px) {
+  .editorial-filter-toolbar .filter-toolbar-main {
+    grid-template-columns: 1fr;
+  }
+  .editorial-filter-toolbar .filter-toolbar-group {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .editorial-filter-toolbar .filter-toolbar-group {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .editorial-filter-toolbar .filter-toolbar-detail {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .editorial-filter-toolbar .filter-compact-field,
+  .editorial-filter-toolbar .filter-compact-field:first-child {
+    width: 100%;
+    max-width: none;
+  }
+  .my-record-facts {
+    grid-template-columns: 1fr;
+  }
+}

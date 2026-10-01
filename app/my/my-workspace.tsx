@@ -128,6 +128,7 @@ export function MyWorkspace({
   const [notice, setNotice] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
   function showError(message: string) {
     setNotice(message);
@@ -166,6 +167,13 @@ export function MyWorkspace({
         : filteredRecords,
     [detailRecordId, filteredRecords],
   );
+
+  const detailRecord = detailRecordId
+    ? records.find((item) => item.id === detailRecordId) ?? null
+    : null;
+  const pendingDeleteRecord = pendingDeleteId
+    ? records.find((item) => item.id === pendingDeleteId) ?? null
+    : null;
 
   function openDetail(recordId: number) {
     setDetailRecordId(recordId);
@@ -274,23 +282,20 @@ export function MyWorkspace({
     }
   }
 
-  async function updateRecord(
-    item: RecordItem,
-    status: string,
-    note: string,
-    deadlineAt: string,
-  ) {
+  async function updateRecord(item: RecordItem, status: string) {
     try {
-      await updateRecordRequest(item.id, { status, note, deadlineAt });
+      await updateRecordRequest(item.id, { status });
       await reload();
     } catch {
-      showError("변경사항을 저장하지 못했습니다. 다시 시도해 주세요.");
+      showError("상태를 저장하지 못했습니다. 다시 시도해 주세요.");
     }
   }
 
-  async function deleteRecord(id: number) {
-    if (!window.confirm("내 체험단에서 이 캠페인을 삭제할까요?")) return;
+  function requestDelete(id: number) {
+    setPendingDeleteId(id);
+  }
 
+  async function deleteRecord(id: number) {
     try {
       await deleteRecordRequest(id);
       setRecords((items) => items.filter((item) => item.id !== id));
@@ -300,6 +305,7 @@ export function MyWorkspace({
         setDetailOpen(false);
         setDetailRecordId(null);
       }
+      setPendingDeleteId(null);
     } catch {
       showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
@@ -319,7 +325,7 @@ export function MyWorkspace({
         settlements={settlements}
         todayKey={todayKey}
         onOpenDetail={openDetail}
-        onDelete={deleteRecord}
+        onDelete={requestDelete}
       />
 
       <details
@@ -342,7 +348,10 @@ export function MyWorkspace({
               <h2>상세 관리</h2>
             </div>
             <div className="my-detail-drawer-actions">
-              <a href="/calendar">캘린더 보기</a>
+              {detailRecord?.link && (
+                <a href={detailRecord.link} target="_blank" rel="noreferrer">원문 보기</a>
+              )}
+              <a href="/calendar">캘린더</a>
               <button type="button" onClick={() => setDetailOpen(false)}>닫기</button>
             </div>
           </div>
@@ -541,7 +550,7 @@ export function MyWorkspace({
                 key={item.id}
                 item={item}
                 onSave={updateRecord}
-                onDelete={deleteRecord}
+                onDelete={requestDelete}
               />
             ))
           ) : (
@@ -613,6 +622,29 @@ export function MyWorkspace({
       </section>
         </div>
       </details>
+
+      {pendingDeleteRecord && (
+        <div className="my-confirm-backdrop" role="presentation" onMouseDown={() => setPendingDeleteId(null)}>
+          <section
+            className="my-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-campaign-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <span className="my-confirm-icon" aria-hidden="true">×</span>
+            <h2 id="delete-campaign-title">내 체험단에서 삭제할까요?</h2>
+            <p>{pendingDeleteRecord.title}</p>
+            <small>일정과 관리 기록도 함께 정리됩니다.</small>
+            <div className="my-confirm-actions">
+              <button type="button" onClick={() => setPendingDeleteId(null)}>취소</button>
+              <button type="button" className="danger" onClick={() => deleteRecord(pendingDeleteRecord.id)}>
+                삭제
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -623,23 +655,16 @@ function RecordEditor({
   onDelete,
 }: {
   item: RecordItem;
-  onSave: (
-    item: RecordItem,
-    status: string,
-    note: string,
-    deadlineAt: string,
-  ) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
+  onSave: (item: RecordItem, status: string) => Promise<void>;
+  onDelete: (id: number) => void;
 }) {
   const [status, setStatus] = useState(item.status);
-  const [note, setNote] = useState(item.note ?? "");
-  const [deadlineAt, setDeadlineAt] = useState(dateInput(item.deadline_at));
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
     try {
-      await onSave(item, status, note, deadlineAt);
+      await onSave(item, status);
     } finally {
       setSaving(false);
     }
@@ -653,11 +678,22 @@ function RecordEditor({
           {item.source_type === "manual" && <em>직접 등록</em>}
         </div>
         <h3>{item.title}</h3>
-        <p>{item.reward || item.region || "추가 정보 없음"}</p>
+        <p>{item.reward || "혜택 미확인"}</p>
       </div>
 
-      <label className="my-inline-field">
-        <span>상태</span>
+      <div className="my-record-facts">
+        <div>
+          <span>캠페인 마감</span>
+          <strong>{formatDeadline(item.deadline_at)}</strong>
+        </div>
+        <div>
+          <span>지역</span>
+          <strong>{item.region || "미확인"}</strong>
+        </div>
+      </div>
+
+      <label className="my-inline-field my-status-field">
+        <span>진행 상태</span>
         <select value={status} onChange={(event) => setStatus(event.target.value)}>
           {Object.entries(STATUS_LABELS).map(([value, label]) => (
             <option value={value} key={value}>{label}</option>
@@ -665,29 +701,9 @@ function RecordEditor({
         </select>
       </label>
 
-      <label className="my-inline-field">
-        <span>캠페인 마감</span>
-        <input
-          type="date"
-          value={deadlineAt}
-          onChange={(event) => setDeadlineAt(event.target.value)}
-        />
-      </label>
-
-      <label className="my-inline-field my-record-note">
-        <span>메모</span>
-        <input
-          value={note}
-          maxLength={4000}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="방문 일정, 리뷰 조건"
-        />
-      </label>
-
       <div className="my-record-actions">
-        {item.link && <a href={item.link} target="_blank" rel="noreferrer">원문</a>}
-        <button type="button" onClick={save} disabled={saving}>
-          {saving ? "저장 중" : "저장"}
+        <button type="button" className="my-save-action" onClick={save} disabled={saving}>
+          {saving ? "저장 중" : "상태 저장"}
         </button>
         <button type="button" className="danger-text" onClick={() => onDelete(item.id)}>
           삭제
