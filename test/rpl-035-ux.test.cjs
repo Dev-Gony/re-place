@@ -63,3 +63,11 @@ test("filter groups are visually separated and blog analysis readability is rais
   assert.match(css, /\.blog-analysis-score\s*\{[\s\S]*?font-size:\s*64px/);
   assert.match(css, /--rp-pink:/);
 });
+
+
+test("blog analysis missing-data states and small labels are accessible", () => {
+  assert.match(css, /\.blog-analysis-dimension\.unavailable/);
+  assert.match(css, /background:\s*#eee8fb/);
+  assert.match(css, /\.blog-analysis-disclaimer,[\s\S]*?font-size:\s*12px/);
+  assert.match(css, /\.blog-analysis-dimension-head strong,[\s\S]*?font-size:\s*13px/);
+});

@@ -8677,3 +8677,67 @@ body {
     width: 100vw;
   }
 }
+
+
+/* RPL-035 stabilization B: analysis accessibility polish */
+.blog-analysis-summary-metrics span,
+.blog-analysis-dimension-head strong,
+.blog-analysis-dimension-head span {
+  font-size: 13px;
+}
+
+.blog-analysis-disclaimer,
+.blog-analysis-source-note,
+.blog-analysis-search-evidence small {
+  color: #6f6877;
+  font-size: 12px;
+}
+
+.blog-analysis-dimension.unavailable {
+  border-style: dashed;
+  border-color: #dfd5ea;
+  background: linear-gradient(180deg, #fbf9ff 0%, #f8f5ff 100%);
+}
+
+.blog-analysis-dimension.unavailable .blog-analysis-dimension-head span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eee8fb;
+  color: #735fa7;
+  font-weight: 800;
+}
+
+.blog-analysis-dimension.unavailable p {
+  margin-top: 12px;
+  color: #6f6877;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.blog-analysis-evidence-list > article > div > span,
+.blog-analysis-evidence-list > article > div > em,
+.blog-analysis-post-structure {
+  font-size: 11px;
+}
+
+.blog-analysis-evidence-list > article > strong {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .blog-analysis-summary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .blog-analysis-score {
+    font-size: 52px !important;
+  }
+
+  .blog-analysis-dimensions {
+    grid-template-columns: 1fr;
+  }
+}
