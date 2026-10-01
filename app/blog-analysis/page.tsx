@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthStatus } from "../auth-status";
+import { WebHeader } from "../web-header";
 import { BlogAnalysisClient } from "./blog-analysis-client";
 
 export const metadata: Metadata = {
@@ -19,25 +19,7 @@ export const metadata: Metadata = {
 export default function BlogAnalysisPage() {
   return (
     <main className="site-shell blog-analysis-page">
-      <header className="site-header">
-        <div className="header-inner">
-          <Link href="/" className="brand" aria-label="Re:Place 홈">
-            <span className="brand-text">Re:Place</span>
-          </Link>
-
-          <nav className="header-nav" aria-label="주요 메뉴">
-            <Link href="/">캠페인 찾기</Link>
-            <Link href="/blog-analysis" aria-current="page">
-              블로그 분석
-            </Link>
-            <Link href="/my">내 체험단</Link>
-          </nav>
-
-          <div className="header-actions">
-            <AuthStatus />
-          </div>
-        </div>
-      </header>
+      <WebHeader active="analysis" />
 
       <section className="blog-analysis-hero">
         <div className="blog-analysis-hero-inner">
