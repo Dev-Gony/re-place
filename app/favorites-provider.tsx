@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "../lib/auth/client";
 import {
   addFavorite,
+  createRecord,
   getWorkspace,
   removeFavorite,
 } from "../lib/workspace-client";
@@ -22,7 +23,9 @@ type FavoritesContextValue = {
   ready: boolean;
   loggedIn: boolean;
   ids: Set<number>;
+  recordIds: Set<number>;
   toggle: (campaignId: number) => Promise<boolean>;
+  addToMyCampaign: (campaignId: number) => Promise<"added" | "existing" | "login" | "error">;
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
@@ -31,6 +34,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const session = authClient.useSession();
   const router = useRouter();
   const [ids, setIds] = useState<Set<number>>(new Set());
+  const [recordIds, setRecordIds] = useState<Set<number>>(new Set());
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +48,13 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         if (cancelled) return;
         setIds(new Set(data.favorites.map((item) => Number(item.campaign_id))));
+        setRecordIds(
+          new Set(
+            data.records
+              .map((item) => item.campaign_id)
+              .filter((value): value is number => typeof value === "number"),
+          ),
+        );
         setLoadedUserId(session.data?.user?.id ?? null);
       })
       .catch(() => {
@@ -86,6 +97,32 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     [ids, router, session.data?.user],
   );
 
+  const addToMyCampaign = useCallback(
+    async (campaignId: number) => {
+      if (!session.data?.user) {
+        router.push("/auth/sign-in?callbackURL=/");
+        return "login" as const;
+      }
+
+      if (recordIds.has(campaignId)) {
+        return "existing" as const;
+      }
+
+      try {
+        await createRecord({ campaignId });
+        setRecordIds((previous) => {
+          const next = new Set(previous);
+          next.add(campaignId);
+          return next;
+        });
+        return "added" as const;
+      } catch {
+        return "error" as const;
+      }
+    },
+    [recordIds, router, session.data?.user],
+  );
+
   const ready =
     !session.isPending &&
     (!session.data?.user || loadedUserId === session.data.user.id);
@@ -95,9 +132,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       ready,
       loggedIn: Boolean(session.data?.user),
       ids,
+      recordIds,
       toggle,
+      addToMyCampaign,
     }),
-    [ready, session.data?.user, ids, toggle],
+    [ready, session.data?.user, ids, recordIds, toggle, addToMyCampaign],
   );
 
   return (

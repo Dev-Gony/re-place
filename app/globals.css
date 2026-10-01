@@ -8096,3 +8096,72 @@ body {
     justify-self: start;
   }
 }
+
+
+/* RPL-034 add-to-my-campaign CTA */
+.campaign-inspector-actions {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.campaign-inspector-actions .favorite-button {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.campaign-add-record,
+.campaign-origin-link {
+  min-height: 34px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.campaign-add-record {
+  grid-column: 2;
+  border: 1px solid var(--rp-green);
+  background: var(--rp-green);
+  color: #fff;
+}
+
+.campaign-add-record:hover:not(:disabled) {
+  background: var(--rp-green-dark);
+}
+
+.campaign-add-record:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.campaign-add-record.added {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(27, 59, 48, .25);
+  background: var(--rp-green-soft);
+  color: var(--rp-green);
+}
+
+.campaign-origin-link {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--rp-border);
+  background: #fff;
+  color: var(--rp-copy);
+}
+
+.campaign-add-feedback {
+  margin: 6px 0 0;
+  color: var(--rp-green);
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .campaign-inspector.mobile .campaign-inspector-actions {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+}
