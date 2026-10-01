@@ -139,3 +139,25 @@ Preview API:
 `POST /api/v1/blog-analysis/preview`
 
 이 endpoint는 분석 결과를 저장하지 않고 현재 RSS 관측값을 기존 score engine에 넣어 반환한다.
+
+
+## RPL-030 공개 분석 UI
+
+사용자 진입 경로:
+- `/blog-analysis`
+- 데스크톱 헤더의 `블로그 분석`
+- 모바일 하단 메뉴의 `분석`
+
+화면은 `POST /api/v1/blog-analysis/preview`를 직접 호출하고 다음을 표시한다.
+
+- 자체 score / band
+- coverage
+- confidence
+- 5개 dimension의 available/미관측 상태
+- dimension별 reasons
+- 최근 RSS post evidence
+- RSS category 관측률
+- 분석 시각 / source
+- '네이버 공식 지수'가 아니라는 disclaimer
+
+분석 결과는 저장하지 않는다. unavailable dimension은 0점으로 렌더링하지 않는다.
