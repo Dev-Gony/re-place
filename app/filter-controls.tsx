@@ -139,7 +139,6 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
         </button>
       </div>
     </form>
-    </>
   );
 }
 
@@ -398,5 +397,6 @@ export function FilterPanel({
         )}
       </div>
     </form>
+    </>
   );
 }
