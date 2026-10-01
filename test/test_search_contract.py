@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "app" / "page.tsx").read_text(encoding="utf-8")
+WORKBENCH = (ROOT / "app" / "campaign-workbench.tsx").read_text(encoding="utf-8")
 
 
 class SearchQueryContractTests(unittest.TestCase):
@@ -54,7 +55,9 @@ class SearchQueryContractTests(unittest.TestCase):
 
     def test_missing_counts_are_not_rendered_as_zero(self):
         self.assertIn('value === null ? "미확인"', PAGE)
-        self.assertIn('"일부 미확인"', PAGE)
+        self.assertIn('competitionLabel: ratio !== null ?', PAGE)
+        self.assertIn(': "집계 전"', PAGE)
+        self.assertIn('item.competitionLabel', WORKBENCH)
         self.assertNotIn('campaign.apply_count ?? 0', PAGE)
         self.assertNotIn('campaign.recruit_count ?? 0', PAGE)
 
