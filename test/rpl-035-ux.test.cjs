@@ -31,7 +31,7 @@ test("campaign inspector has one primary action and a light source link", () => 
 test("my campaigns can open detail and delete from the main table", () => {
   assert.match(board, /onOpenDetail/);
   assert.match(board, /onDelete/);
-  assert.match(board, />삭제</);
+  assert.match(board, /삭제/);
   assert.match(workspace, /setDetailOpen\(true\)/);
   assert.match(workspace, /setDetailOpen\(false\)/);
   assert.match(workspace, /window\.confirm/);

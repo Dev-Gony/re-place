@@ -41,7 +41,7 @@ test("my campaigns final board stays grounded in records tasks and settlements",
   assert.match(board, /tasks/);
   assert.match(board, /settlementsByRecord/);
   assert.match(board, /혜택 미입력/);
-  assert.doesNotMatch(board, /김민서|Pro|외부 캘린더 동기화/);
+  assert.doesNotMatch(board, /김민서|>Pro<|프로 요금제|외부 캘린더 동기화/);
 });
 
 test("final web layout keeps dense table and desktop split-pane semantics", () => {

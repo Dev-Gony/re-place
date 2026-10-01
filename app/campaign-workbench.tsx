@@ -132,7 +132,7 @@ function DetailInspector({
       </section>
 
       <p className="campaign-source-note">
-        공개 원문에서 확인된 정보만 표시합니다. 확인되지 않은 일정과 리뷰 조건은 임의로 만들지 않습니다.
+        공개 원문에서 확인된 정보만 표시합니다. 현재 확인되지 않은 값은 임의로 만들지 않습니다.
       </p>
     </aside>
   );
