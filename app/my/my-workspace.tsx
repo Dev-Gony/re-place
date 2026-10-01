@@ -299,6 +299,23 @@ export function MyWorkspace({
         todayKey={todayKey}
       />
 
+      <details className="my-detail-drawer" id="workspace-detail-tools">
+        <summary className="my-detail-drawer-trigger">
+          <span>
+            <strong>상세 관리</strong>
+            <small>상태·메모·정산·일정·찜 편집</small>
+          </span>
+          <em>열기</em>
+        </summary>
+        <div className="my-detail-drawer-panel">
+          <div className="my-detail-drawer-top">
+            <div>
+              <span>DETAIL MANAGEMENT</span>
+              <h2>상세 관리</h2>
+            </div>
+            <small>상단의 ‘상세 관리’를 다시 누르면 닫힙니다.</small>
+          </div>
+
       <div className="my-detail-management-head" id="detail-management">
         <div>
           <span>DETAIL MANAGEMENT</span>
@@ -563,6 +580,8 @@ export function MyWorkspace({
           )}
         </div>
       </section>
+        </div>
+      </details>
     </div>
   );
 }

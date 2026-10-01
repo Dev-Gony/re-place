@@ -21,14 +21,17 @@ export default function BlogAnalysisPage() {
     <main className="site-shell blog-analysis-page">
       <WebHeader active="analysis" />
 
-      <section className="blog-analysis-hero">
-        <div className="blog-analysis-hero-inner">
-          <span className="blog-analysis-kicker">V3 · BLOG ANALYSIS</span>
-          <h1>내 블로그를 근거와 함께 분석합니다.</h1>
+      <section className="blog-analysis-page-head">
+        <div>
+          <h1>블로그 분석</h1>
           <p>
-            네이버 공개 RSS에서 확인 가능한 활동성과 주제 일관성을 분석합니다.
-            확인할 수 없는 값은 0점으로 만들지 않고 미관측으로 표시합니다.
+            네이버 공개 데이터로 활동성·콘텐츠 구조·검색 관측 근거를 확인합니다.
           </p>
+        </div>
+        <div className="blog-analysis-page-meta">
+          <span>결과 저장 안 함</span>
+          <span>·</span>
+          <span>미관측은 0점 처리 안 함</span>
         </div>
       </section>
 
