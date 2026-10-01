@@ -155,10 +155,10 @@ export function CalendarWorkspace({
       <div className="calendar-heading">
         <div>
           <h1>내 일정</h1>
-          <p>방문, 콘텐츠 작성, 제출, 캠페인 마감을 월간 흐름으로 관리합니다.</p>
+          <p>캠페인 마감은 내 체험단에 추가하면 자동 반영됩니다. 필요한 개인 일정만 직접 추가하세요.</p>
         </div>
         <button type="button" onClick={() => setFormOpen((value) => !value)}>
-          {formOpen ? "닫기" : "일정 추가"}
+          {formOpen ? "입력 닫기" : "직접 일정 추가"}
         </button>
       </div>
 
