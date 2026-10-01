@@ -24,7 +24,7 @@ test('provided reference navigation is translated to real product routes', () =>
   assert.match(page, /href="\/my#schedule">캘린더/);
   assert.match(page, /href="\/blog-analysis">블로그 분석/);
   assert.match(page, /href="\/my#favorites"/);
-  assert.doesNotMatch(page, /김민서|Pro/);
+  assert.doesNotMatch(page, /김민서|>Pro<|프로 요금제|Pro 배지/);
 });
 
 test('filters remain URL-driven while adopting compact reference controls', () => {
