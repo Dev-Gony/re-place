@@ -16,7 +16,7 @@ const prTemplate = read(".github/pull_request_template.md");
 test("repository workflow keeps main as the only long-lived branch", () => {
   assert.match(branching, /영구 브랜치는 `main` 하나/);
   assert.match(branching, /dev.*develop.*spec/s);
-  assert.match(branching, /branch delete/);
+  assert.match(branching, /작업 branch 삭제|branch delete/);
   assert.match(agents, /docs\/specs\/RPL-XXX/);
 });
 
