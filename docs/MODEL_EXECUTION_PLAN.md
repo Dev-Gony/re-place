@@ -29,6 +29,7 @@
 | RPL-028 | V3 블로그 분석 지표·근거 데이터 기반 | GPT-5.6 Sol | Extra High | 점수 의미, missing-data 처리, provenance, 오인 가능성 검토 |
 | RPL-029 | V3 네이버 블로그 RSS live-data adapter | GPT-5.6 Sol | High | 고정 origin, timeout/size 제한, missing signal 경계 검증 |
 | RPL-030 | V3 블로그 분석 공개 UI·실데이터 결과 화면 | GPT-5.6 Sol | High | 근거 우선 UI, 미관측 상태, 모바일 결과 가독성 검증 |
+| RPL-031 | V3 공개 포스트 구조 기반 콘텐츠 충실도 | GPT-5.6 Sol | Extra High | 고정 origin, HTML 구조 변화, 부분 실패, 점수 과대해석 검증 |
 
 Medium은 의미가 바뀌지 않는 문구·단순 스타일·문서 오탈자 정리에 한정한다. Pro 사용이 코드 실행·시험·사람의 승인·법적 판단을 대체하지 않는다. Pro 접근이 없으면 Extra High로 진행하고 별도 검토와 테스트를 강화한다. 구매나 요금제 변경을 자동 요구하지 않는다.
 

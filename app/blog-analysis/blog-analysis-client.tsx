@@ -17,6 +17,12 @@ type EvidencePost = {
   link: string | null;
   publishedAt: string | null;
   categories: string[];
+  contentObserved?: boolean;
+  textLength?: number;
+  paragraphCount?: number;
+  imageCount?: number;
+  tagCount?: number;
+  structureScore?: number;
 };
 
 type AnalysisResponse = {
@@ -310,6 +316,11 @@ export function BlogAnalysisClient() {
                       {post.categories[0] && <em>{post.categories[0]}</em>}
                     </div>
                     <strong>{post.title}</strong>
+                    {post.contentObserved && (
+                      <span className="blog-analysis-post-structure">
+                        본문 {post.textLength ?? 0}자 · 문단 {post.paragraphCount ?? 0} · 이미지 {post.imageCount ?? 0} · 태그 {post.tagCount ?? 0}
+                      </span>
+                    )}
                     {post.link && (
                       <a href={post.link} target="_blank" rel="noreferrer">
                         원문 보기

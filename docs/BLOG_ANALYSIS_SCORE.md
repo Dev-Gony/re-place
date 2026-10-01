@@ -161,3 +161,24 @@ Preview API:
 - '네이버 공식 지수'가 아니라는 disclaimer
 
 분석 결과는 저장하지 않는다. unavailable dimension은 0점으로 렌더링하지 않는다.
+
+
+## RPL-031 공개 포스트 구조 신호
+
+RSS로 확인할 수 없던 `recentPostCompleteness`는 최근 공개 포스트 최대 3건의 구조를 제한적으로 관측해 계산한다.
+
+post별 구조 점수:
+- 본문 텍스트 800자: 40%
+- 문단 5개: 25%
+- 이미지 1개: 20%
+- 해시태그 2개: 15%
+
+각 항목은 목표값까지 선형 정규화하며 그 이상은 추가 가점을 주지 않는다.
+
+안전 경계:
+- RSS link 자체를 fetch하지 않고 blogId/logNo를 검증한다.
+- 실제 fetch URL은 `https://m.blog.naver.com/{blogId}/{logNo}`로 서버에서 재구성한다.
+- 최대 3개 글, 글당 4초 timeout, 2 MiB 응답 상한.
+- 일부 post 실패는 전체 RSS 분석 실패로 만들지 않는다.
+- 최소 2개 post 구조가 성공한 경우에만 content signal을 available 처리한다.
+- 조회수/공감/댓글은 콘텐츠 충실도 점수에 사용하지 않는다.

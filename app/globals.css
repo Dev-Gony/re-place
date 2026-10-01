@@ -6176,3 +6176,16 @@ body {
     font-size: 42px;
   }
 }
+\n
+.blog-analysis-post-structure {
+  color: #84847d;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .blog-analysis-post-structure {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
