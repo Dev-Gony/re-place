@@ -1,5 +1,6 @@
 import { analyzeBlog, normalizeNaverBlogIdentity } from "../../../../../lib/blog-analysis-score.mjs";
 import { fetchNaverBlogRss } from "../../../../../lib/naver-blog-rss.mjs";
+import { auth } from "../../../../../lib/auth/server";
 import {
   fetchNaverSearchVisibility,
   normalizeSearchQueries,
@@ -73,21 +74,30 @@ export async function POST(request) {
     const searchClientSecret = process.env.NAVER_API_HUB_CLIENT_SECRET?.trim();
 
     if (searchQueries.length > 0 && searchClientId && searchClientSecret) {
-      const search = await fetchNaverSearchVisibility(
-        identity.blogId,
-        searchQueries,
-        {
-          clientId: searchClientId,
-          clientSecret: searchClientSecret,
-          observedAt: new Date(live.observedAt),
-        },
-      );
+      const { data: session } = await auth.getSession();
 
-      live.signals = {
-        ...live.signals,
-        ...search.signals,
-      };
-      searchEvidence = search.evidence;
+      if (!session?.user) {
+        searchEvidence = searchEvidenceWithoutObservation(
+          "auth_required",
+          searchQueries.length,
+        );
+      } else {
+        const search = await fetchNaverSearchVisibility(
+          identity.blogId,
+          searchQueries,
+          {
+            clientId: searchClientId,
+            clientSecret: searchClientSecret,
+            observedAt: new Date(live.observedAt),
+          },
+        );
+
+        live.signals = {
+          ...live.signals,
+          ...search.signals,
+        };
+        searchEvidence = search.evidence;
+      }
     }
 
     const analysis = analyzeBlog(identity.blogId, live.signals);

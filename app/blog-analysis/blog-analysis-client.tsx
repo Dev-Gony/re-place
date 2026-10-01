@@ -52,7 +52,12 @@ type AnalysisResponse = {
     categoryCoverage: number;
     posts: EvidencePost[];
     searchVisibility?: {
-      status: "not_requested" | "not_configured" | "insufficient" | "observed";
+      status:
+        | "not_requested"
+        | "not_configured"
+        | "auth_required"
+        | "insufficient"
+        | "observed";
       requestedCount: number;
       observedCount: number;
       visibleCount: number | null;
@@ -330,7 +335,9 @@ export function BlogAnalysisClient() {
                         {dimension.key === "visibility"
                           ? result.evidence.searchVisibility?.status === "not_configured"
                             ? "검색 관측 API HUB가 아직 연결되지 않아 미관측으로 유지합니다."
-                            : result.evidence.searchVisibility?.status === "insufficient"
+                            : result.evidence.searchVisibility?.status === "auth_required"
+                              ? "검색 관측은 외부 API 쿼터 보호를 위해 로그인 사용자에게만 실행합니다."
+                              : result.evidence.searchVisibility?.status === "insufficient"
                               ? "성공한 검색 관측이 2개 미만이라 점수에 반영하지 않습니다."
                               : result.evidence.searchVisibility?.status === "not_requested"
                                 ? "관측 검색어를 입력하면 실제 블로그 검색 결과를 확인할 수 있습니다."
