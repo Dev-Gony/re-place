@@ -5,7 +5,7 @@
 - Issue: #126
 - Branch: `chore/rpl-037-repository-workflow`
 - Base: `main@afed1b6fcfd4d4af6bfc2bf02a20be5c557480dd`
-- Status: IN PROGRESS
+- Status: COMPLETE
 
 ## 문제
 
@@ -86,7 +86,19 @@ spec
 - [x] spec template 작성
 - [x] merged branch audit
 - [x] branch cleanup automation 작성
-- [ ] CI 검증
-- [ ] PR merge 후 cleanup workflow 실행 확인
-- [ ] branch count 감소 확인
-- [ ] main protection 설정 한계 기록
+- [x] CI 검증
+- [x] PR merge 후 cleanup workflow 실행 확인
+- [x] branch count 감소 확인: 91 → 3
+- [x] 남은 legacy 2개 분석 및 삭제 기준 확정
+- [x] main protection 설정 한계 기록
+
+
+## Closeout
+
+RPL-037 1차 merge 후 Branch hygiene가 성공했고 원격 branch는 91개에서 3개로 감소했다.
+
+남은 두 branch:
+- `chore/rpl-024-production-auth-smoke`: main이 34 commit ahead, branch 고유 commit 0으로 main에 완전히 포함.
+- `feat/rpl-026-mobile-app-shell`: draft PR #99를 clean PR #100으로 재구성했고 #100이 main에 병합됨. #99와 #100은 동일 기능 범위(6 files, +247 lines)를 다룬다.
+
+최종 cleanup workflow는 merged PR head, main에 완전히 포함된 ancestor branch, 명시적으로 retired 처리한 legacy branch를 삭제하고 `main`만 보존한다.
