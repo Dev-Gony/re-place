@@ -24,7 +24,8 @@ test("public blog analysis page exposes navigation and metadata", () => {
 test("analysis form posts to the live preview API", () => {
   assert.match(client, /fetch\("\/api\/v1\/blog-analysis\/preview"/);
   assert.match(client, /method: "POST"/);
-  assert.match(client, /JSON\.stringify\(\{ blog: value \}\)/);
+  assert.match(client, /searchQueries:/);
+  assert.match(client, /\.slice\(0, 5\)/);
   assert.match(api, /fetchNaverBlogRss/);
   assert.match(api, /analyzeBlog/);
 });
@@ -64,4 +65,16 @@ test("mobile navigation now has five destinations", () => {
   for (const label of ["탐색", "분석", "내 체험단", "일정", "찜"]) {
     assert.ok(mobile.includes(label));
   }
+});
+
+
+test("search visibility input and evidence stay optional and explicit", () => {
+  assert.match(client, /관측 검색어/);
+  assert.match(client, /최대 5개/);
+  assert.match(client, /searchVisibility/);
+  assert.match(client, /API HUB가 아직 연결되지 않아 미관측/);
+  assert.match(client, /성공한 검색 관측이 2개 미만/);
+  assert.match(client, /검색 순위나 상위 노출을 보장하지/);
+  assert.match(api, /NAVER_API_HUB_CLIENT_ID/);
+  assert.match(api, /searchVisibilityConfigured/);
 });

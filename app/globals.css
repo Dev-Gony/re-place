@@ -6959,3 +6959,64 @@ body {
     white-space: normal;
   }
 }
+
+
+/* RPL-033 search visibility observation */
+.blog-analysis-search-query-field {
+  margin-top: 12px;
+}
+
+.blog-analysis-search-query-field label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blog-analysis-search-query-field label span {
+  color: #9a9a93;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.blog-analysis-search-query-field textarea {
+  width: 100%;
+  min-height: 66px;
+  resize: vertical;
+  padding: 10px 13px;
+  border: 1px solid #d7d7d0;
+  border-radius: 8px;
+  outline: none;
+  color: #2e2e2a;
+  background: #fff;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.blog-analysis-search-query-field textarea:focus {
+  border-color: #817ce0;
+  box-shadow: 0 0 0 3px rgba(129, 124, 224, .12);
+}
+
+.blog-analysis-search-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 10px;
+  padding: 11px 13px;
+  border: 1px solid #e5e5df;
+  border-radius: 9px;
+  background: #fafaf7;
+  color: #777770;
+  font-size: 9px;
+}
+
+.blog-analysis-search-evidence strong {
+  color: #3f3f3a;
+  font-size: 10px;
+}
+
+.blog-analysis-search-evidence small {
+  flex-basis: 100%;
+  color: #989891;
+  font-size: 8px;
+}

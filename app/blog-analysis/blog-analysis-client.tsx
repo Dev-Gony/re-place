@@ -44,10 +44,25 @@ type AnalysisResponse = {
     dimensions: Dimension[];
     disclaimer: string;
   };
+  capabilities?: {
+    searchVisibilityConfigured: boolean;
+  };
   evidence: {
     totalItems: number;
     categoryCoverage: number;
     posts: EvidencePost[];
+    searchVisibility?: {
+      status: "not_requested" | "not_configured" | "insufficient" | "observed";
+      requestedCount: number;
+      observedCount: number;
+      visibleCount: number | null;
+      observations: Array<{
+        query: string;
+        status: string;
+        visible: boolean | null;
+        matchedLink: string | null;
+      }>;
+    };
   };
 };
 
@@ -104,6 +119,7 @@ function formatDate(value: string | null) {
 
 export function BlogAnalysisClient() {
   const [blog, setBlog] = useState("");
+  const [searchTerms, setSearchTerms] = useState("");
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -124,7 +140,14 @@ export function BlogAnalysisClient() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ blog: value }),
+        body: JSON.stringify({
+          blog: value,
+          searchQueries: searchTerms
+            .split(/[\n,]/)
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .slice(0, 5),
+        }),
         cache: "no-store",
       });
 
@@ -168,8 +191,24 @@ export function BlogAnalysisClient() {
               {loading ? "분석 중..." : "분석하기"}
             </button>
           </div>
+
+          <div className="blog-analysis-search-query-field">
+            <label htmlFor="blog-analysis-search-queries">
+              관측 검색어 <span>선택 · 최대 5개</span>
+            </label>
+            <textarea
+              id="blog-analysis-search-queries"
+              name="searchQueries"
+              value={searchTerms}
+              onChange={(event) => setSearchTerms(event.target.value)}
+              placeholder={"예: 이력서 작성, 취업 준비\n쉼표 또는 줄바꿈으로 구분"}
+              rows={2}
+            />
+          </div>
+
           <p>
-            결과는 저장하지 않습니다. 현재 공개 RSS에서 확인 가능한 정보만 사용합니다.
+            결과는 저장하지 않습니다. 공개 RSS를 기본으로 분석하고, 검색어를 입력한
+            경우 API HUB가 연결된 환경에서 실제 블로그 검색 노출만 추가 관측합니다.
           </p>
         </form>
 
@@ -288,8 +327,15 @@ export function BlogAnalysisClient() {
                       </>
                     ) : (
                       <p>
-                        현재 공개 RSS만으로는 이 항목을 신뢰성 있게 계산하지
-                        않습니다.
+                        {dimension.key === "visibility"
+                          ? result.evidence.searchVisibility?.status === "not_configured"
+                            ? "검색 관측 API HUB가 아직 연결되지 않아 미관측으로 유지합니다."
+                            : result.evidence.searchVisibility?.status === "insufficient"
+                              ? "성공한 검색 관측이 2개 미만이라 점수에 반영하지 않습니다."
+                              : result.evidence.searchVisibility?.status === "not_requested"
+                                ? "관측 검색어를 입력하면 실제 블로그 검색 결과를 확인할 수 있습니다."
+                                : "현재 검색 노출을 신뢰성 있게 계산하지 않습니다."
+                          : "현재 공개 데이터만으로는 이 항목을 신뢰성 있게 계산하지 않습니다."}
                       </p>
                     )}
                   </article>
@@ -331,9 +377,30 @@ export function BlogAnalysisClient() {
               </div>
             </section>
 
+            {result.evidence.searchVisibility &&
+              result.evidence.searchVisibility.requestedCount > 0 && (
+                <section className="blog-analysis-search-evidence">
+                  <strong>검색 관측</strong>
+                  <span>
+                    요청 {result.evidence.searchVisibility.requestedCount}개 · 성공{" "}
+                    {result.evidence.searchVisibility.observedCount}개
+                    {result.evidence.searchVisibility.visibleCount !== null
+                      ? ` · 노출 ${result.evidence.searchVisibility.visibleCount}개`
+                      : ""}
+                  </span>
+                  <small>
+                    사용자 제공 검색어만 관측하며 검색 순위나 상위 노출을 보장하지
+                    않습니다.
+                  </small>
+                </section>
+              )}
+
             <footer className="blog-analysis-source-note">
               <span>관측 시각 {formatDate(result.analyzedAt)}</span>
               <span>데이터 출처: 네이버 블로그 공개 RSS</span>
+              {result.evidence.searchVisibility?.status === "observed" && (
+                <span>검색 출처: NAVER API HUB Blog Search</span>
+              )}
               <span>분석 결과는 저장되지 않음</span>
             </footer>
           </div>

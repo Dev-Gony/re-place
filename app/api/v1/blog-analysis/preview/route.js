@@ -1,5 +1,9 @@
 import { analyzeBlog, normalizeNaverBlogIdentity } from "../../../../../lib/blog-analysis-score.mjs";
 import { fetchNaverBlogRss } from "../../../../../lib/naver-blog-rss.mjs";
+import {
+  fetchNaverSearchVisibility,
+  normalizeSearchQueries,
+} from "../../../../../lib/naver-search-visibility.mjs";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,6 +19,16 @@ function errorResponse(code, message, status) {
   );
 }
 
+function searchEvidenceWithoutObservation(status, requestedCount) {
+  return {
+    status,
+    requestedCount,
+    observedCount: 0,
+    visibleCount: null,
+    observations: [],
+  };
+}
+
 export async function POST(request) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body.blog !== "string" || !body.blog.trim()) {
@@ -26,26 +40,76 @@ export async function POST(request) {
   }
 
   let identity;
+  let searchQueries;
   try {
     identity = normalizeNaverBlogIdentity(body.blog);
-  } catch {
-    return errorResponse("INVALID_BLOG", "Invalid Naver blog identity", 400);
+    searchQueries = normalizeSearchQueries(body.searchQueries);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "INVALID_INPUT";
+    if (code === "TOO_MANY_SEARCH_QUERIES") {
+      return errorResponse(
+        "TOO_MANY_SEARCH_QUERIES",
+        "searchQueries supports at most 5 unique values",
+        400,
+      );
+    }
+    return errorResponse(
+      code === "INVALID_SEARCH_QUERIES" ? "INVALID_SEARCH_QUERIES" : "INVALID_BLOG",
+      code === "INVALID_SEARCH_QUERIES"
+        ? "searchQueries must be an array of strings"
+        : "Invalid Naver blog identity",
+      400,
+    );
   }
 
   try {
     const live = await fetchNaverBlogRss(identity.blogId);
+    let searchEvidence = searchEvidenceWithoutObservation(
+      searchQueries.length > 0 ? "not_configured" : "not_requested",
+      searchQueries.length,
+    );
+
+    const searchClientId = process.env.NAVER_API_HUB_CLIENT_ID?.trim();
+    const searchClientSecret = process.env.NAVER_API_HUB_CLIENT_SECRET?.trim();
+
+    if (searchQueries.length > 0 && searchClientId && searchClientSecret) {
+      const search = await fetchNaverSearchVisibility(
+        identity.blogId,
+        searchQueries,
+        {
+          clientId: searchClientId,
+          clientSecret: searchClientSecret,
+          observedAt: new Date(live.observedAt),
+        },
+      );
+
+      live.signals = {
+        ...live.signals,
+        ...search.signals,
+      };
+      searchEvidence = search.evidence;
+    }
+
     const analysis = analyzeBlog(identity.blogId, live.signals);
 
     return Response.json(
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         analyzedAt: live.observedAt,
         source: {
           kind: "naver-blog-public-rss",
           url: live.rssUrl,
         },
+        capabilities: {
+          searchVisibilityConfigured: Boolean(
+            searchClientId && searchClientSecret,
+          ),
+        },
         analysis,
-        evidence: live.evidence,
+        evidence: {
+          ...live.evidence,
+          searchVisibility: searchEvidence,
+        },
       },
       { headers: publicHeaders },
     );

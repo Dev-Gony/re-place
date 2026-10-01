@@ -1,0 +1,25 @@
+{
+  "display": 3,
+  "start": 1,
+  "total": 3,
+  "items": [
+    {
+      "title": "다른 블로그",
+      "link": "https://blog.naver.com/other_user/223000000001",
+      "bloggername": "other",
+      "bloggerlink": "https://blog.naver.com/other_user"
+    },
+    {
+      "title": "대상 블로그 글",
+      "link": "https://blog.naver.com/sample_user/223000000002",
+      "bloggername": "sample",
+      "bloggerlink": "https://blog.naver.com/sample_user"
+    },
+    {
+      "title": "외부 결과",
+      "link": "https://example.com/post",
+      "bloggername": "external",
+      "bloggerlink": "https://example.com"
+    }
+  ]
+}
