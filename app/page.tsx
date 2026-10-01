@@ -336,6 +336,7 @@ export default async function Home({
 
           <nav className="header-nav" aria-label="주요 메뉴">
             <a href="#campaigns">캠페인 찾기</a>
+            <Link href="/blog-analysis">블로그 분석</Link>
             <Link href="/my">내 체험단</Link>
           </nav>
 

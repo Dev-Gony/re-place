@@ -1,0 +1,67 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const root = path.join(__dirname, "..");
+const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+
+const page = read("app/blog-analysis/page.tsx");
+const client = read("app/blog-analysis/blog-analysis-client.tsx");
+const home = read("app/page.tsx");
+const mobile = read("app/mobile-bottom-nav.tsx");
+const css = read("app/globals.css");
+const api = read("app/api/v1/blog-analysis/preview/route.js");
+
+test("public blog analysis page exposes navigation and metadata", () => {
+  assert.match(page, /title: "블로그 분석"/);
+  assert.match(page, /<BlogAnalysisClient \/>/);
+  assert.match(home, /href="\/blog-analysis"/);
+  assert.match(mobile, /href: "\/blog-analysis"/);
+  assert.match(mobile, /label: "분석"/);
+});
+
+test("analysis form posts to the live preview API", () => {
+  assert.match(client, /fetch\("\/api\/v1\/blog-analysis\/preview"/);
+  assert.match(client, /method: "POST"/);
+  assert.match(client, /JSON\.stringify\(\{ blog: value \}\)/);
+  assert.match(api, /fetchNaverBlogRss/);
+  assert.match(api, /analyzeBlog/);
+});
+
+test("analysis result shows score coverage confidence dimensions and evidence", () => {
+  for (const phrase of [
+    "분석 커버리지",
+    "신뢰도",
+    "분석 근거",
+    "최근 글 근거",
+    "미관측",
+    "데이터 출처: 네이버 블로그 공개 RSS",
+  ]) {
+    assert.ok(client.includes(phrase));
+  }
+
+  assert.match(client, /result\.analysis\.dimensions\.map/);
+  assert.match(client, /result\.evidence\.posts\.map/);
+  assert.match(client, /result\.analysis\.disclaimer/);
+});
+
+test("unavailable dimensions are not rendered as zero scores", () => {
+  assert.match(client, /dimension\.available/);
+  assert.match(client, /"미관측"/);
+  assert.doesNotMatch(client, /dimension\.score \?\? 0\}점/);
+});
+
+test("analysis UI has loading empty and error states", () => {
+  assert.match(client, /loading \? "분석 중\.\.\." : "분석하기"/);
+  assert.match(client, /blog-analysis-empty/);
+  assert.match(client, /blog-analysis-error/);
+  assert.match(client, /role="alert"/);
+});
+
+test("mobile navigation now has five destinations", () => {
+  assert.match(css, /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/);
+  for (const label of ["탐색", "분석", "내 체험단", "일정", "찜"]) {
+    assert.ok(mobile.includes(label));
+  }
+});

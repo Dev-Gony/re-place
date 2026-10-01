@@ -7,11 +7,12 @@ import { useEffect, useState } from "react";
 type NavItem = {
   href: string;
   label: string;
-  key: "discover" | "workspace" | "schedule" | "favorites";
+  key: "discover" | "analysis" | "workspace" | "schedule" | "favorites";
 };
 
 const ITEMS: NavItem[] = [
   { href: "/", label: "탐색", key: "discover" },
+  { href: "/blog-analysis", label: "분석", key: "analysis" },
   { href: "/my", label: "내 체험단", key: "workspace" },
   { href: "/my#schedule", label: "일정", key: "schedule" },
   { href: "/my#favorites", label: "찜", key: "favorites" },
@@ -23,6 +24,14 @@ function Icon({ type }: { type: NavItem["key"] }) {
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="11" cy="11" r="6.5" />
         <path d="m16 16 4 4" />
+      </svg>
+    );
+  }
+
+  if (type === "analysis") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 19V10M10 19V5M15 19v-7M20 19V8" />
       </svg>
     );
   }
@@ -74,6 +83,7 @@ export function MobileBottomNav() {
 
   function isActive(item: NavItem) {
     if (item.key === "discover") return pathname === "/";
+    if (item.key === "analysis") return pathname === "/blog-analysis";
     if (pathname !== "/my") return false;
     if (item.key === "schedule") return hash === "#schedule";
     if (item.key === "favorites") return hash === "#favorites";
