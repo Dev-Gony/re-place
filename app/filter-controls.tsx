@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type FilterValues = {
@@ -139,6 +139,7 @@ export function HeroSearch({ initialQuery }: HeroSearchProps) {
         </button>
       </div>
     </form>
+    </>
   );
 }
 
@@ -191,15 +192,70 @@ export function FilterPanel({
   const pausedSources = sourceStatuses.filter(
     (source) => source.status === "paused" && !source.search_enabled,
   );
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const activeCount =
+    values.platforms.length +
+    Number(Boolean(values.regionGroup)) +
+    Number(Boolean(values.region)) +
+    Number(Boolean(values.media)) +
+    Number(Boolean(values.campaignType)) +
+    Number(Boolean(values.reward)) +
+    Number(values.sort !== "latest");
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileOpen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
 
   return (
+    <>
+      <button
+        type="button"
+        className="mobile-filter-trigger"
+        onClick={() => setMobileOpen(true)}
+        aria-expanded={mobileOpen}
+        aria-controls="filters"
+      >
+        <span aria-hidden="true">≡</span>
+        <strong>필터</strong>
+        {activeCount > 0 && <em>{activeCount}</em>}
+      </button>
+
+      {mobileOpen && (
+        <button
+          type="button"
+          className="mobile-filter-scrim"
+          aria-label="필터 닫기"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
     <form
       ref={formRef}
-      className="filter-toolbar"
+      className={mobileOpen ? "filter-toolbar mobile-open" : "filter-toolbar"}
       id="filters"
       onChange={handleChange}
       aria-busy={isPending}
     >
+      <div className="mobile-filter-head">
+        <div>
+          <strong>필터</strong>
+          <span>원하는 캠페인만 빠르게 좁혀보세요.</span>
+        </div>
+        <button type="button" onClick={() => setMobileOpen(false)} aria-label="필터 닫기">×</button>
+      </div>
       <div className="filter-toolbar-main">
         <div className="filter-toolbar-group platform-group">
           <span className="filter-toolbar-label">플랫폼</span>
@@ -324,6 +380,15 @@ export function FilterPanel({
         {isPending && <div className="filter-loading">결과 갱신 중…</div>}
 
         <input type="hidden" name="q" value={values.q} readOnly />
+
+        <div className="mobile-filter-actions">
+          {hasActiveFilters && (
+            <button type="button" onClick={handleReset} disabled={isPending}>초기화</button>
+          )}
+          <button type="button" className="primary" onClick={() => setMobileOpen(false)}>
+            결과 보기
+          </button>
+        </div>
 
         {pausedSources.length > 0 && (
           <div className="source-status-inline">
