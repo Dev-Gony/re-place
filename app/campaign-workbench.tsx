@@ -92,7 +92,7 @@ function DetailInspector({
           </button>
         )}
         <a className="campaign-origin-link" href={item.link} target="_blank" rel="noreferrer">
-          원문 보기
+          원문에서 확인
           <span aria-hidden="true">↗</span>
         </a>
       </div>
@@ -131,15 +131,9 @@ function DetailInspector({
         </dl>
       </section>
 
-      <section className="campaign-inspector-panel muted">
-        <div className="inspector-section-title">
-          <strong>원문 제공 정보</strong>
-        </div>
-        <p>{item.rewardDetail}</p>
-        <small>
-          Re:Place는 수집된 공개 정보만 표시합니다. 선정 일정·리뷰 가이드처럼 현재 확인되지 않은 값은 임의로 만들지 않습니다.
-        </small>
-      </section>
+      <p className="campaign-source-note">
+        공개 원문에서 확인된 정보만 표시합니다. 확인되지 않은 일정과 리뷰 조건은 임의로 만들지 않습니다.
+      </p>
     </aside>
   );
 }

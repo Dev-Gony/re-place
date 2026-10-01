@@ -126,6 +126,8 @@ export function MyWorkspace({
   const [statusFilter, setStatusFilter] = useState("all");
   const [scheduleView, setScheduleView] = useState<"calendar" | "list">("calendar");
   const [notice, setNotice] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
 
   function showError(message: string) {
     setNotice(message);
@@ -156,6 +158,19 @@ export function MyWorkspace({
     }
     return records.filter((item) => item.status === statusFilter);
   }, [records, statusFilter]);
+
+  const detailRecords = useMemo(
+    () =>
+      detailRecordId
+        ? filteredRecords.filter((item) => item.id === detailRecordId)
+        : filteredRecords,
+    [detailRecordId, filteredRecords],
+  );
+
+  function openDetail(recordId: number) {
+    setDetailRecordId(recordId);
+    setDetailOpen(true);
+  }
 
   async function removeFavorite(campaignId: number) {
     try {
@@ -274,11 +289,17 @@ export function MyWorkspace({
   }
 
   async function deleteRecord(id: number) {
+    if (!window.confirm("내 체험단에서 이 캠페인을 삭제할까요?")) return;
+
     try {
       await deleteRecordRequest(id);
       setRecords((items) => items.filter((item) => item.id !== id));
       setTasks((items) => items.filter((item) => item.record_id !== id));
       setSettlements((items) => items.filter((item) => item.record_id !== id));
+      if (detailRecordId === id) {
+        setDetailOpen(false);
+        setDetailRecordId(null);
+      }
     } catch {
       showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
     }
@@ -297,9 +318,16 @@ export function MyWorkspace({
         tasks={tasks}
         settlements={settlements}
         todayKey={todayKey}
+        onOpenDetail={openDetail}
+        onDelete={deleteRecord}
       />
 
-      <details className="my-detail-drawer" id="workspace-detail-tools">
+      <details
+        className="my-detail-drawer"
+        id="workspace-detail-tools"
+        open={detailOpen}
+        onToggle={(event) => setDetailOpen(event.currentTarget.open)}
+      >
         <summary className="my-detail-drawer-trigger">
           <span>
             <strong>상세 관리</strong>
@@ -313,7 +341,10 @@ export function MyWorkspace({
               <span>DETAIL MANAGEMENT</span>
               <h2>상세 관리</h2>
             </div>
-            <small>상단의 ‘상세 관리’를 다시 누르면 닫힙니다.</small>
+            <div className="my-detail-drawer-actions">
+              <a href="/calendar">캘린더 보기</a>
+              <button type="button" onClick={() => setDetailOpen(false)}>닫기</button>
+            </div>
           </div>
 
       <div className="my-detail-management-head" id="detail-management">
@@ -504,8 +535,8 @@ export function MyWorkspace({
             <span />
           </div>
 
-          {filteredRecords.length ? (
-            filteredRecords.map((item) => (
+          {detailRecords.length ? (
+            detailRecords.map((item) => (
               <RecordEditor
                 key={item.id}
                 item={item}

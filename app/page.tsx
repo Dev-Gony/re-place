@@ -470,7 +470,7 @@ export default async function Home({
 
               <nav className="pagination editorial-pagination" aria-label="페이지 이동">
                 {currentPage > 1 ? (
-                  <Link href={buildHref(filters, currentPage - 1)}>이전</Link>
+                  <Link href={buildHref(filters, currentPage - 1)} scroll={false}>이전</Link>
                 ) : (
                   <span className="disabled">이전</span>
                 )}
@@ -482,7 +482,7 @@ export default async function Home({
                 </span>
 
                 {currentPage < totalPages ? (
-                  <Link href={buildHref(filters, currentPage + 1)}>다음</Link>
+                  <Link href={buildHref(filters, currentPage + 1)} scroll={false}>다음</Link>
                 ) : (
                   <span className="disabled">다음</span>
                 )}

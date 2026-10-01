@@ -107,11 +107,15 @@ export function MyCampaignBoard({
   tasks,
   settlements,
   todayKey,
+  onOpenDetail,
+  onDelete,
 }: {
   records: RecordItem[];
   tasks: TaskItem[];
   settlements: SettlementItem[];
   todayKey: string;
+  onOpenDetail: (recordId: number) => void;
+  onDelete: (recordId: number) => Promise<void>;
 }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
 
@@ -216,7 +220,9 @@ export function MyCampaignBoard({
         <div className="my-final-table-body">
           {filtered.length ? (
             filtered.map(({ record, nextTask, reviewTask, benefit }) => {
-              const nextState = deadlineLabel(nextTask?.due_at ?? null, todayKey);
+              const nextDate = nextTask?.due_at ?? record.deadline_at;
+              const nextLabel = nextTask?.title ?? (record.deadline_at ? "캠페인 마감" : null);
+              const nextState = deadlineLabel(nextDate, todayKey);
               const reviewState = deadlineLabel(
                 reviewTask?.due_at ?? null,
                 todayKey,
@@ -238,11 +244,11 @@ export function MyCampaignBoard({
 
                   <div className="my-final-date">
                     <strong>
-                      {nextTask ? shortDate(nextTask.due_at) : "일정 없음"}
+                      {nextDate ? shortDate(nextDate) : "예정 없음"}
                     </strong>
-                    {nextTask && (
+                    {nextDate && nextLabel && (
                       <small>
-                        {nextTask.title} ·{" "}
+                        {nextLabel} ·{" "}
                         <em className={nextState.tone}>{nextState.label}</em>
                       </small>
                     )}
@@ -250,7 +256,7 @@ export function MyCampaignBoard({
 
                   <div className="my-final-date">
                     <strong>
-                      {reviewTask ? shortDate(reviewTask.due_at) : "-"}
+                      {reviewTask ? shortDate(reviewTask.due_at) : "미확인"}
                     </strong>
                     {reviewTask && (
                       <small>
@@ -262,9 +268,18 @@ export function MyCampaignBoard({
 
                   <div className="my-final-benefit">{benefit}</div>
 
-                  <a className="my-final-detail-link" href="#workspace-detail-tools">
-                    상세
-                  </a>
+                  <div className="my-final-row-actions">
+                    <button type="button" onClick={() => onOpenDetail(record.id)}>
+                      상세
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-text"
+                      onClick={() => onDelete(record.id)}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </article>
               );
             })
@@ -278,7 +293,14 @@ export function MyCampaignBoard({
 
       <div className="my-final-detail-note">
         <span>직접 등록, 상태 변경, 메모, 정산 수정은 상세 관리 도구에서 계속 사용할 수 있습니다.</span>
-        <a href="#workspace-detail-tools">상세 관리 열기</a>
+        <button
+          type="button"
+          className="my-detail-open-button"
+          onClick={() => records[0] && onOpenDetail(records[0].id)}
+          disabled={!records.length}
+        >
+          상세 관리 열기
+        </button>
       </div>
     </section>
   );

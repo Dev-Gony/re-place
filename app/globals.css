@@ -8165,3 +8165,515 @@ body {
     grid-template-columns: 40px minmax(0, 1fr);
   }
 }
+
+
+/* RPL-035 stabilization A: brighter UI, clearer actions, usable management */
+:root {
+  --rp-canvas: #fffaf8;
+  --rp-surface: #ffffff;
+  --rp-surface-muted: #fff5f2;
+  --rp-hover: #fff0ec;
+  --rp-ink: #2d2a33;
+  --rp-copy: #625d6b;
+  --rp-faint: #938c9c;
+  --rp-border: #eee3e0;
+  --rp-divider: #f5ece9;
+  --rp-green: #356b5a;
+  --rp-green-dark: #285246;
+  --rp-green-soft: #edf8f3;
+  --rp-red: #d85f67;
+  --rp-red-soft: #fff0f1;
+  --rp-amber: #c9873f;
+  --rp-amber-soft: #fff6e8;
+  --rp-blue: #5f7fd8;
+  --rp-blue-soft: #f1f4ff;
+  --rp-indigo: #8875d1;
+  --rp-indigo-soft: #f4f1ff;
+  --rp-pink: #df7897;
+  --rp-pink-soft: #fff0f5;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 223, 230, .34), transparent 27rem),
+    radial-gradient(circle at 88% 8%, rgba(221, 240, 233, .55), transparent 26rem),
+    var(--rp-canvas);
+}
+
+.web-header {
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(14px);
+}
+
+.web-nav a[aria-current="page"] {
+  background: var(--rp-green-soft);
+  color: var(--rp-green-dark);
+  box-shadow: inset 0 0 0 1px rgba(53, 107, 90, .13);
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu > summary {
+  list-style: none;
+}
+
+.account-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 3px 8px 3px 4px;
+  border: 1px solid var(--rp-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--rp-ink);
+  cursor: pointer;
+}
+
+.account-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f7c9d9, #d7eade);
+  color: #563f49;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.account-label {
+  max-width: 110px;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-chevron {
+  color: var(--rp-faint);
+  font-size: 10px;
+}
+
+.account-menu-popover {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 90;
+  display: grid;
+  width: 210px;
+  padding: 8px;
+  border: 1px solid var(--rp-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(81, 58, 67, .14);
+}
+
+.account-menu-identity {
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px 9px;
+  border-bottom: 1px solid var(--rp-divider);
+}
+
+.account-menu-identity strong {
+  font-size: 11px;
+}
+
+.account-menu-identity span {
+  overflow: hidden;
+  color: var(--rp-faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.account-menu-popover > a,
+.account-menu-popover > button {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--rp-copy);
+  font: inherit;
+  font-size: 10px;
+  text-align: left;
+}
+
+.account-menu-popover > a {
+  display: flex;
+  align-items: center;
+}
+
+.account-menu-popover > a:hover,
+.account-menu-popover > button:hover {
+  background: var(--rp-surface-muted);
+  color: var(--rp-ink);
+}
+
+.campaign-inspector {
+  border-color: #eadfda;
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(112, 85, 96, .08);
+}
+
+.campaign-inspector-actions {
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.campaign-inspector-actions .favorite-button {
+  grid-column: 1;
+}
+
+.campaign-add-record {
+  grid-column: 2;
+  min-height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #4a8974, #356b5a);
+  font-size: 11px;
+}
+
+.campaign-origin-link {
+  grid-column: 3;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--rp-green);
+  white-space: nowrap;
+}
+
+.campaign-source-note {
+  margin: 12px 2px 0;
+  color: var(--rp-faint);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.campaign-inspector-panel.muted {
+  display: none;
+}
+
+.my-final-table,
+.calendar-main-panel,
+.calendar-upcoming-panel,
+.blog-analysis-form,
+.blog-analysis-summary,
+.blog-analysis-section {
+  border-color: var(--rp-border);
+  box-shadow: 0 10px 28px rgba(109, 77, 89, .045);
+}
+
+.my-final-row:hover {
+  background: #fff8f6;
+}
+
+.my-final-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.my-final-row-actions button,
+.my-detail-open-button {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--rp-border);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--rp-copy);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.my-final-row-actions button:hover,
+.my-detail-open-button:hover:not(:disabled) {
+  background: var(--rp-surface-muted);
+}
+
+.my-final-row-actions .danger-text {
+  color: var(--rp-red);
+}
+
+.my-detail-open-button:disabled {
+  opacity: .45;
+}
+
+.my-detail-drawer-trigger {
+  display: none;
+}
+
+.my-detail-drawer:not([open]) {
+  display: none;
+}
+
+.my-detail-drawer[open]::before {
+  background: rgba(67, 55, 64, .28);
+  backdrop-filter: blur(2px);
+}
+
+.my-detail-drawer[open] .my-detail-drawer-panel {
+  width: min(560px, 94vw);
+  padding: 18px 20px 28px;
+  overflow-x: hidden;
+  background: #fffaf8;
+}
+
+.my-detail-drawer-top {
+  align-items: center;
+  background: rgba(255, 250, 248, .97);
+}
+
+.my-detail-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.my-detail-drawer-actions a,
+.my-detail-drawer-actions button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--rp-border);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--rp-copy);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.my-detail-drawer-panel #content-deadlines,
+.my-detail-drawer-panel #schedule,
+.my-detail-drawer-panel #settlements,
+.my-detail-drawer-panel #favorites,
+.my-detail-drawer-panel .my-status-tabs,
+.my-detail-drawer-panel .my-primary-action,
+.my-detail-drawer-panel .manual-record-form {
+  display: none !important;
+}
+
+.my-detail-drawer-panel #records {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.my-detail-drawer-panel #records .my-section-head p {
+  max-width: 360px;
+}
+
+.my-detail-drawer-panel .my-record-table-head {
+  display: none;
+}
+
+.my-detail-drawer-panel .my-record-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--rp-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.my-detail-drawer-panel .my-inline-field {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.my-detail-drawer-panel .my-record-actions {
+  justify-content: flex-end;
+}
+
+.calendar-heading p::after {
+  content: "  자동 반영된 캠페인 마감은 별도 입력이 필요 없습니다.";
+  color: var(--rp-green);
+}
+
+.editorial-filter-toolbar .filter-toolbar-main {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.editorial-filter-toolbar .filter-toolbar-group {
+  display: block;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--rp-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.editorial-filter-toolbar .filter-toolbar-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--rp-copy);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.editorial-filter-toolbar .filter-inline-options {
+  flex-wrap: wrap;
+}
+
+.editorial-filter-toolbar .filter-toolbar-detail {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.blog-analysis-page {
+  background:
+    radial-gradient(circle at 85% 10%, rgba(225, 213, 255, .34), transparent 28rem),
+    radial-gradient(circle at 10% 5%, rgba(255, 217, 228, .25), transparent 24rem),
+    var(--rp-canvas);
+}
+
+.blog-analysis-page-head h1 {
+  font-size: 28px;
+}
+
+.blog-analysis-page-head p {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.blog-analysis-page .blog-analysis-workspace-inner {
+  width: min(1240px, calc(100% - 48px));
+}
+
+.blog-analysis-page .blog-analysis-form {
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.blog-analysis-page .blog-analysis-form label {
+  font-size: 12px;
+}
+
+.blog-analysis-page .blog-analysis-form-row input,
+.blog-analysis-page .blog-analysis-search-query-field textarea {
+  min-height: 46px;
+  font-size: 14px;
+}
+
+.blog-analysis-page .blog-analysis-form-row button {
+  min-width: 112px;
+  min-height: 46px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.blog-analysis-summary {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff7fb 56%, #f4f7ff 100%);
+}
+
+.blog-analysis-summary::after {
+  content: "";
+  position: absolute;
+  top: -70px;
+  right: -50px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(144, 122, 218, .10);
+}
+
+.blog-analysis-score {
+  color: #6c57bb;
+  font-size: 64px !important;
+  line-height: .95;
+  letter-spacing: -.06em;
+}
+
+.blog-analysis-summary-metrics > div {
+  min-height: 76px;
+  padding: 14px;
+}
+
+.blog-analysis-summary-metrics dt {
+  font-size: 10px;
+}
+
+.blog-analysis-summary-metrics dd {
+  margin-top: 5px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.blog-analysis-section {
+  border-radius: 16px;
+}
+
+.blog-analysis-section-head h2 {
+  font-size: 20px;
+}
+
+.blog-analysis-dimensions {
+  gap: 10px;
+}
+
+.blog-analysis-dimensions > article {
+  min-height: 132px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.blog-analysis-dimensions > article:has(.blog-analysis-meter) {
+  background: linear-gradient(180deg, #fff, #faf7ff);
+}
+
+.blog-analysis-evidence-list > article {
+  min-height: 58px;
+  padding: 10px 4px;
+  font-size: 11px;
+}
+
+.blog-analysis-source-note,
+.blog-analysis-disclaimer {
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+@media (max-width: 980px) {
+  .editorial-filter-toolbar .filter-toolbar-main {
+    grid-template-columns: 1fr;
+  }
+
+  .campaign-inspector-actions {
+    grid-template-columns: 36px 1fr;
+  }
+
+  .campaign-origin-link {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .account-label {
+    display: none;
+  }
+
+  .my-detail-drawer[open] .my-detail-drawer-panel {
+    width: 100vw;
+  }
+}
