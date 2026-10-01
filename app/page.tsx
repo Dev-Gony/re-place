@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
 import { FilterPanel, HeroSearch } from "./filter-controls";
-import { AuthStatus } from "./auth-status";
+import { WebHeader } from "./web-header";
 import { CampaignWorkbench, type CampaignWorkbenchItem } from "./campaign-workbench";
 
 // searchParams keeps this page request-rendered; public DB reads are cached separately.
@@ -390,31 +390,7 @@ export default async function Home({
 
   return (
     <main className="site-shell editorial-home">
-      <header className="site-header editorial-header">
-        <div className="header-inner editorial-header-inner">
-          <div className="editorial-brand-nav">
-            <Link href="/" className="brand editorial-brand" aria-label="Re:Place 홈">
-              <span className="editorial-brand-dot" aria-hidden="true" />
-              <span className="brand-text">Re:Place</span>
-            </Link>
-
-            <nav className="header-nav editorial-nav" aria-label="주요 메뉴">
-              <a href="#campaigns" aria-current="page">탐색</a>
-              <Link href="/my">내 체험단</Link>
-              <Link href="/my#schedule">캘린더</Link>
-              <Link href="/blog-analysis">블로그 분석</Link>
-            </nav>
-          </div>
-
-          <div className="header-actions editorial-header-actions">
-            <Link href="/my#favorites" className="editorial-saved-link" aria-label="저장된 캠페인">
-              <span aria-hidden="true">♡</span>
-              <span>저장</span>
-            </Link>
-            <AuthStatus />
-          </div>
-        </div>
-      </header>
+      <WebHeader active="explore" />
 
       <section className="editorial-main">
         <div className="editorial-heading-row">

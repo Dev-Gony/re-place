@@ -8,6 +8,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const page = read('app/page.tsx');
 const filters = read('app/filter-controls.tsx');
 const workbench = read('app/campaign-workbench.tsx');
+const header = read('app/web-header.tsx');
 const css = read('app/globals.css');
 
 test('campaign finder follows the editorial utility reference structure', () => {
@@ -19,12 +20,13 @@ test('campaign finder follows the editorial utility reference structure', () => 
 });
 
 test('provided reference navigation is translated to real product routes', () => {
-  assert.match(page, /aria-current="page">탐색/);
-  assert.match(page, /href="\/my">내 체험단/);
-  assert.match(page, /href="\/my#schedule">캘린더/);
-  assert.match(page, /href="\/blog-analysis">블로그 분석/);
-  assert.match(page, /href="\/my#favorites"/);
-  assert.doesNotMatch(page, /김민서|>Pro<|프로 요금제|Pro 배지/);
+  assert.match(page, /<WebHeader active="explore" \/>/);
+  assert.match(header, /href: "\/"/);
+  assert.match(header, /href: "\/my"/);
+  assert.match(header, /href: "\/calendar"/);
+  assert.match(header, /href: "\/blog-analysis"/);
+  assert.match(header, /href="\/my#favorites"/);
+  assert.doesNotMatch(header, /김민서|>Pro<|프로 요금제|Pro 배지/);
 });
 
 test('filters remain URL-driven while adopting compact reference controls', () => {

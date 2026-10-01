@@ -14,7 +14,7 @@ const ITEMS: NavItem[] = [
   { href: "/", label: "탐색", key: "discover" },
   { href: "/blog-analysis", label: "분석", key: "analysis" },
   { href: "/my", label: "내 체험단", key: "workspace" },
-  { href: "/my#schedule", label: "일정", key: "schedule" },
+  { href: "/calendar", label: "일정", key: "schedule" },
   { href: "/my#favorites", label: "찜", key: "favorites" },
 ];
 

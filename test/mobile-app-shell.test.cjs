@@ -16,7 +16,7 @@ const plan = read("docs/MODEL_EXECUTION_PLAN.md");
 test("mobile app shell exposes discover workspace schedule and favorites destinations", () => {
   assert.match(nav, /href: "\/"/);
   assert.match(nav, /href: "\/my"/);
-  assert.match(nav, /href: "\/my#schedule"/);
+  assert.match(nav, /href: "\/calendar"/);
   assert.match(nav, /href: "\/my#favorites"/);
   assert.match(nav, /aria-current=\{active \? "page" : undefined\}/);
 });

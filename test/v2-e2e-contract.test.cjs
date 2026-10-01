@@ -55,7 +55,7 @@ test("empty states point users to the record prerequisite", () => {
 test("mobile lifecycle navigation remains compatible with bottom navigation", () => {
   assert.match(css, /\.my-v2-flow/);
   assert.match(css, /overflow-x:\s*auto/);
-  assert.match(nav, /\/my#schedule/);
+  assert.match(nav, /\/calendar/);
   assert.match(nav, /\/my#favorites/);
 });
 
