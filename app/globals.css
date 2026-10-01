@@ -6945,3 +6945,17 @@ body {
   .campaign-workbench-cell small { max-width: 145px; }
   .campaign-inspector-grid { grid-template-columns: 1fr; }
 }
+
+
+.blog-analysis-post-structure {
+  color: #84847d;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .blog-analysis-post-structure {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
