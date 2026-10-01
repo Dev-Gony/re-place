@@ -116,7 +116,9 @@ test("preview route connects RSS adapter to existing score engine", async () => 
   assert.match(route, /analyzeBlog\(identity\.blogId, live\.signals\)/);
   assert.match(route, /source:[\s\S]*kind: "naver-blog-public-rss"/);
   assert.match(route, /Cache-Control": "no-store"/);
-  assert.doesNotMatch(route, /process\.env|NAVER_CLIENT|API_KEY/);
+  assert.match(route, /NAVER_API_HUB_CLIENT_ID/);
+  assert.match(route, /NAVER_API_HUB_CLIENT_SECRET/);
+  assert.doesNotMatch(route, /X-Naver-Client-Id|X-Naver-Client-Secret/);
 });
 
 test("RSS signals produce a partial-coverage explainable score", async () => {

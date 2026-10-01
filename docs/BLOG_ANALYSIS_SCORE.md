@@ -182,3 +182,26 @@ post별 구조 점수:
 - 일부 post 실패는 전체 RSS 분석 실패로 만들지 않는다.
 - 최소 2개 post 구조가 성공한 경우에만 content signal을 available 처리한다.
 - 조회수/공감/댓글은 콘텐츠 충실도 점수에 사용하지 않는다.
+
+
+## RPL-033 NAVER API HUB 검색 관측
+
+검색 관측(visibility)은 사용자가 직접 제공한 검색어만 사용한다. Re:Place가 검색어를 임의 생성해 높은 점수에 유리한 질의를 고르지 않는다.
+
+공식 연결 기준:
+- `https://naverapihub.apigw.ntruss.com/search/v1/blog`
+- server-only API HUB credentials
+- 검색어 최대 5개
+- 검색어당 결과 최대 100건
+- 요청당 timeout 4초
+- 응답 최대 1 MiB
+
+계산:
+- `searchObservedCount`: API 응답을 정상 관측한 사용자 검색어 수
+- `searchVisibleCount`: 정상 관측 중 target blogId가 결과에 포함된 검색어 수
+- 최소 2개 검색어가 정상 관측된 경우에만 visibility를 available 처리한다.
+- 일부 검색 실패, credential 미설정, 비로그인 상태, 관측 부족은 0점이 아니라 unavailable이다.
+- 외부 API 쿼터 보호를 위해 검색 관측 호출은 로그인 세션이 있는 사용자에게만 실행한다.
+- 공개 RSS/포스트 구조 분석 자체는 비로그인 상태에서도 계속 동작한다.
+
+이 신호는 검색 결과에 포함됐는지만 관측한다. 순위 예측, 상위 노출 보장, 검색 성공 가능성 예측에 사용하지 않는다.
