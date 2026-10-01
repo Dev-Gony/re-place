@@ -33,7 +33,7 @@ test("bottom navigation is mobile only and respects safe area", () => {
   assert.match(css, /\.mobile-bottom-nav\s*\{\s*display:\s*none/);
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.mobile-bottom-nav\s*\{[\s\S]*?position:\s*fixed/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
-  assert.match(css, /grid-template-columns:\s*repeat\(4/);
+  assert.match(css, /grid-template-columns:\s*repeat\(5/);
 });
 
 test("mobile content and sticky filters stay clear of the bottom navigation", () => {
