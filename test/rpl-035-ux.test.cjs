@@ -84,3 +84,13 @@ test("detail management removes low-value manual note/date editing and header sa
   assert.match(workspace, />캘린더</);
   assert.doesNotMatch(header, /web-saved-link/);
 });
+
+
+test("detail drawer dismisses from backdrop and Escape and locks page scroll", () => {
+  assert.match(workspace, /my-detail-drawer-backdrop/);
+  assert.match(workspace, /onClick=\{\(\) => setDetailOpen\(false\)\}/);
+  assert.match(workspace, /event\.key === "Escape"/);
+  assert.match(workspace, /document\.body\.style\.overflow = "hidden"/);
+  assert.match(css, /\.my-detail-drawer-backdrop/);
+  assert.match(css, /content:\s*none !important/);
+});
