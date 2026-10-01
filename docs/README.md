@@ -8,6 +8,10 @@
 - [운영 기준선·차단 요인·점검 방법](operations/RPL-001_BASELINE.md)
 - [개발 순서와 모델/추론 배정](MODEL_EXECUTION_PLAN.md)
 - [개발 운영 규칙](../AGENTS.md)
+- [브랜치·PR·Spec 운영 규칙](BRANCHING.md)
+- [RPL Spec 템플릿](specs/TEMPLATE.md)
+- [RPL-037 저장소 운영 Spec](specs/RPL-037-repository-workflow.md)
+- [RPL-037 브랜치 감사](operations/RPL-037_BRANCH_AUDIT.md)
 - [기존 비용 최적화 기록](COST_OPTIMIZATION.md)
 - [기존 수집 플랫폼 후보](platform-candidates.md)
 - [Workspace API v1 계약](WORKSPACE_API.md)
@@ -31,4 +35,4 @@
 
 ## 다음 작업
 
-V2는 RPL-027에서 종료 검증까지 완료했다. V3의 RPL-028에서 설명 가능한 자체 지표 엔진을 완료했고, RPL-029에서 네이버 공개 RSS를 첫 live-data adapter로 연결한다. 검색 노출·독자 반응처럼 RSS로 확인할 수 없는 신호는 후속 공식/허용 데이터 어댑터가 생길 때까지 unavailable로 유지한다.
+V2는 RPL-027에서 종료 검증까지 완료했다. V3 블로그 분석은 RPL-036까지 진행되어 RSS 기반 지표와 자동 검색 후보 관측 흐름을 갖췄다. RPL-037부터 모든 신규 작업은 `docs/specs/`의 spec을 먼저 작성하고 short-lived branch + PR + CI + merge + branch delete 흐름을 따른다.
