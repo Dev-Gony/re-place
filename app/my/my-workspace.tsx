@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import type {
   FavoriteItem,
@@ -180,6 +180,26 @@ export function MyWorkspace({
     setDetailOpen(true);
   }
 
+  useEffect(() => {
+    if (!detailOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setDetailOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [detailOpen]);
+
   async function removeFavorite(campaignId: number) {
     try {
       await removeFavoriteRequest(campaignId);
@@ -327,6 +347,15 @@ export function MyWorkspace({
         onOpenDetail={openDetail}
         onDelete={requestDelete}
       />
+
+      {detailOpen && (
+        <button
+          type="button"
+          className="my-detail-drawer-backdrop"
+          aria-label="상세 관리 닫기"
+          onClick={() => setDetailOpen(false)}
+        />
+      )}
 
       <details
         className="my-detail-drawer"

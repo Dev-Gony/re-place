@@ -9020,3 +9020,27 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* RPL-035 detail drawer dismiss behavior */
+.my-detail-drawer[open]::before {
+  content: none !important;
+}
+
+.my-detail-drawer-backdrop {
+  position: fixed;
+  inset: 58px 0 0;
+  z-index: 69;
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: rgba(67, 55, 64, .28);
+  backdrop-filter: blur(2px);
+  cursor: default;
+}
+
+.my-detail-drawer[open] .my-detail-drawer-panel {
+  z-index: 70;
+}
