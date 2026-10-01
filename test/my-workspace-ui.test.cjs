@@ -14,7 +14,7 @@ test("my page uses the shared final web header and workspace shell", () => {
   assert.match(page, /<WebHeader active="my" \/>/);
   assert.match(page, /className="my-shell my-shell-final"/);
   assert.match(page, /<h1>내 체험단<\/h1>/);
-  assert.match(header, /href="\/calendar"/);
+  assert.match(header, /href: "\/calendar"/);
   assert.match(header, /블로그 분석/);
 });
 

@@ -10,8 +10,8 @@ const workspace = read("app/my/my-workspace.tsx");
 const overview = read("app/my/my-overview.tsx");
 const css = read("app/globals.css");
 
-test("overview replaces the old flat summary bar", () => {
-  assert.match(workspace, /<MyOverview/);
+test("final campaign board replaces the old flat summary bar", () => {
+  assert.match(workspace, /<MyCampaignBoard/);
   assert.doesNotMatch(workspace, /className="my-summary-bar"/);
 });
 
