@@ -52,6 +52,8 @@ type AnalysisResponse = {
     categoryCoverage: number;
     posts: EvidencePost[];
     searchVisibility?: {
+      querySource: "auto" | "user" | "none";
+      queries: string[];
       status:
         | "not_requested"
         | "not_configured"
@@ -124,7 +126,6 @@ function formatDate(value: string | null) {
 
 export function BlogAnalysisClient() {
   const [blog, setBlog] = useState("");
-  const [searchTerms, setSearchTerms] = useState("");
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -145,14 +146,7 @@ export function BlogAnalysisClient() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({
-          blog: value,
-          searchQueries: searchTerms
-            .split(/[\n,]/)
-            .map((item) => item.trim())
-            .filter(Boolean)
-            .slice(0, 5),
-        }),
+        body: JSON.stringify({ blog: value }),
         cache: "no-store",
       });
 
@@ -197,23 +191,17 @@ export function BlogAnalysisClient() {
             </button>
           </div>
 
-          <div className="blog-analysis-search-query-field">
-            <label htmlFor="blog-analysis-search-queries">
-              관측 검색어 <span>선택 · 최대 5개</span>
-            </label>
-            <textarea
-              id="blog-analysis-search-queries"
-              name="searchQueries"
-              value={searchTerms}
-              onChange={(event) => setSearchTerms(event.target.value)}
-              placeholder={"예: 이력서 작성, 취업 준비\n쉼표 또는 줄바꿈으로 구분"}
-              rows={2}
-            />
+          <div className="blog-analysis-auto-search-note">
+            <strong>검색 후보도 자동으로 확인합니다.</strong>
+            <span>
+              최근 공개 글의 제목과 카테고리에서 최대 5개 후보를 만들고, 연결된 환경에서는
+              네이버 블로그 검색 결과에 포함되는지 관측합니다.
+            </span>
           </div>
 
           <p>
-            결과는 저장하지 않습니다. 공개 RSS를 기본으로 분석하고, 검색어를 입력한
-            경우 API HUB가 연결된 환경에서 실제 블로그 검색 노출만 추가 관측합니다.
+            결과는 저장하지 않습니다. 자동 후보는 실제 유입 검색어가 아니라 최근 공개 글을
+            바탕으로 만든 관측용 검색 후보입니다.
           </p>
         </form>
 
@@ -340,7 +328,7 @@ export function BlogAnalysisClient() {
                               : result.evidence.searchVisibility?.status === "insufficient"
                               ? "성공한 검색 관측이 2개 미만이라 점수에 반영하지 않습니다."
                               : result.evidence.searchVisibility?.status === "not_requested"
-                                ? "관측 검색어를 입력하면 실제 블로그 검색 결과를 확인할 수 있습니다."
+                                ? "최근 글에서 신뢰할 검색 후보를 충분히 만들지 못했습니다."
                                 : "현재 검색 노출을 신뢰성 있게 계산하지 않습니다."
                           : "현재 공개 데이터만으로는 이 항목을 신뢰성 있게 계산하지 않습니다."}
                       </p>
@@ -385,19 +373,27 @@ export function BlogAnalysisClient() {
             </section>
 
             {result.evidence.searchVisibility &&
-              result.evidence.searchVisibility.requestedCount > 0 && (
+              result.evidence.searchVisibility.queries.length > 0 && (
                 <section className="blog-analysis-search-evidence">
-                  <strong>검색 관측</strong>
-                  <span>
-                    요청 {result.evidence.searchVisibility.requestedCount}개 · 성공{" "}
-                    {result.evidence.searchVisibility.observedCount}개
-                    {result.evidence.searchVisibility.visibleCount !== null
-                      ? ` · 노출 ${result.evidence.searchVisibility.visibleCount}개`
-                      : ""}
-                  </span>
+                  <div className="blog-analysis-search-evidence-head">
+                    <strong>자동 검색 후보</strong>
+                    <span>
+                      {result.evidence.searchVisibility.observedCount > 0
+                        ? `관측 ${result.evidence.searchVisibility.observedCount}개`
+                        : "후보 생성 완료"}
+                      {result.evidence.searchVisibility.visibleCount !== null
+                        ? ` · 노출 ${result.evidence.searchVisibility.visibleCount}개`
+                        : ""}
+                    </span>
+                  </div>
+                  <div className="blog-analysis-query-chips">
+                    {result.evidence.searchVisibility.queries.map((query) => (
+                      <span key={query}>{query}</span>
+                    ))}
+                  </div>
                   <small>
-                    사용자 제공 검색어만 관측하며 검색 순위나 상위 노출을 보장하지
-                    않습니다.
+                    최근 공개 글에서 자동 추출한 관측용 후보입니다. 실제 유입 검색어,
+                    검색 순위 또는 상위 노출을 의미하지 않습니다.
                   </small>
                 </section>
               )}
