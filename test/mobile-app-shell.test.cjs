@@ -13,11 +13,12 @@ const workspace = read("app/my/my-workspace.tsx");
 const agents = read("AGENTS.md");
 const plan = read("docs/MODEL_EXECUTION_PLAN.md");
 
-test("mobile app shell exposes discover workspace schedule and favorites destinations", () => {
+test("mobile app shell exposes the four real product routes", () => {
   assert.match(nav, /href: "\/"/);
   assert.match(nav, /href: "\/my"/);
   assert.match(nav, /href: "\/calendar"/);
-  assert.match(nav, /href: "\/my#favorites"/);
+  assert.match(nav, /href: "\/blog-analysis"/);
+  assert.doesNotMatch(nav, /\/my#favorites|key: "favorites"/);
   assert.match(nav, /aria-current=\{active \? "page" : undefined\}/);
 });
 
@@ -33,7 +34,7 @@ test("bottom navigation is mobile only and respects safe area", () => {
   assert.match(css, /\.mobile-bottom-nav\s*\{\s*display:\s*none/);
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.mobile-bottom-nav\s*\{[\s\S]*?position:\s*fixed/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
-  assert.match(css, /grid-template-columns:\s*repeat\(5/);
+  assert.match(css, /grid-template-columns:\s*repeat\(4/);
 });
 
 test("mobile content and sticky filters stay clear of the bottom navigation", () => {

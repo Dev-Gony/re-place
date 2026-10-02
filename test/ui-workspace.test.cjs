@@ -30,7 +30,8 @@ test('provided reference navigation is translated to real product routes', () =>
 });
 
 test('filters remain URL-driven while adopting compact reference controls', () => {
-  assert.match(filters, /className="filter-toolbar"/);
+  assert.match(filters, /className=\{mobileOpen \? "filter-toolbar mobile-open" : "filter-toolbar"\}/);
+  assert.match(filters, /mobile-filter-trigger/);
   assert.match(filters, /onChange=\{handleChange\}/);
   assert.match(filters, /router\.replace/);
   assert.match(filters, /setTimeout\(applyNow, 350\)/);
