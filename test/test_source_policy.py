@@ -48,6 +48,7 @@ class SourcePolicyTests(unittest.TestCase):
         self.assertNotIn("리뷰노트", run_all.COLLECTOR_MAP)
         self.assertNotIn("레뷰", run_all.COLLECTOR_MAP)
         self.assertNotIn("강남맛집", run_all.COLLECTOR_MAP)
+        self.assertNotIn("포블로그", run_all.COLLECTOR_MAP)
         self.assertNotIn("슈퍼멤버스", run_all.COLLECTOR_MAP)
 
     def test_registry_drives_enabled_collectors(self):

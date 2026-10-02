@@ -13,6 +13,7 @@ sys.path.insert(0, str(CRAWLERS))
 import dinnerqueen_crawler
 import gangnam_crawler
 import mible_crawler
+import poblog_crawler
 import reviewnote_crawler
 import reviewplace_crawler
 import reviewus_crawler
@@ -124,6 +125,37 @@ class CrawlerFixtureTests(unittest.TestCase):
             )
         )
 
+    def test_poblog_fixture(self):
+        html = (FIXTURES / 'poblog.html').read_text(encoding='utf-8')
+        campaigns = poblog_crawler.parse_page(html)
+        self.assertEqual(len(campaigns), 2)
+
+        local = next(item for item in campaigns if item.source_campaign_id == '410912')
+        self.assertEqual(local.platform, '포블로그')
+        self.assertEqual(local.title, '[서울/강남] 스테이크 체험단')
+        self.assertEqual(local.campaign_type, '방문형')
+        self.assertEqual(local.media_type, '숏폼(릴스)')
+        self.assertEqual(local.region, '서울 강남')
+        self.assertEqual(local.recruit_count, 3)
+        self.assertIn('2026-10-12', local.deadline_at)
+
+        delivery = next(item for item in campaigns if item.source_campaign_id == '410913')
+        self.assertEqual(delivery.campaign_type, '페이백')
+        self.assertEqual(delivery.media_type, '블로그')
+        self.assertEqual(delivery.region, '배송')
+        self.assertEqual(delivery.recruit_count, 10)
+        self.assertTrue(delivery.is_points)
+
+    def test_poblog_rejects_invalid_or_incomplete_cards(self):
+        html = """<html><body>
+        <a href="/campaign/not-a-number/">잘못된 링크</a>
+        <div><a href="/campaign/410999/"><h3>구조 깨진 카드</h3></a></div>
+        </body></html>"""
+        self.assertEqual(poblog_crawler.parse_page(html), [])
+        self.assertIsNone(
+            poblog_crawler.parse_campaign_link('https://example.com/campaign/123/')
+        )
+
     def test_reviewplace_region_tag_fixture(self):
         html = """<html><body>
         <a href="/pr/?id=4999">
@@ -180,6 +212,7 @@ class CrawlerFixtureTests(unittest.TestCase):
         broken = "<html><body><a href='/campaigns/9999'>구조 변경됨</a></body></html>"
         self.assertEqual(mible_crawler.parse_page(broken), [])
         self.assertEqual(dinnerqueen_crawler.extract_listing_campaigns(broken), [])
+        self.assertEqual(poblog_crawler.parse_page(broken), [])
 
 
 if __name__ == '__main__':
