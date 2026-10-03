@@ -46,9 +46,8 @@
 - 프록시/우회 인프라를 추가하지 않는다.
 
 ### 아싸뷰
-- RPL-040 진행.
-- 공개 상세 URL: `campaign.php?cp_id=<numeric>`.
-- 카드에서 방문형/배송형/구매형/결제형/기자단, 매체 아이콘, 신청/모집 수, 종료시각, 제공내역/포인트가 구조화되어 노출.
-- 추가 로딩: 공개 `GET campaign_list.php?json=list&page=N`에서 20건 단위 JSON 반환.
-- `last_page=1`에서 종료.
-- GitHub Actions live dry-run을 통과한 뒤에만 운영 소스로 활성화.
+- RPL-040 기술 검증 완료: 공개 `GET campaign_list.php?json=list&page=N`, 62페이지/1,222건, hosted runner dry-run 통과.
+- RPL-041 실제 표본 검증 완료: 배송형/구매형/방문형/기자단/결제형의 핵심 필드를 상세 페이지와 대조하고 보상 문구 중복 파서를 수정.
+- 상세 링크 URL: `campaign.php?cp_id=<numeric>`.
+- robots.txt는 공개 경로를 허용하지만 약관은 사전 승낙 없는 서비스 정보 복제·유통·상업 이용과 동의 없는 영리 목적 이용을 금지.
+- 상태는 `paused-policy`. 서면 허가 또는 재사용 범위가 명시된 공식 데이터 인터페이스가 확인되기 전에는 source registry/runner의 production 매핑을 추가하지 않음.

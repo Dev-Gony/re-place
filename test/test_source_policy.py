@@ -74,6 +74,14 @@ class SourcePolicyTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 run_all.get_enabled_collectors()
 
+    def test_assaview_policy_gate_is_documented(self):
+        registry = (ROOT / "docs" / "SOURCE_USAGE_REGISTER.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("| \uC544\uC2F8\uBDF0 | paused-policy |", registry)
+        self.assertIn("RPL-041", registry)
+
     def test_assaview_live_probe_is_dry_run_only(self):
         workflow = (
             ROOT / ".github" / "workflows" / "assaview-live-probe.yml"
