@@ -68,6 +68,10 @@ RPL-024 adds versioned workspace mutation endpoints.
 - `PATCH /api/v1/me/tasks/:id`
 - `DELETE /api/v1/me/tasks/:id`
 
+Task creation is idempotent for the same owner, record, task type, normalized title, and due timestamp. A new task returns HTTP 201 with `created: true`; an exact duplicate returns the existing task with HTTP 200 and `created: false`. The record row is locked during the check and insert so concurrent submissions for one record are serialized.
+
+Task PATCH accepts any non-empty combination of `taskType`, `title`, `dueAt`, and `completed`. Editable fields are validated and kept owner-scoped. An edit that would duplicate another task returns HTTP 409 with `CONFLICT`.
+
 ### Settlements
 - `PUT /api/v1/me/settlements/:recordId`
 
@@ -92,7 +96,7 @@ Mutation errors use the same structured error shape as workspace reads:
 }
 ```
 
-Supported v1 error codes for this phase are `UNAUTHORIZED`, `INVALID_INPUT`, and `NOT_FOUND`.
+Supported v1 error codes are `UNAUTHORIZED`, `INVALID_INPUT`, `NOT_FOUND`, and `CONFLICT`. Task updates use `CONFLICT` when an identical schedule already exists.
 
 The owner ID always comes from the authenticated server session. Client-provided `auth_user_id` or `userId` values are not trusted.
 

@@ -129,7 +129,7 @@ export function deleteRecord(id: number) {
 }
 
 export function createTask(input: Record<string, unknown>) {
-  return requestJson<MutationEnvelope<{ item: unknown }>>(
+  return requestJson<MutationEnvelope<{ item: unknown; created: boolean }>>(
     "/api/v1/me/tasks",
     {
       method: "POST",
