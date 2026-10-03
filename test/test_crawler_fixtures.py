@@ -10,6 +10,7 @@ CRAWLERS = ROOT / 'crawlers'
 FIXTURES = ROOT / 'test' / 'fixtures'
 sys.path.insert(0, str(CRAWLERS))
 
+import assaview_crawler
 import dinnerqueen_crawler
 import gangnam_crawler
 import mible_crawler
@@ -19,6 +20,51 @@ import reviewus_crawler
 
 
 class CrawlerFixtureTests(unittest.TestCase):
+    def test_assaview_fixture(self):
+        html = (FIXTURES / 'assaview.html').read_text(encoding='utf-8')
+        campaigns = assaview_crawler.parse_page(html)
+        self.assertEqual(len(campaigns), 2)
+
+        local = next(
+            item for item in campaigns
+            if item.source_campaign_id == '1790924292'
+        )
+        self.assertEqual(local.platform, '아싸뷰')
+        self.assertEqual(local.campaign_type, '방문형')
+        self.assertEqual(local.media_type, '숏폼(릴스)')
+        self.assertEqual(local.region, '서울 구로구')
+        self.assertEqual(local.apply_count, 7)
+        self.assertEqual(local.recruit_count, 5)
+        self.assertTrue(local.is_points)
+        self.assertIn('2026-10-09', local.deadline_at)
+
+        delivery = next(
+            item for item in campaigns
+            if item.source_campaign_id == '1790928036'
+        )
+        self.assertEqual(delivery.campaign_type, '배송형')
+        self.assertEqual(delivery.media_type, '블로그')
+        self.assertEqual(delivery.region, '배송')
+        self.assertEqual(delivery.apply_count, 29)
+        self.assertEqual(delivery.recruit_count, 3)
+
+    def test_assaview_load_state_fixture(self):
+        html = (FIXTURES / 'assaview.html').read_text(encoding='utf-8')
+        state = assaview_crawler.parse_load_state(html, 2)
+        self.assertEqual(state['page'], 1)
+        self.assertEqual(state['offset'], 2)
+        self.assertEqual(state['limit'], 10)
+
+    def test_assaview_invalid_link_is_rejected(self):
+        self.assertIsNone(
+            assaview_crawler.parse_campaign_link(
+                'https://example.com/campaign.php?cp_id=1790924292'
+            )
+        )
+        self.assertIsNone(
+            assaview_crawler.parse_campaign_link('/campaign.php?cp_id=broken')
+        )
+
     def test_reviewnote_fixture(self):
         item = json.loads((FIXTURES / 'reviewnote.json').read_text(encoding='utf-8'))
         campaign = reviewnote_crawler.parse_reviewnote_item(item)
@@ -180,6 +226,7 @@ class CrawlerFixtureTests(unittest.TestCase):
         broken = "<html><body><a href='/campaigns/9999'>구조 변경됨</a></body></html>"
         self.assertEqual(mible_crawler.parse_page(broken), [])
         self.assertEqual(dinnerqueen_crawler.extract_listing_campaigns(broken), [])
+        self.assertEqual(assaview_crawler.parse_page(broken), [])
 
 
 if __name__ == '__main__':
