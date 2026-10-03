@@ -473,6 +473,8 @@ def get_poblog_data(*, dry_run: bool = False) -> list[Campaign]:
     representative field accuracy.
     """
     with build_session() as session:
+        warmup = session.get(LIST_URL, timeout=(10, 30))
+        warmup.raise_for_status()
         campaigns = collect_api_catalogue(session)
 
     print(f"포블로그 전체 API dry-run: 고유 {len(campaigns)}개 확인")
