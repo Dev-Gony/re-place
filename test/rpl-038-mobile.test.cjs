@@ -51,6 +51,8 @@ test("mobile CSS covers safe areas and 320-class widths without forced desktop c
   assert.match(css, /@media \(max-width: 360px\)/);
   assert.doesNotMatch(css.slice(css.indexOf("RPL-038 mobile responsive reference implementation")), /min-width: 760px/);
   assert.match(css, /overflow-x: clip/);
+  assert.match(css, /\.editorial-source-summary[\s\S]*scrollbar-width:\s*none/);
+  assert.match(css, /\.editorial-source-summary::\-webkit-scrollbar\s*\{\s*display:\s*none/);
 });
 
 test("RPL-038 spec records the three supplied mobile references and preserves real data", () => {

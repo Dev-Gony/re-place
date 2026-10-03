@@ -6909,7 +6909,9 @@ body {
     max-width: 100%;
     overflow-x: auto;
     padding-bottom: 2px;
+    scrollbar-width: none;
   }
+  .editorial-source-summary::-webkit-scrollbar { display: none; }
   .editorial-search-filters .hero-search-main input { padding-right: 88px; }
   .search-shortcut { display: none; }
   .editorial-filter-toolbar .filter-toolbar-main {
