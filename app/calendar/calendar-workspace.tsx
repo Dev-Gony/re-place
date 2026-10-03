@@ -102,6 +102,55 @@ export function CalendarWorkspace({
     [todayKey, visibleTasks],
   );
 
+  const mobileAgenda = useMemo(() => {
+    const taskItems = visibleTasks
+      .filter((task) => !task.completed_at)
+      .map((task) => ({
+        key: `task-${task.id}`,
+        dueAt: task.due_at,
+        title: task.record_title,
+        detail: `${TASK_LABELS[task.task_type]} · ${task.title}`,
+        type: task.task_type,
+        task,
+      }));
+
+    const deadlineItems = records
+      .filter(
+        (record) =>
+          record.deadline_at &&
+          !["completed", "cancelled"].includes(record.status),
+      )
+      .map((record) => ({
+        key: `deadline-${record.id}`,
+        dueAt: record.deadline_at as string,
+        title: record.title,
+        detail: `${record.platform || "체험단"} · 모집 마감`,
+        type: "deadline" as const,
+        task: null,
+      }));
+
+    return [...taskItems, ...deadlineItems]
+      .filter((item) => dayDiff(item.dueAt, todayKey) >= -1)
+      .sort((a, b) => Date.parse(a.dueAt) - Date.parse(b.dueAt));
+  }, [records, todayKey, visibleTasks]);
+
+  const mobileAgendaGroups = useMemo(() => {
+    const groups = [
+      { key: "overdue", title: "지연 · 오늘", items: [] as typeof mobileAgenda },
+      { key: "tomorrow", title: "내일", items: [] as typeof mobileAgenda },
+      { key: "week", title: "이번 주 예정", items: [] as typeof mobileAgenda },
+    ];
+
+    for (const item of mobileAgenda) {
+      const days = dayDiff(item.dueAt, todayKey);
+      if (days <= 0) groups[0].items.push(item);
+      else if (days === 1) groups[1].items.push(item);
+      else if (days <= 7) groups[2].items.push(item);
+    }
+
+    return groups.filter((group) => group.items.length > 0);
+  }, [mobileAgenda, todayKey]);
+
   async function reloadTasks() {
     const workspace = await getWorkspace();
     setTasks(workspace.tasks ?? []);
@@ -187,6 +236,51 @@ export function CalendarWorkspace({
           <button type="submit">추가</button>
         </form>
       )}
+
+      <div className="calendar-mobile-agenda" aria-label="모바일 일정 요약">
+        {mobileAgendaGroups.length ? (
+          mobileAgendaGroups.map((group) => (
+            <section className="calendar-mobile-group" key={group.key}>
+              <div className="calendar-mobile-group-head">
+                <strong>{group.title}</strong>
+                <span>{group.items.length}건</span>
+              </div>
+              <div className="calendar-mobile-items">
+                {group.items.map((item) => {
+                  const state = dday(item.dueAt, todayKey);
+                  return (
+                    <article className="calendar-mobile-item" key={item.key}>
+                      <div className="calendar-mobile-time">
+                        <strong>{shortDate(item.dueAt)}</strong>
+                        <em className={state.tone}>{state.label}</em>
+                      </div>
+                      <div className="calendar-mobile-copy">
+                        <span className={`calendar-mobile-type ${item.type}`}>
+                          {item.type === "deadline" ? "마감" : TASK_LABELS[item.type]}
+                        </span>
+                        <strong>{item.title}</strong>
+                        <p>{item.detail}</p>
+                      </div>
+                      {item.task && (
+                        <button type="button" onClick={() => toggleTask(item.task)}>
+                          완료
+                        </button>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))
+        ) : (
+          <div className="calendar-empty">가까운 일정이 없습니다.</div>
+        )}
+
+        <details className="calendar-mobile-month">
+          <summary>월간 달력 보기</summary>
+          <MonthCalendar tasks={visibleTasks} records={records} todayKey={todayKey} />
+        </details>
+      </div>
 
       <div className="calendar-toolbar-final">
         <div className="calendar-view-tabs" role="tablist" aria-label="캘린더 보기">

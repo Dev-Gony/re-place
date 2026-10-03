@@ -52,11 +52,13 @@ test("empty states point users to the record prerequisite", () => {
   assert.match(settlement, /href="#records"/);
 });
 
-test("mobile lifecycle navigation remains compatible with bottom navigation", () => {
+test("mobile lifecycle navigation remains compatible with route-based bottom navigation", () => {
   assert.match(css, /\.my-v2-flow/);
   assert.match(css, /overflow-x:\s*auto/);
-  assert.match(nav, /\/calendar/);
-  assert.match(nav, /\/my#favorites/);
+  assert.match(nav, /href: "\/my"/);
+  assert.match(nav, /href: "\/calendar"/);
+  assert.match(nav, /href: "\/blog-analysis"/);
+  assert.doesNotMatch(nav, /\/my#favorites/);
 });
 
 test("V2 completion document records the full end-to-end user journey", () => {
