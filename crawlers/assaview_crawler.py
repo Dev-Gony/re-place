@@ -2,6 +2,7 @@ import argparse
 import re
 import time
 from datetime import datetime
+from typing import Any
 from urllib.parse import parse_qs, urljoin, urlparse
 from zoneinfo import ZoneInfo
 
@@ -122,6 +123,8 @@ def normalize_campaign_type(raw_type: str) -> tuple[str | None, str | None]:
         return "배송형", "배송"
     if value in {"구매형", "선착순 구매형"}:
         return "페이백", "배송"
+    if value == "결제형":
+        return "페이백", None
     if value == "기자단":
         return "기자단", "전국"
 
@@ -167,7 +170,7 @@ def parse_campaign(anchor) -> Campaign | None:
     reward = " · ".join(dict.fromkeys(reward_parts))
 
     region = default_region
-    if campaign_type == "방문형":
+    if region is None:
         region = extract_region_from_title(title)
 
     image_url = ""
@@ -213,52 +216,155 @@ def parse_page(html: str) -> list[Campaign]:
     return list(campaigns.values())
 
 
-def parse_load_state(html: str, initial_count: int) -> dict[str, object]:
-    soup = BeautifulSoup(html, "html.parser")
-    button = soup.select_one("#load_more_campaigns") or soup.select_one(
-        "#load_more_btn"
+def parse_api_media_type(item: dict[str, Any]) -> str:
+    media_flags = (
+        ("cp_media_reels", "숏폼(릴스)"),
+        ("cp_media_clip", "숏폼"),
+        ("cp_media_instagram", "인스타그램"),
+        ("cp_media_threads", "스레드"),
+        ("cp_media_shop", "쇼핑몰"),
+        ("cp_media_blog", "블로그"),
+    )
+    for key, label in media_flags:
+        if str(item.get(key, "")).strip() == "1":
+            return label
+    return ""
+
+
+def parse_integer(value: object) -> int | None:
+    normalized = str(value if value is not None else "").replace(",", "").strip()
+    return int(normalized) if normalized.isdigit() else None
+
+
+def parse_deadline_value(value: object) -> str | None:
+    raw = str(value if value is not None else "").strip()
+    if not raw:
+        return None
+
+    try:
+        parsed = datetime.strptime(raw, "%Y/%m/%d %H:%M:%S")
+    except ValueError:
+        return None
+
+    return parsed.replace(tzinfo=ZoneInfo("Asia/Seoul")).isoformat()
+
+
+def parse_api_campaign(item: dict[str, Any]) -> Campaign | None:
+    source_id = str(item.get("cp_id", "")).strip()
+    title = str(item.get("cp_subject", "")).strip()
+    if not source_id.isdigit() or not title:
+        return None
+
+    campaign_type, default_region = normalize_campaign_type(
+        str(item.get("cp_type", ""))
+    )
+    media_type = parse_api_media_type(item)
+    apply_count = parse_integer(item.get("cp_order"))
+    recruit_count = parse_integer(item.get("cp_recruit"))
+    deadline_at = parse_deadline_value(item.get("cp_countdown"))
+    if (
+        campaign_type is None
+        or not media_type
+        or apply_count is None
+        or recruit_count is None
+        or deadline_at is None
+    ):
+        return None
+
+    reward_parts: list[str] = []
+    for key in ("cp_opt_text", "cp_opt_name", "cp_point2", "cp_point_text"):
+        value = " ".join(str(item.get(key, "")).split()).strip()
+        if not value:
+            continue
+        point_match = POINT_RE.search(value)
+        if point_match and int(point_match.group(1).replace(",", "")) == 0:
+            continue
+        reward_parts.append(value)
+    reward = " · ".join(dict.fromkeys(reward_parts))
+
+    region = default_region
+    if region is None:
+        region = extract_region_from_title(title)
+
+    image_url = ""
+    image_path = str(item.get("cp_img", "")).strip()
+    if image_path:
+        image_url = urljoin(BASE_URL, image_path)
+
+    return Campaign(
+        platform="아싸뷰",
+        source_campaign_id=source_id,
+        title=title,
+        link=f"{BASE_URL}{DETAIL_PATH}?cp_id={source_id}",
+        image_url=image_url,
+        media_type=media_type,
+        reward=reward,
+        is_points=bool(POINT_RE.search(reward)),
+        apply_count=apply_count,
+        recruit_count=recruit_count,
+        region=region,
+        campaign_type=campaign_type,
+        deadline_at=deadline_at,
     )
 
-    if button is None:
-        return {
-            "page": 0,
-            "offset": initial_count,
-            "limit": 10,
-            "category": "",
-            "type": "",
-        }
 
-    def integer(name: str, default: int) -> int:
-        value = str(button.get(name, "")).strip()
-        return int(value) if value.isdigit() else default
+def parse_api_page(payload: object) -> tuple[list[Campaign], bool]:
+    if not isinstance(payload, dict):
+        raise RuntimeError("아싸뷰 목록 API 응답이 객체가 아닙니다.")
 
-    return {
-        "page": integer("data-page", 0),
-        "offset": integer("data-offset", initial_count),
-        "limit": integer("data-limit", 10),
-        "category": str(button.get("data-category", "") or "").strip(),
-        "type": str(button.get("data-type", "") or "").strip(),
-    }
+    raw_items = payload.get("list")
+    count = parse_integer(payload.get("count"))
+    last_page_value = str(payload.get("last_page", "")).strip()
+    if not isinstance(raw_items, list) or count is None:
+        raise RuntimeError("아싸뷰 목록 API의 count/list 구조가 변경되었습니다.")
+    if last_page_value not in {"0", "1"}:
+        raise RuntimeError("아싸뷰 목록 API의 last_page 구조가 변경되었습니다.")
+    if count != len(raw_items):
+        raise RuntimeError(
+            "아싸뷰 목록 API의 count와 실제 항목 수가 일치하지 않습니다."
+        )
+
+    campaigns: dict[str, Campaign] = {}
+    for raw_item in raw_items:
+        if not isinstance(raw_item, dict):
+            raise RuntimeError("아싸뷰 목록 API에 객체가 아닌 항목이 있습니다.")
+        campaign = parse_api_campaign(raw_item)
+        if campaign is None:
+            raise RuntimeError("아싸뷰 목록 API 항목을 정규화하지 못했습니다.")
+        if campaign.source_campaign_id in campaigns:
+            raise RuntimeError("아싸뷰 목록 API 한 페이지에 중복 ID가 있습니다.")
+        campaigns[campaign.source_campaign_id] = campaign
+
+    return list(campaigns.values()), last_page_value == "1"
 
 
-def fetch_more(
+def fetch_page(
     session: requests.Session,
     *,
     page: int,
-    offset: int,
-    limit: int,
-    category: str,
-    campaign_type: str,
-) -> str:
-    response = session.post(
+) -> dict[str, Any]:
+    response = session.get(
         LIST_URL,
-        data={
-            "limit": limit,
-            "offset": offset,
-            "category": category,
-            "type": campaign_type,
-            "load_more": "true",
+        params={
+            "json": "list",
+            "type": "",
+            "cate": "",
+            "area": "",
+            "local": "",
+            "area_detail": "",
+            "mission": "",
+            "orderby": "cp_recommend",
+            "keyword": "",
             "page": page,
+            "chip": "",
+            "cf_shop": "0",
+            "cf_reward": "0",
+            "cf_open": "0",
+            "cf_mission": "",
+            "cf_interest": "",
+            "cf_area": "",
+            "cf_area_type": "",
+            "ct": "",
         },
         headers={
             "X-Requested-With": "XMLHttpRequest",
@@ -267,7 +373,13 @@ def fetch_more(
         timeout=(10, 30),
     )
     response.raise_for_status()
-    return response.text
+    try:
+        payload = response.json()
+    except requests.exceptions.JSONDecodeError as exc:
+        raise RuntimeError("아싸뷰 목록 API가 JSON을 반환하지 않았습니다.") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("아싸뷰 목록 API 응답이 객체가 아닙니다.")
+    return payload
 
 
 def collect_all(
@@ -276,41 +388,19 @@ def collect_all(
     max_pages: int = MAX_PAGES,
     sleep_between: bool = True,
 ) -> list[Campaign]:
-    response = session.get(LIST_URL, timeout=(10, 30))
-    response.raise_for_status()
+    campaigns: dict[str, Campaign] = {}
 
-    initial = parse_page(response.text)
-    if not initial:
-        raise RuntimeError("아싸뷰 초기 캠페인 목록을 파싱하지 못했습니다.")
-
-    campaigns = {item.source_campaign_id: item for item in initial}
-    state = parse_load_state(response.text, len(initial))
-
-    page = int(state["page"])
-    offset = int(state["offset"])
-    limit = int(state["limit"])
-    category = str(state["category"])
-    campaign_type = str(state["type"])
-
-    print(
-        f"아싸뷰 초기 목록: {len(initial)}개, "
-        f"page={page}, offset={offset}, limit={limit}"
-    )
-
-    for _ in range(max_pages):
-        fragment = fetch_more(
-            session,
-            page=page,
-            offset=offset,
-            limit=limit,
-            category=category,
-            campaign_type=campaign_type,
+    for page in range(1, max_pages + 1):
+        page_campaigns, is_last_page = parse_api_page(
+            fetch_page(session, page=page)
         )
-        page_campaigns = parse_page(fragment)
-
         if not page_campaigns:
-            print("아싸뷰 load-more 종료: 추가 캠페인 없음")
-            break
+            if page == 1 or not is_last_page:
+                raise RuntimeError(
+                    "아싸뷰 목록 API가 예기치 않게 빈 페이지를 반환했습니다."
+                )
+            print(f"아싸뷰 목록 종료 page={page}: 빈 마지막 페이지")
+            return list(campaigns.values())
 
         new_count = 0
         for campaign in page_campaigns:
@@ -319,29 +409,27 @@ def collect_all(
                 new_count += 1
 
         print(
-            f"아싸뷰 추가 page={page}: {len(page_campaigns)}개, "
+            f"아싸뷰 page={page}: {len(page_campaigns)}개, "
             f"신규 {new_count}개, 누적 {len(campaigns)}개"
         )
 
-        if new_count == 0:
+        if new_count != len(page_campaigns):
             raise RuntimeError(
-                "아싸뷰 load-more가 신규 ID 없이 동일 목록을 반복했습니다."
+                "아싸뷰 목록 API가 페이지 사이에서 중복 ID를 반환했습니다."
             )
 
-        offset += len(page_campaigns)
-        page += 1
+        if is_last_page:
+            print(f"아싸뷰 목록 종료 page={page}: last_page=1")
+            return list(campaigns.values())
 
         if sleep_between:
             time.sleep(0.35)
-    else:
-        raise RuntimeError(
-            f"아싸뷰 목록이 max_pages={max_pages} 안에 종료되지 않았습니다."
-        )
 
-    return list(campaigns.values())
+    raise RuntimeError(
+        f"아싸뷰 목록이 max_pages={max_pages} 안에 종료되지 않았습니다."
+    )
 
-
-def get_assaview_data(*, dry_run: bool = False) -> list[Campaign]:
+def get_assaview_data(*, dry_run: bool = True) -> list[Campaign]:
     with build_session() as session:
         campaigns = collect_all(session)
 
@@ -357,15 +445,21 @@ def get_assaview_data(*, dry_run: bool = False) -> list[Campaign]:
     return campaigns
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--dry-run",
         action="store_true",
-        help="공개 목록 전체를 검증하고 DB에는 저장하지 않습니다.",
+        help="공개 목록 전체를 검증하고 DB에는 저장하지 않습니다(기본값).",
     )
-    args = parser.parse_args()
-    get_assaview_data(dry_run=args.dry_run)
+    mode.add_argument(
+        "--write",
+        action="store_true",
+        help="검증 완료 후에만 수집 결과를 DB에 저장합니다.",
+    )
+    args = parser.parse_args(argv)
+    get_assaview_data(dry_run=not args.write)
 
 
 if __name__ == "__main__":

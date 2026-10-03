@@ -48,7 +48,7 @@
 ### 아싸뷰
 - RPL-040 진행.
 - 공개 상세 URL: `campaign.php?cp_id=<numeric>`.
-- 카드에서 방문형/배송형/구매형/기자단, 매체 아이콘, 신청/모집 수, 종료시각, 제공내역/포인트가 구조화되어 노출.
-- 추가 로딩: 공개 `POST campaign_list.php`에 `limit/offset/category/type/load_more/page` 전달.
-- 빈 추가 응답에서 종료.
+- 카드에서 방문형/배송형/구매형/결제형/기자단, 매체 아이콘, 신청/모집 수, 종료시각, 제공내역/포인트가 구조화되어 노출.
+- 추가 로딩: 공개 `GET campaign_list.php?json=list&page=N`에서 20건 단위 JSON 반환.
+- `last_page=1`에서 종료.
 - GitHub Actions live dry-run을 통과한 뒤에만 운영 소스로 활성화.
