@@ -60,6 +60,15 @@ test('detail inspector uses only grounded campaign fields', () => {
   assert.match(workbench, /현재 확인되지 않은 값은 임의로 만들지 않습니다/);
 });
 
+test('source links disclose when the original campaign requires login', () => {
+  assert.match(page, /platform === "미블"/);
+  assert.match(page, /미블 로그인 후 원문 확인/);
+  assert.match(page, /비로그인 상태에서 로그인 화면으로 이동합니다/);
+  assert.match(workbench, /item\.originActionLabel/);
+  assert.match(workbench, /campaign-origin-access-note/);
+  assert.match(workbench, /role="note"/);
+});
+
 test('campaign rows remain thumbnail-free and comparison oriented', () => {
   assert.match(workbench, /플랫폼 · 캠페인 정보/);
   assert.match(workbench, /제공 혜택/);

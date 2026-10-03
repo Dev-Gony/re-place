@@ -8353,6 +8353,13 @@ body {
   white-space: nowrap;
 }
 
+.campaign-origin-access-note {
+  margin: 8px 2px 0;
+  color: #8a5a2f;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .campaign-source-note {
   margin: 12px 2px 0;
   color: var(--rp-faint);

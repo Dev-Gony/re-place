@@ -170,6 +170,17 @@ function displayRegion(campaign: CampaignRow) {
   return "위치 원문 확인";
 }
 
+function campaignOriginAccess(platform: string) {
+  if (platform === "미블") {
+    return {
+      actionLabel: "미블 로그인 후 원문 확인",
+      note: "미블 원문은 비로그인 상태에서 로그인 화면으로 이동합니다.",
+    };
+  }
+
+  return { actionLabel: "원문에서 확인", note: null };
+}
+
 function competitionClass(ratio: number | null) {
   if (ratio === null) return "neutral";
   if (ratio <= 1) return "low";
@@ -366,6 +377,7 @@ export default async function Home({
   const workbenchItems: CampaignWorkbenchItem[] = data.map((campaign) => {
     const ratio = competitionRatio(campaign.apply_count, campaign.recruit_count);
     const deadline = deadlineState(campaign.deadline_at);
+    const originAccess = campaignOriginAccess(campaign.platform);
 
     return {
       id: campaign.id,
@@ -385,6 +397,8 @@ export default async function Home({
       deadlineClass: deadline.className,
       regionLabel: displayRegion(campaign),
       collectedLabel: relativeFreshness(campaign.collected_at).replace("업데이트", "수집"),
+      originActionLabel: originAccess.actionLabel,
+      originAccessNote: originAccess.note,
     };
   });
 

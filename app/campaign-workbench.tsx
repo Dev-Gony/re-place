@@ -23,6 +23,8 @@ export type CampaignWorkbenchItem = {
   deadlineClass: "urgent" | "soon" | "normal" | "unknown";
   regionLabel: string;
   collectedLabel: string;
+  originActionLabel: string;
+  originAccessNote: string | null;
 };
 
 function DetailInspector({
@@ -92,10 +94,15 @@ function DetailInspector({
           </button>
         )}
         <a className="campaign-origin-link" href={item.link} target="_blank" rel="noreferrer">
-          원문에서 확인
+          {item.originActionLabel}
           <span aria-hidden="true">↗</span>
         </a>
       </div>
+      {item.originAccessNote && (
+        <p className="campaign-origin-access-note" role="note">
+          {item.originAccessNote}
+        </p>
+      )}
       {feedback && <p className="campaign-add-feedback" role="status">{feedback}</p>}
 
       <section className="campaign-inspector-panel">
