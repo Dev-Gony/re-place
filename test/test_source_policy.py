@@ -74,6 +74,15 @@ class SourcePolicyTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 run_all.get_enabled_collectors()
 
+    def test_assaview_live_probe_is_dry_run_only(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "assaview-live-probe.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("python crawlers/assaview_crawler.py --dry-run", workflow)
+        self.assertNotIn("--write", workflow)
+        self.assertNotIn("DATABASE_URL", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
