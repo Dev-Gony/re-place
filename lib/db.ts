@@ -1,4 +1,4 @@
-import { Pool, type QueryResult, type QueryResultRow } from "pg";
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
 const globalForDb = globalThis as typeof globalThis & {
   rePlacePool?: Pool;
@@ -32,4 +32,22 @@ export function queryDb<T extends QueryResultRow = QueryResultRow>(
   values: readonly unknown[] = [],
 ): Promise<QueryResult<T>> {
   return getPool().query<T>(text, [...values]);
+}
+
+export async function withDbTransaction<T>(
+  run: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await getPool().connect();
+
+  try {
+    await client.query("BEGIN");
+    const result = await run(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }

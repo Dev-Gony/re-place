@@ -1,4 +1,4 @@
-import { queryDb } from "../../../../../lib/db";
+import { withDbTransaction } from "../../../../../lib/db";
 import {
   normalizeDeadline,
   normalizeOptionalText,
@@ -13,6 +13,15 @@ import {
 export const dynamic = "force-dynamic";
 
 const TASK_TYPES = new Set(["visit", "content", "submit", "other"]);
+
+type TaskRow = {
+  id: number;
+  record_id: number;
+  task_type: string;
+  title: string;
+  due_at: string | Date;
+  completed_at: string | Date | null;
+};
 
 export async function POST(request: Request) {
   const owner = await currentOwnerId();
@@ -39,18 +48,46 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await queryDb(
-    `insert into user_campaign_tasks (
-         auth_user_id, record_id, task_type, title, due_at
-       )
-       select $1, id, $3, $4, $5::timestamptz
+  const result = await withDbTransaction(async (client) => {
+    const record = await client.query<{ id: number }>(
+      `select id
          from user_campaign_records
         where auth_user_id = $1
           and id = $2
-       returning *`,
-    [owner, recordId, taskType, title, dueAt],
-  );
+        for update`,
+      [owner, recordId],
+    );
 
-  if (!result.rows[0]) return v1Error("NOT_FOUND", "Record not found", 404);
-  return v1Mutation({ item: result.rows[0] }, 201);
+    if (!record.rows[0]) return null;
+
+    const duplicate = await client.query<TaskRow>(
+      `select *
+         from user_campaign_tasks
+        where auth_user_id = $1
+          and record_id = $2
+          and task_type = $3
+          and title = $4
+          and due_at = $5::timestamptz
+        limit 1`,
+      [owner, recordId, taskType, title, dueAt],
+    );
+
+    if (duplicate.rows[0]) {
+      return { item: duplicate.rows[0], created: false };
+    }
+
+    const inserted = await client.query<TaskRow>(
+      `insert into user_campaign_tasks (
+         auth_user_id, record_id, task_type, title, due_at
+       )
+       values ($1, $2, $3, $4, $5::timestamptz)
+       returning *`,
+      [owner, recordId, taskType, title, dueAt],
+    );
+
+    return { item: inserted.rows[0], created: true };
+  });
+
+  if (!result) return v1Error("NOT_FOUND", "Record not found", 404);
+  return v1Mutation(result, result.created ? 201 : 200);
 }

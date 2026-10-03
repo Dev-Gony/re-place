@@ -8,7 +8,7 @@ export async function currentOwnerId() {
 }
 
 export function v1Error(
-  code: "UNAUTHORIZED" | "INVALID_INPUT" | "NOT_FOUND",
+  code: "UNAUTHORIZED" | "INVALID_INPUT" | "NOT_FOUND" | "CONFLICT",
   message: string,
   status: number,
 ) {

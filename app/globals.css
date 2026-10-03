@@ -7214,6 +7214,53 @@ body {
   font-size: 11px;
 }
 
+.calendar-edit-form {
+  grid-template-columns: minmax(180px, 1.3fr) 130px minmax(220px, 1fr) 150px auto auto;
+}
+
+.calendar-edit-context {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: 0 9px;
+}
+
+.calendar-edit-context small,
+.calendar-edit-context strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-edit-context small {
+  color: var(--rp-faint);
+  font-size: 8px;
+}
+
+.calendar-edit-context strong {
+  margin-top: 2px;
+  color: var(--rp-ink);
+  font-size: 10px;
+}
+
+.calendar-quick-form > .calendar-secondary-action {
+  border: 1px solid var(--rp-border);
+  background: #fff;
+  color: var(--rp-copy);
+}
+
+.calendar-quick-form > .calendar-secondary-action:hover {
+  background: var(--rp-surface-muted);
+}
+
+.calendar-quick-form button:disabled,
+.calendar-upcoming-actions button:disabled,
+.calendar-row-actions button:disabled,
+.calendar-mobile-actions button:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
 .calendar-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 350px;
@@ -8058,7 +8105,12 @@ body {
   font-size: 8px;
 }
 
-.calendar-agenda-row > button {
+.calendar-row-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.calendar-row-actions button {
   height: 27px;
   padding: 0 8px;
   border: 1px solid var(--rp-border);
@@ -8093,7 +8145,7 @@ body {
     grid-template-columns: 90px minmax(0, 1fr);
   }
 
-  .calendar-agenda-row > button {
+  .calendar-row-actions {
     grid-column: 2;
     justify-self: start;
   }
@@ -9977,7 +10029,12 @@ body {
     line-height: 1.45;
   }
 
-  .calendar-mobile-item > button {
+  .calendar-mobile-actions {
+    display: grid;
+    gap: 5px;
+  }
+
+  .calendar-mobile-actions button {
     min-width: 42px;
     min-height: 32px;
     border: 1px solid var(--rp-border);
@@ -10080,8 +10137,9 @@ body {
     grid-template-columns: 62px minmax(0, 1fr);
   }
 
-  .calendar-mobile-item > button {
+  .calendar-mobile-actions {
     grid-column: 2;
+    grid-auto-flow: column;
     justify-self: start;
   }
 }

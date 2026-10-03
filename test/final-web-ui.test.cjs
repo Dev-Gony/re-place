@@ -35,6 +35,18 @@ test("calendar is a dedicated authenticated web route with real workspace data",
   assert.match(calendarWorkspace, /deleteTaskRequest/);
 });
 
+test("calendar exposes owner-scoped task editing across responsive views", () => {
+  assert.match(calendarWorkspace, /function editTask/);
+  assert.match(calendarWorkspace, /function startEditingTask/);
+  assert.match(calendarWorkspace, /name="taskType"/);
+  assert.match(calendarWorkspace, /name="dueAt"/);
+  assert.match(calendarWorkspace, /calendar-mobile-actions/);
+  assert.match(calendarWorkspace, /calendar-row-actions/);
+  assert.match(calendarWorkspace, /await deleteTaskRequest\(id\);[\s\S]*await reloadTasks\(\)/);
+  assert.match(css, /\.calendar-edit-form/);
+  assert.match(css, /\.calendar-mobile-actions button/);
+});
+
 test("my campaigns final board stays grounded in records tasks and settlements", () => {
   assert.match(myWorkspace, /<MyCampaignBoard/);
   assert.match(board, /records\.map/);

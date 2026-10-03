@@ -9,12 +9,14 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
 const calendar = read("app/my/month-calendar.tsx");
+const taskDate = read("lib/task-date.ts");
 const css = read("app/globals.css");
 
 test("server provides a Seoul date key to avoid client date drift", () => {
-  assert.match(page, /function seoulDateKey\(\)/);
-  assert.match(page, /timeZone:\s*"Asia\/Seoul"/);
-  assert.match(page, /todayKey=\{seoulDateKey\(\)\}/);
+  assert.match(page, /seoulDateKey\(new Date\(\)\)/);
+  assert.match(taskDate, /timeZone:\s*SEOUL_TIME_ZONE/);
+  assert.match(taskDate, /SEOUL_TIME_ZONE = "Asia\/Seoul"/);
+  assert.match(page, /todayKey=\{seoulDateKey\(new Date\(\)\)/);
   assert.match(workspace, /todayKey:\s*string/);
 });
 

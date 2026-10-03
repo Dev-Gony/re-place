@@ -27,7 +27,10 @@ test("v1 mutation helpers define one success and error contract", () => {
   assert.match(helper, /mutatedAt: new Date\(\)\.toISOString\(\)/);
   assert.match(helper, /data,/);
   assert.match(helper, /error: \{ code, message \}/);
-  assert.match(helper, /"UNAUTHORIZED" \| "INVALID_INPUT" \| "NOT_FOUND"/);
+  assert.match(
+    helper,
+    /"UNAUTHORIZED" \| "INVALID_INPUT" \| "NOT_FOUND" \| "CONFLICT"/,
+  );
   assert.match(helper, /await auth\.getSession\(\)/);
 });
 
@@ -51,8 +54,18 @@ test("v1 task mutations verify record and task ownership", () => {
     tasks,
     /from user_campaign_records[\s\S]*where auth_user_id = \$1[\s\S]*and id = \$2/,
   );
-  const ownerAndTaskId = taskItem.match(/where auth_user_id = \$1[\s\S]*?and id = \$2/g) || [];
-  assert.equal(ownerAndTaskId.length, 2);
+  assert.match(
+    taskItem,
+    /select \*[\s\S]*where auth_user_id = \$1[\s\S]*and id = \$2[\s\S]*for update/,
+  );
+  assert.match(
+    taskItem,
+    /update user_campaign_tasks[\s\S]*where auth_user_id = \$1[\s\S]*and id = \$2/,
+  );
+  assert.match(
+    taskItem,
+    /delete from user_campaign_tasks[\s\S]*where auth_user_id = \$1[\s\S]*and id = \$2/,
+  );
   assert.match(taskItem, /v1Error\("NOT_FOUND", "Task not found", 404\)/);
 });
 

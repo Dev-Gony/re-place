@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
+import { seoulDateKey } from "../../lib/task-date";
 import type { RecordItem, TaskItem } from "../../lib/workspace-contract";
 import {
   createTask as createTaskRequest,
@@ -18,23 +19,8 @@ const TASK_LABELS: Record<TaskItem["task_type"], string> = {
   other: "기타",
 };
 
-function dateKey(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const parts = new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Asia/Seoul",
-  }).formatToParts(date);
-  const y = parts.find((part) => part.type === "year")?.value;
-  const m = parts.find((part) => part.type === "month")?.value;
-  const d = parts.find((part) => part.type === "day")?.value;
-  return y && m && d ? `${y}-${m}-${d}` : null;
-}
-
 function dayDiff(value: string, todayKey: string) {
-  const due = dateKey(value);
+  const due = seoulDateKey(value);
   if (!due) return 9999;
   return (
     Date.parse(`${due}T00:00:00Z`) -
@@ -73,8 +59,13 @@ export function CalendarWorkspace({
   const [tasks, setTasks] = useState(initialTasks);
   const [formOpen, setFormOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [taskMutationPending, setTaskMutationPending] = useState(false);
   const [viewMode, setViewMode] = useState<"month" | "week" | "list">("month");
   const [taskFilter, setTaskFilter] = useState<"all" | "visit" | "content" | "submit">("all");
+
+  const editingTask =
+    tasks.find((task) => task.id === editingTaskId) ?? null;
 
   const visibleTasks = useMemo(
     () =>
@@ -158,11 +149,14 @@ export function CalendarWorkspace({
 
   async function createTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (taskMutationPending) return;
+
     const form = event.currentTarget;
     const data = new FormData(form);
+    setTaskMutationPending(true);
 
     try {
-      await createTaskRequest({
+      const result = await createTaskRequest({
         recordId: data.get("recordId"),
         taskType: data.get("taskType"),
         title: data.get("title"),
@@ -171,13 +165,51 @@ export function CalendarWorkspace({
       await reloadTasks();
       form.reset();
       setFormOpen(false);
-      setNotice(null);
+      setNotice(
+        result.data.created
+          ? null
+          : "동일한 일정이 이미 있어 기존 일정을 표시합니다.",
+      );
     } catch {
       setNotice("일정을 추가하지 못했습니다. 입력값을 확인해 주세요.");
+    } finally {
+      setTaskMutationPending(false);
+    }
+  }
+
+  function startEditingTask(task: TaskItem) {
+    setEditingTaskId(task.id);
+    setFormOpen(false);
+    setNotice(null);
+  }
+
+  async function editTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingTask || taskMutationPending) return;
+
+    const data = new FormData(event.currentTarget);
+    setTaskMutationPending(true);
+
+    try {
+      await updateTaskRequest(editingTask.id, {
+        taskType: data.get("taskType"),
+        title: data.get("title"),
+        dueAt: data.get("dueAt"),
+      });
+      await reloadTasks();
+      setEditingTaskId(null);
+      setNotice(null);
+    } catch {
+      setNotice("일정을 수정하지 못했습니다. 동일한 일정이 있는지 확인해 주세요.");
+    } finally {
+      setTaskMutationPending(false);
     }
   }
 
   async function toggleTask(task: TaskItem) {
+    if (taskMutationPending) return;
+    setTaskMutationPending(true);
+
     try {
       await updateTaskRequest(task.id, {
         completed: !task.completed_at,
@@ -186,16 +218,24 @@ export function CalendarWorkspace({
       setNotice(null);
     } catch {
       setNotice("일정 상태를 변경하지 못했습니다.");
+    } finally {
+      setTaskMutationPending(false);
     }
   }
 
   async function removeTask(id: number) {
+    if (taskMutationPending) return;
+    setTaskMutationPending(true);
+
     try {
       await deleteTaskRequest(id);
-      setTasks((items) => items.filter((item) => item.id !== id));
+      await reloadTasks();
+      if (editingTaskId === id) setEditingTaskId(null);
       setNotice(null);
     } catch {
       setNotice("일정을 삭제하지 못했습니다.");
+    } finally {
+      setTaskMutationPending(false);
     }
   }
 
@@ -233,7 +273,51 @@ export function CalendarWorkspace({
           </select>
           <input name="title" required maxLength={240} placeholder="일정명" />
           <input name="dueAt" type="date" required />
-          <button type="submit">추가</button>
+          <button type="submit" disabled={taskMutationPending}>
+            {taskMutationPending ? "저장 중" : "추가"}
+          </button>
+        </form>
+      )}
+
+      {editingTask && (
+        <form
+          className="calendar-quick-form calendar-edit-form"
+          key={editingTask.id}
+          onSubmit={editTask}
+        >
+          <div className="calendar-edit-context">
+            <small>일정 수정</small>
+            <strong>{editingTask.record_title}</strong>
+          </div>
+          <select name="taskType" defaultValue={editingTask.task_type}>
+            <option value="visit">방문</option>
+            <option value="content">콘텐츠 작성</option>
+            <option value="submit">제출</option>
+            <option value="other">기타</option>
+          </select>
+          <input
+            name="title"
+            required
+            maxLength={240}
+            defaultValue={editingTask.title}
+          />
+          <input
+            name="dueAt"
+            type="date"
+            required
+            defaultValue={seoulDateKey(editingTask.due_at) ?? ""}
+          />
+          <button type="submit" disabled={taskMutationPending}>
+            {taskMutationPending ? "저장 중" : "저장"}
+          </button>
+          <button
+            type="button"
+            className="calendar-secondary-action"
+            onClick={() => setEditingTaskId(null)}
+            disabled={taskMutationPending}
+          >
+            취소
+          </button>
         </form>
       )}
 
@@ -262,9 +346,22 @@ export function CalendarWorkspace({
                         <p>{item.detail}</p>
                       </div>
                       {item.task && (
-                        <button type="button" onClick={() => toggleTask(item.task)}>
-                          완료
-                        </button>
+                        <div className="calendar-mobile-actions">
+                          <button
+                            type="button"
+                            onClick={() => startEditingTask(item.task)}
+                            disabled={taskMutationPending}
+                          >
+                            수정
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleTask(item.task)}
+                            disabled={taskMutationPending}
+                          >
+                            완료
+                          </button>
+                        </div>
                       )}
                     </article>
                   );
@@ -342,9 +439,22 @@ export function CalendarWorkspace({
                         <strong>{task.record_title}</strong>
                         <span>{TASK_LABELS[task.task_type]} · {task.title}</span>
                       </div>
-                      <button type="button" onClick={() => toggleTask(task)}>
-                        {task.completed_at ? "되돌리기" : "완료"}
-                      </button>
+                      <div className="calendar-row-actions">
+                        <button
+                          type="button"
+                          onClick={() => startEditingTask(task)}
+                          disabled={taskMutationPending}
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleTask(task)}
+                          disabled={taskMutationPending}
+                        >
+                          {task.completed_at ? "되돌리기" : "완료"}
+                        </button>
+                      </div>
                     </article>
                   );
                 })
@@ -377,10 +487,25 @@ export function CalendarWorkspace({
                     <strong>{task.record_title}</strong>
                     <p>{TASK_LABELS[task.task_type]} · {task.title}</p>
                     <div className="calendar-upcoming-actions">
-                      <button type="button" onClick={() => toggleTask(task)}>
+                      <button
+                        type="button"
+                        onClick={() => startEditingTask(task)}
+                        disabled={taskMutationPending}
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleTask(task)}
+                        disabled={taskMutationPending}
+                      >
                         완료
                       </button>
-                      <button type="button" onClick={() => removeTask(task.id)}>
+                      <button
+                        type="button"
+                        onClick={() => removeTask(task.id)}
+                        disabled={taskMutationPending}
+                      >
                         삭제
                       </button>
                     </div>
