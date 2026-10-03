@@ -1,7 +1,7 @@
 # RPL-040 아싸뷰 대형 소스 수집 확장
 
-상태: IN_PROGRESS
-Issue: #133
+상태: DONE (기술 검증, 운영 비활성)
+Issue: #133 (closed)
 
 ## 목표
 
@@ -59,4 +59,8 @@ Issue: #133
   - 결제형 18
   - 기자단 31
 - 운영 DB 연결/쓰기 없음
-- GitHub Actions hosted runner dry-run은 아직 미검증
+- GitHub Actions hosted runner dry-run 성공: 62페이지, 1,222건, DB 환경변수/쓰기 없음
+
+## 후속 운영 게이트
+
+실제 표본 정확도와 약관 검토는 RPL-041/#135에서 수행한다. 기술 검증 완료는 운영 활성화를 의미하지 않으며, 아싸뷰는 정책 허가가 확인될 때까지 production collector 매핑에서 제외한다.

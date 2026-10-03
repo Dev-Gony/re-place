@@ -279,6 +279,16 @@ def parse_api_campaign(item: dict[str, Any]) -> Campaign | None:
         point_match = POINT_RE.search(value)
         if point_match and int(point_match.group(1).replace(",", "")) == 0:
             continue
+
+        # The live API often repeats cp_opt_name verbatim inside cp_opt_text.
+        # Keep the more informative superset instead of rendering both.
+        if any(value in existing for existing in reward_parts):
+            continue
+        reward_parts = [
+            existing
+            for existing in reward_parts
+            if existing not in value
+        ]
         reward_parts.append(value)
     reward = " · ".join(dict.fromkeys(reward_parts))
 

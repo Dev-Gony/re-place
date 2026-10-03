@@ -68,12 +68,21 @@ class CrawlerFixtureTests(unittest.TestCase):
         self.assertTrue(local.is_points)
         self.assertIn('9,000 P', local.reward)
         self.assertNotIn('0P', local.reward)
+        self.assertEqual(
+            local.reward.count('\uC131\uD615\uC724\uACFD\uAD00\uB9AC'),
+            1,
+        )
 
         delivery = campaigns[1]
         self.assertEqual(delivery.source_campaign_id, '1790928036')
         self.assertEqual(delivery.campaign_type, '배송형')
         self.assertEqual(delivery.media_type, '블로그')
         self.assertEqual(delivery.region, '배송')
+
+        self.assertEqual(
+            delivery.reward.count('\uAF2C\uB9C8\uC0DD\uAC01\uB4A4\uC9D1\uAE30'),
+            1,
+        )
 
         payment = campaigns[2]
         self.assertEqual(payment.source_campaign_id, '1689817213')
