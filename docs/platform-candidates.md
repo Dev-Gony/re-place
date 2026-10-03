@@ -36,3 +36,19 @@
 - 인증 토큰 필요 여부
 - 요청 빈도 제한 및 차단 위험
 - 동일 광고주의 중복 캠페인 판별 가능 여부
+
+
+## 2026-10-03 확장 진행
+
+### 포블로그
+- 공개 무한스크롤 API 계약까지 확인했으나 GitHub Actions hosted runner에서 목록 GET이 HTTP 403.
+- 현재 무료 운영 인프라와 맞지 않아 RPL-039 기술 보류.
+- 프록시/우회 인프라를 추가하지 않는다.
+
+### 아싸뷰
+- RPL-040 진행.
+- 공개 상세 URL: `campaign.php?cp_id=<numeric>`.
+- 카드에서 방문형/배송형/구매형/결제형/기자단, 매체 아이콘, 신청/모집 수, 종료시각, 제공내역/포인트가 구조화되어 노출.
+- 추가 로딩: 공개 `GET campaign_list.php?json=list&page=N`에서 20건 단위 JSON 반환.
+- `last_page=1`에서 종료.
+- GitHub Actions live dry-run을 통과한 뒤에만 운영 소스로 활성화.

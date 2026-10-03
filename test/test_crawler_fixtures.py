@@ -2,6 +2,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
@@ -10,6 +11,7 @@ CRAWLERS = ROOT / 'crawlers'
 FIXTURES = ROOT / 'test' / 'fixtures'
 sys.path.insert(0, str(CRAWLERS))
 
+import assaview_crawler
 import dinnerqueen_crawler
 import gangnam_crawler
 import mible_crawler
@@ -19,6 +21,125 @@ import reviewus_crawler
 
 
 class CrawlerFixtureTests(unittest.TestCase):
+    def test_assaview_fixture(self):
+        html = (FIXTURES / 'assaview.html').read_text(encoding='utf-8')
+        campaigns = assaview_crawler.parse_page(html)
+        self.assertEqual(len(campaigns), 2)
+
+        local = next(
+            item for item in campaigns
+            if item.source_campaign_id == '1790924292'
+        )
+        self.assertEqual(local.platform, '아싸뷰')
+        self.assertEqual(local.campaign_type, '방문형')
+        self.assertEqual(local.media_type, '숏폼(릴스)')
+        self.assertEqual(local.region, '서울 구로구')
+        self.assertEqual(local.apply_count, 7)
+        self.assertEqual(local.recruit_count, 5)
+        self.assertTrue(local.is_points)
+        self.assertIn('2026-10-09', local.deadline_at)
+
+        delivery = next(
+            item for item in campaigns
+            if item.source_campaign_id == '1790928036'
+        )
+        self.assertEqual(delivery.campaign_type, '배송형')
+        self.assertEqual(delivery.media_type, '블로그')
+        self.assertEqual(delivery.region, '배송')
+
+        self.assertEqual(delivery.apply_count, 29)
+        self.assertEqual(delivery.recruit_count, 3)
+
+    def test_assaview_api_fixture(self):
+        payload = json.loads(
+            (FIXTURES / 'assaview_page.json').read_text(encoding='utf-8')
+        )
+        campaigns, is_last_page = assaview_crawler.parse_api_page(payload)
+
+        self.assertFalse(is_last_page)
+        self.assertEqual(len(campaigns), 3)
+        local = campaigns[0]
+        self.assertEqual(local.source_campaign_id, '1790924292')
+        self.assertEqual(local.campaign_type, '방문형')
+        self.assertEqual(local.media_type, '숏폼(릴스)')
+        self.assertEqual(local.region, '서울 구로구')
+        self.assertEqual(local.apply_count, 7)
+        self.assertEqual(local.recruit_count, 5)
+        self.assertTrue(local.is_points)
+        self.assertIn('9,000 P', local.reward)
+        self.assertNotIn('0P', local.reward)
+
+        delivery = campaigns[1]
+        self.assertEqual(delivery.source_campaign_id, '1790928036')
+        self.assertEqual(delivery.campaign_type, '배송형')
+        self.assertEqual(delivery.media_type, '블로그')
+        self.assertEqual(delivery.region, '배송')
+
+        payment = campaigns[2]
+        self.assertEqual(payment.source_campaign_id, '1689817213')
+        self.assertEqual(payment.campaign_type, '페이백')
+        self.assertEqual(payment.media_type, '블로그')
+        self.assertEqual(payment.region, '경기 의정부시')
+        self.assertEqual(payment.apply_count, 3)
+        self.assertEqual(payment.recruit_count, 15)
+
+    def test_assaview_api_shape_change_fails_closed(self):
+        payload = json.loads(
+            (FIXTURES / 'assaview_page.json').read_text(encoding='utf-8')
+        )
+        payload['count'] = 4
+
+        with self.assertRaises(RuntimeError):
+            assaview_crawler.parse_api_page(payload)
+
+    def test_assaview_collection_uses_numbered_pages(self):
+        first = json.loads(
+            (FIXTURES / 'assaview_page.json').read_text(encoding='utf-8')
+        )
+        second = json.loads(json.dumps(first))
+        second['list'] = [second['list'][0]]
+        second['list'][0]['cp_id'] = '1790929999'
+        second['count'] = 1
+        second['last_page'] = 1
+
+        with patch.object(
+            assaview_crawler,
+            'fetch_page',
+            side_effect=[first, second],
+        ) as fetch:
+            campaigns = assaview_crawler.collect_all(
+                object(),
+                sleep_between=False,
+            )
+
+        self.assertEqual(len(campaigns), 4)
+        self.assertEqual(
+            [item.kwargs['page'] for item in fetch.call_args_list],
+            [1, 2],
+        )
+
+    def test_assaview_invalid_link_is_rejected(self):
+        self.assertIsNone(
+            assaview_crawler.parse_campaign_link(
+                'https://example.com/campaign.php?cp_id=1790924292'
+            )
+        )
+        self.assertIsNone(
+            assaview_crawler.parse_campaign_link('/campaign.php?cp_id=broken')
+        )
+
+    def test_assaview_cli_defaults_to_dry_run(self):
+        with patch.object(assaview_crawler, 'get_assaview_data') as collect:
+            assaview_crawler.main([])
+
+        collect.assert_called_once_with(dry_run=True)
+
+    def test_assaview_cli_requires_explicit_write_flag(self):
+        with patch.object(assaview_crawler, 'get_assaview_data') as collect:
+            assaview_crawler.main(['--write'])
+
+        collect.assert_called_once_with(dry_run=False)
+
     def test_reviewnote_fixture(self):
         item = json.loads((FIXTURES / 'reviewnote.json').read_text(encoding='utf-8'))
         campaign = reviewnote_crawler.parse_reviewnote_item(item)
@@ -180,6 +301,7 @@ class CrawlerFixtureTests(unittest.TestCase):
         broken = "<html><body><a href='/campaigns/9999'>구조 변경됨</a></body></html>"
         self.assertEqual(mible_crawler.parse_page(broken), [])
         self.assertEqual(dinnerqueen_crawler.extract_listing_campaigns(broken), [])
+        self.assertEqual(assaview_crawler.parse_page(broken), [])
 
 
 if __name__ == '__main__':

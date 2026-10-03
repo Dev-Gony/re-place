@@ -1,6 +1,6 @@
 # Source Usage Register
 
-확인일: 2026-09-29 (RPL-011 갱신)
+확인일: 2026-10-03 (RPL-040 갱신)
 
 이 문서는 Re:Place가 외부 캠페인 정보를 수집할 때 사용하는 운영 대장이다.  
 **robots.txt 허용이나 공개 페이지 접근 가능 여부만으로 상업적 재사용 허가를 의미하지 않는다.**  
@@ -13,6 +13,7 @@
 | 미블 | active-with-review | 공개 HTML 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 확장 전 운영자 문의 권장 |
 | 리뷰플레이스 | active-with-review | 공개 HTML 카테고리 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 구조 확장 전 정책 재확인 |
 | 리뷰어스 | active-with-review | 공개 HTML 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 확장 전 정책 재확인 |
+| 아싸뷰 | paused-live-validation | 공개 HTML + `campaign_list.php?json=list&page=N` GET | 공개 서비스 약관 링크/공지 확인. 자동 수집 명시 허용은 확인하지 못함 | 비로그인 JSON 목록과 numbered pagination 확인. GitHub Actions 접근성 검증 예정 | 숫자형 `cp_id`와 최소 검색 메타데이터 수집 PoC 진행. live dry-run 전 production 활성화 금지 |
 | 강남맛집 | paused-technical | 공개 상세 페이지 + `index_recommend.php` JSON | 상세/추천 데이터는 공개 접근 가능. 전체 목록의 안정적 공개 endpoint는 확인 못함 | 추천 JSON은 공개지만 10개 고정 추천만 반환 | 전체 목록 endpoint 확인 전 production 저장/검색 노출 금지 |
 | 레뷰 | paused-auth | 공개 웹 + 인증필수 `api.weble.net/v1/campaigns` | 2026-09-29 공개 약관/운영정책 확인. 자동수집 명시 허용은 확인 못함 | 공개 웹은 200, 캠페인 API 무인증 401 | 브라우저/앱 토큰 복사 없이 공식 API·제휴 또는 공개 목록 경로 확보 전 재활성화 금지 |
 | 슈퍼멤버스 | paused-auth | 블로거 앱 + 사장님용 공개 웹 | 공식 약관 확인. 앱/사이트 멤버십서비스 구조 명시 | 공개 웹은 200, `api.supermembers.co.kr` 노출되나 확인한 read GET은 무인증 403 | 앱 세션/회원 토큰 우회 없이 공식 제휴/API 경로가 확인될 때까지 운영 수집 보류 |
