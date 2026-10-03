@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from unittest.mock import Mock
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -155,6 +156,94 @@ class CrawlerFixtureTests(unittest.TestCase):
         self.assertIsNone(
             poblog_crawler.parse_campaign_link('https://example.com/campaign/123/')
         )
+
+    def test_poblog_api_item_fixture(self):
+        item = json.loads(
+            (FIXTURES / 'poblog_api.json').read_text(encoding='utf-8')
+        )
+        campaign = poblog_crawler.parse_api_item(item)
+        self.assertIsNotNone(campaign)
+        self.assertEqual(campaign.source_campaign_id, '410915')
+        self.assertEqual(campaign.platform, '포블로그')
+        self.assertEqual(campaign.campaign_type, '방문형')
+        self.assertEqual(campaign.media_type, '숏폼(릴스)')
+        self.assertEqual(campaign.region, '서울 강남')
+        self.assertEqual(campaign.recruit_count, 5)
+        self.assertEqual(campaign.apply_count, 17)
+        self.assertIn('2026-10-12', campaign.deadline_at)
+
+    def test_poblog_api_catalogue_uses_count_and_offset(self):
+        first = Mock()
+        first.raise_for_status.return_value = None
+        first.json.return_value = {
+            'count': 3,
+            'list': [
+                {
+                    'url': '/campaign/410901/',
+                    'title': '[서울/강남] 첫 캠페인',
+                    'region': '서울/강남',
+                    'period_info': '모집 10.02~10.12',
+                    'recruit_count': 5,
+                    'media': '블로그 방문형',
+                },
+                {
+                    'url': '/campaign/410902/',
+                    'title': '[제품/배송] 둘째 캠페인',
+                    'period_info': '모집 10.02~10.13',
+                    'recruit_count': 10,
+                    'media': '블로그 배송형',
+                },
+            ],
+        }
+        second = Mock()
+        second.raise_for_status.return_value = None
+        second.json.return_value = {
+            'count': 3,
+            'list': [
+                {
+                    'url': '/campaign/410903/',
+                    'title': '[서울/성수] 셋째 캠페인',
+                    'region': '서울/성수',
+                    'period_info': '모집 10.02~10.14',
+                    'recruit_count': 2,
+                    'media': '릴스 방문형',
+                },
+            ],
+        }
+        session = Mock()
+        session.post.side_effect = [first, second]
+
+        campaigns = poblog_crawler.collect_api_catalogue(
+            session,
+            limit=2,
+            max_pages=3,
+            sleep_between=False,
+        )
+
+        self.assertEqual(len(campaigns), 3)
+        self.assertEqual(session.post.call_count, 2)
+        first_data = session.post.call_args_list[0].kwargs['data']
+        second_data = session.post.call_args_list[1].kwargs['data']
+        self.assertEqual(first_data['page'], 1)
+        self.assertEqual(first_data['offset'], 0)
+        self.assertEqual(first_data['limit'], 2)
+        self.assertEqual(second_data['page'], 2)
+        self.assertEqual(second_data['offset'], 2)
+
+    def test_poblog_api_fails_closed_on_early_empty_page(self):
+        first = Mock()
+        first.raise_for_status.return_value = None
+        first.json.return_value = {'count': 10, 'list': []}
+        session = Mock()
+        session.post.return_value = first
+
+        with self.assertRaises(RuntimeError):
+            poblog_crawler.collect_api_catalogue(
+                session,
+                limit=20,
+                max_pages=2,
+                sleep_between=False,
+            )
 
     def test_reviewplace_region_tag_fixture(self):
         html = """<html><body>

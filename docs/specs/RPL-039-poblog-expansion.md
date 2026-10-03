@@ -45,7 +45,7 @@ Re:Place 운영 수집 플랫폼은 현재 디너의여왕, 미블, 리뷰플레
 3. 알 수 없는 값은 추측하지 않고 null/빈 값으로 유지한다.
 4. 중복 source ID를 제거한다.
 5. 목록 구조가 깨져 0건이 되면 성공 처리하지 않는다.
-6. 초기 목록을 넘는 전체 수집 방식이 검증되지 않으면 운영 활성화하지 않는다.
+6. 공개 `POST /api/main/list`의 `count/page/offset/limit` 계약으로 전체 목록을 순회한다.
 7. 수집 빈도는 기존 6시간 배치보다 높이지 않는다.
 
 ## 정책/접근 경계
@@ -70,8 +70,8 @@ robots 허용은 상업적 재사용 허가로 간주하지 않는다.
 
 ## 위험
 
-- 더보기/동적 로딩 endpoint 변경
-- 목록 페이지가 일부만 SSR하고 나머지를 client-side 로드할 가능성
+- 공개 `/api/main/list` endpoint 또는 응답 필드 변경
+- API count와 실제 list 누적 건수 불일치
 - 캠페인 전문을 과도하게 저장하는 문제
 - 동일 광고 캠페인의 매체별 중복
 
@@ -81,8 +81,24 @@ production registry에 활성화하기 전까지 운영 영향 없음. 활성화
 
 ## 완료 조건
 
-- 전체 목록 접근 방식 검증
+- 전체 목록 접근 방식 검증: `POST /api/main/list`, `page/offset/limit`, `offset >= count` 종료
 - fixture 테스트 통과
 - dry-run에서 충분한 캠페인 수와 샘플 정확도 확인
 - Source Usage Register 갱신
 - 운영 활성화는 별도 검증 후 진행
+
+## 확인된 무한스크롤 계약
+
+2026-10-02 공개 페이지 inline JavaScript 기준:
+
+- endpoint: `POST https://4blog.net/api/main/list`
+- encoding: form-urlencoded
+- fields: `param`, `page`, `offset`, `limit`
+- 기본 `limit=20`
+- `param={"list_type":"all","cate_idx":"","scate_idx":""}`
+- response: top-level `count`와 `list`
+- page마다 `offset += list.length`
+- `offset >= count`에서 종료
+- 로그인/사용자 토큰 없이 공개 목록 페이지가 자체적으로 호출하는 계약
+
+구현은 이 계약을 그대로 사용하며, count 도달 전 빈 페이지, 비정상 JSON, 낮은 파싱률에서는 fail-closed 한다.

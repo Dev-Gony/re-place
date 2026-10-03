@@ -1,42 +1,50 @@
 import argparse
+import json
+import random
 import re
+import time
 from datetime import datetime
+from typing import Any
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
 
 import requests
-from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-from common import Campaign, extract_region_from_title, normalize_region_group
+from common import (
+    Campaign,
+    extract_region_from_title,
+    normalize_datetime,
+    normalize_region_group,
+)
 
 
 BASE_URL = "https://4blog.net"
-LIST_URLS = (
-    f"{BASE_URL}/list/all",
-    f"{BASE_URL}/list/all/deliv",
-    f"{BASE_URL}/list/all/reporter",
-    f"{BASE_URL}/list/danggeun",
-    f"{BASE_URL}/list/all/local/sseoul",
-    f"{BASE_URL}/list/all/local/seoul",
-    f"{BASE_URL}/list/all/local/ggic",
-    f"{BASE_URL}/list/all/local/ggbb",
-    f"{BASE_URL}/list/all/local/icnb",
-    f"{BASE_URL}/list/all/local/bsgs",
-    f"{BASE_URL}/list/all/local/dgdg",
-    f"{BASE_URL}/list/all/local/djch",
-    f"{BASE_URL}/list/all/local/gjjr",
-    f"{BASE_URL}/list/all/local/ga",
-    f"{BASE_URL}/list/all/local/jeju",
-)
+LIST_URL = f"{BASE_URL}/list/all"
+API_URL = f"{BASE_URL}/api/main/list"
 CAMPAIGN_RE = re.compile(r"^/campaign/(\d+)/?$")
 RECRUIT_RE = re.compile(r"모집\s*([\d,]+)명")
+APPLY_RE = re.compile(r"(?:신청|지원)\s*([\d,]+)명?")
 PERIOD_RE = re.compile(
     r"모집\s*(\d{2}\.\d{2})\s*[~～-]\s*(\d{2}\.\d{2})"
 )
 POINT_RE = re.compile(r"([\d,]+)\s*P\b", re.IGNORECASE)
+PAGE_LIMIT = 20
+MAX_PAGES = 100
 
 
 def build_session() -> requests.Session:
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=2,
+        status=2,
+        backoff_factor=1.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET", "POST"}),
+        respect_retry_after_header=True,
+    )
     session = requests.Session()
     session.headers.update(
         {
@@ -46,8 +54,12 @@ def build_session() -> requests.Session:
                 "Chrome/154.0.0.0 Safari/537.36"
             ),
             "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.7",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": LIST_URL,
         }
     )
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("http://", HTTPAdapter(max_retries=retry))
     return session
 
 
@@ -64,66 +76,43 @@ def parse_campaign_link(href: str) -> tuple[str, str] | None:
     return source_id, f"{BASE_URL}/campaign/{source_id}/"
 
 
-def find_card(anchor):
-    for parent in anchor.parents:
-        if getattr(parent, "name", None) in {"body", "html"}:
-            break
-        text = " ".join(parent.stripped_strings)
-        if PERIOD_RE.search(text) and RECRUIT_RE.search(text):
-            return parent
-        if len(text) > 5000:
-            break
-    return None
+def _string_values(value: Any):
+    if isinstance(value, dict):
+        for nested in value.values():
+            yield from _string_values(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _string_values(nested)
+    elif isinstance(value, (str, int, float)):
+        text = str(value).strip()
+        if text:
+            yield text
 
 
-def _candidate_title(card, anchor) -> str:
-    for selector in (
-        ".subject",
-        ".title",
-        ".campaign-title",
-        ".item-title",
-        "h2",
-        "h3",
-        "h4",
-        "strong",
-    ):
-        node = card.select_one(selector)
-        if node:
-            text = " ".join(node.stripped_strings).strip()
-            if text and "모집" not in text:
+def _first_text(item: dict[str, Any], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = item.get(key)
+        if isinstance(value, (str, int, float)):
+            text = str(value).strip()
+            if text:
                 return text
-
-    parts = [" ".join(node.stripped_strings).strip() for node in anchor.find_all(["span", "p", "div"])]
-    parts.append(" ".join(anchor.stripped_strings).strip())
-
-    ignored = {
-        "방문형",
-        "배송형",
-        "기자단",
-        "블로그",
-        "인스타",
-        "인스타그램",
-        "릴스",
-        "유튜브",
-        "숏츠",
-        "틱톡",
-        "스레드",
-        "네이버클립",
-        "당근",
-        "X",
-        "기타",
-    }
-    for part in parts:
-        if (
-            part
-            and part not in ignored
-            and not part.startswith("모집 ")
-            and not PERIOD_RE.search(part)
-            and not re.fullmatch(r"D-?\d+|오늘마감", part.replace(" ", ""))
-            and len(part) <= 220
-        ):
-            return part
     return ""
+
+
+def _first_int(item: dict[str, Any], keys: tuple[str, ...]) -> int | None:
+    for key in keys:
+        value = item.get(key)
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            cleaned = value.replace(",", "").strip()
+            if cleaned.isdigit():
+                return int(cleaned)
+    return None
 
 
 def parse_media_type(text: str) -> str:
@@ -148,7 +137,7 @@ def parse_campaign_type(text: str, title: str) -> str | None:
     source = f"{text} {title}"
     if "페이백" in source:
         return "페이백"
-    if "기자단" in source:
+    if "기자단" in source or "포스팅" in source:
         return "기자단"
     if "배송형" in source or "[제품" in title or "[배송" in title:
         return "배송형"
@@ -157,11 +146,20 @@ def parse_campaign_type(text: str, title: str) -> str | None:
     return None
 
 
-def parse_region(title: str, campaign_type: str | None) -> str | None:
+def parse_region(
+    title: str,
+    campaign_type: str | None,
+    raw_region: str = "",
+) -> str | None:
     if campaign_type in {"배송형", "페이백"}:
         return "배송"
     if campaign_type == "기자단":
         return "전국"
+
+    if raw_region:
+        cleaned = raw_region.replace("/", " ").strip()
+        if normalize_region_group(cleaned):
+            return cleaned
 
     region = extract_region_from_title(title)
     if region:
@@ -208,139 +206,280 @@ def parse_deadline(text: str, *, now: datetime | None = None) -> str | None:
     return target.isoformat()
 
 
-def extract_reward(card, title: str, text: str) -> str:
-    for node in card.find_all("p"):
-        value = " ".join(node.stripped_strings).strip()
-        if not value or value == title:
-            continue
-        if PERIOD_RE.search(value):
-            continue
-        if RECRUIT_RE.fullmatch(value):
-            continue
-        if value in {
-            "방문형",
-            "배송형",
-            "기자단",
-            "블로그",
-            "인스타",
-            "인스타그램",
-            "릴스",
-            "유튜브",
-            "숏츠",
-            "틱톡",
-            "스레드",
-            "네이버클립",
-            "당근",
-            "X",
-            "기타",
-        }:
-            continue
-        if re.fullmatch(r"D-?\d+|오늘마감", value.replace(" ", "")):
-            continue
-        if len(value) >= 3:
-            reward = value[:1200]
-            point = POINT_RE.search(text)
-            if point and point.group(0) not in reward:
-                reward = f"{reward} · {point.group(0)}"
-            return reward
-
-    point = POINT_RE.search(text)
-    return point.group(0) if point else ""
+def _deadline_from_item(item: dict[str, Any], text: str) -> str | None:
+    for key in (
+        "deadline_at",
+        "deadline",
+        "end_at",
+        "end_date",
+        "recruit_end",
+        "recruit_end_at",
+    ):
+        parsed = normalize_datetime(item.get(key))
+        if parsed:
+            return parsed
+    return parse_deadline(text)
 
 
-def parse_campaign(anchor) -> Campaign | None:
-    link_data = parse_campaign_link(anchor.get("href", ""))
+def parse_api_item(item: dict[str, Any]) -> Campaign | None:
+    if not isinstance(item, dict):
+        return None
+
+    href = _first_text(
+        item,
+        ("url", "link", "campaign_url", "href", "detail_url"),
+    )
+    link_data = parse_campaign_link(href)
     if link_data is None:
         return None
     source_id, link = link_data
 
-    card = find_card(anchor)
-    if card is None:
-        return None
-
-    text = " ".join(card.stripped_strings).strip()
-    recruit = RECRUIT_RE.search(text)
-    period = PERIOD_RE.search(text)
-    if not recruit or not period:
-        return None
-
-    title = _candidate_title(card, anchor)
+    title = _first_text(
+        item,
+        ("title", "subject", "campaign_title", "name"),
+    )
     if not title:
         return None
 
-    campaign_type = parse_campaign_type(text, title)
-    region = parse_region(title, campaign_type)
-    reward = extract_reward(card, title, text)
+    all_text = " ".join(_string_values(item))
+    campaign_type = parse_campaign_type(all_text, title)
+
+    raw_region = _first_text(
+        item,
+        ("region", "location", "area", "local", "local_name"),
+    )
+    region = parse_region(title, campaign_type, raw_region)
+
+    recruit_count = _first_int(
+        item,
+        (
+            "recruit_count",
+            "recruit_num",
+            "recruit",
+            "target_num",
+            "member_num",
+            "people",
+        ),
+    )
+    if recruit_count is None:
+        match = RECRUIT_RE.search(all_text)
+        if match:
+            recruit_count = int(match.group(1).replace(",", ""))
+
+    apply_count = _first_int(
+        item,
+        (
+            "apply_count",
+            "apply_num",
+            "applicant_count",
+            "volunteer_count",
+        ),
+    )
+    if apply_count is None:
+        match = APPLY_RE.search(all_text)
+        if match:
+            apply_count = int(match.group(1).replace(",", ""))
+
+    reward = _first_text(
+        item,
+        (
+            "payback_info",
+            "reward",
+            "reward_info",
+            "benefit",
+            "provide_info",
+            "offer",
+            "content",
+        ),
+    )
+    period_info = _first_text(
+        item,
+        ("period_info", "period", "recruit_period"),
+    )
+    deadline_source = f"{period_info} {all_text}".strip()
+
+    image_url = _first_text(
+        item,
+        ("thumbnail", "thumbnail_url", "image", "image_url"),
+    )
+    if image_url:
+        image_url = urljoin(BASE_URL, image_url)
 
     return Campaign(
         platform="포블로그",
         source_campaign_id=source_id,
         title=title,
         link=link,
-        media_type=parse_media_type(text),
+        image_url=image_url,
+        media_type=parse_media_type(all_text),
         reward=reward,
-        is_points=bool(POINT_RE.search(text)),
-        recruit_count=int(recruit.group(1).replace(",", "")),
+        is_points=bool(POINT_RE.search(all_text)),
+        apply_count=apply_count,
+        recruit_count=recruit_count,
         region=region,
         campaign_type=campaign_type,
-        deadline_at=parse_deadline(text),
+        deadline_at=_deadline_from_item(item, deadline_source),
     )
 
 
-def parse_page(html: str) -> list[Campaign]:
-    soup = BeautifulSoup(html, "html.parser")
+def _api_form(page: int, offset: int, limit: int) -> dict[str, str | int]:
+    return {
+        "param": json.dumps(
+            {
+                "list_type": "all",
+                "cate_idx": "",
+                "scate_idx": "",
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ),
+        "page": page,
+        "offset": offset,
+        "limit": limit,
+    }
+
+
+def fetch_api_page(
+    session: requests.Session,
+    *,
+    page: int,
+    offset: int,
+    limit: int = PAGE_LIMIT,
+) -> tuple[int, list[dict[str, Any]]]:
+    response = session.post(
+        API_URL,
+        data=_api_form(page, offset, limit),
+        timeout=(10, 30),
+    )
+    response.raise_for_status()
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise RuntimeError("포블로그 목록 API가 JSON을 반환하지 않았습니다.") from exc
+
+    if not isinstance(payload, dict):
+        raise RuntimeError("포블로그 목록 API 응답이 객체가 아닙니다.")
+
+    raw_count = payload.get("count")
+    try:
+        count = int(str(raw_count).replace(",", ""))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("포블로그 목록 API count가 올바르지 않습니다.") from exc
+
+    raw_items = payload.get("list")
+    if not isinstance(raw_items, list):
+        raise RuntimeError("포블로그 목록 API list가 배열이 아닙니다.")
+
+    items = [item for item in raw_items if isinstance(item, dict)]
+    if len(items) != len(raw_items):
+        raise RuntimeError("포블로그 목록 API list에 비객체 항목이 있습니다.")
+
+    return count, items
+
+
+def collect_api_catalogue(
+    session: requests.Session,
+    *,
+    limit: int = PAGE_LIMIT,
+    max_pages: int = MAX_PAGES,
+    sleep_between: bool = True,
+) -> list[Campaign]:
+    page = 1
+    offset = 0
+    expected_count: int | None = None
     campaigns: dict[str, Campaign] = {}
+    raw_seen = 0
+    parse_failures = 0
 
-    for anchor in soup.find_all("a", href=True):
-        link_data = parse_campaign_link(anchor.get("href", ""))
-        if link_data is None:
-            continue
-        source_id, _ = link_data
-        if source_id in campaigns:
-            continue
+    while page <= max_pages:
+        count, items = fetch_api_page(
+            session,
+            page=page,
+            offset=offset,
+            limit=limit,
+        )
+        if count < 0:
+            raise RuntimeError("포블로그 목록 API count가 음수입니다.")
 
-        campaign = parse_campaign(anchor)
-        if campaign is not None:
-            campaigns[source_id] = campaign
+        if expected_count is None:
+            expected_count = count
+        else:
+            expected_count = max(expected_count, count)
 
-    return list(campaigns.values())
+        if not items:
+            if offset < count:
+                raise RuntimeError(
+                    "포블로그 목록 API가 전체 count 도달 전에 빈 페이지를 반환했습니다."
+                )
+            break
 
-
-def collect_public_partitions(session: requests.Session) -> list[Campaign]:
-    campaigns: dict[str, Campaign] = {}
-
-    for url in LIST_URLS:
-        response = session.get(url, timeout=(10, 30))
-        response.raise_for_status()
-        page_campaigns = parse_page(response.text)
-        print(f"포블로그 공개 분할 {url}: {len(page_campaigns)}개 발견")
-
-        for campaign in page_campaigns:
+        for item in items:
+            raw_seen += 1
+            campaign = parse_api_item(item)
+            if campaign is None:
+                parse_failures += 1
+                continue
             campaigns[campaign.source_campaign_id] = campaign
+
+        offset += len(items)
+        print(
+            f"포블로그 API {page}페이지: {len(items)}개, "
+            f"offset {offset}/{count}, 고유 {len(campaigns)}개"
+        )
+
+        if offset >= count:
+            break
+
+        page += 1
+        if sleep_between:
+            time.sleep(random.uniform(0.25, 0.45))
+    else:
+        raise RuntimeError(
+            f"포블로그 목록 API가 max_pages={max_pages} 안에 종료되지 않았습니다."
+        )
+
+    if expected_count is None or expected_count == 0:
+        raise RuntimeError("포블로그 목록 API에 모집중 캠페인이 없습니다.")
+
+    if raw_seen < expected_count:
+        raise RuntimeError(
+            "포블로그 목록 API 전체 count보다 적은 항목만 확인했습니다: "
+            f"{raw_seen}/{expected_count}"
+        )
+
+    if not campaigns:
+        raise RuntimeError("포블로그 API 응답에서 유효한 캠페인을 파싱하지 못했습니다.")
+
+    parse_ratio = len(campaigns) / raw_seen
+    if parse_ratio < 0.90:
+        raise RuntimeError(
+            "포블로그 API 파싱 성공률이 90% 미만입니다: "
+            f"{len(campaigns)}/{raw_seen}"
+        )
+
+    if parse_failures:
+        print(f"[WARN] 포블로그 API 파싱 제외: {parse_failures}개")
 
     return list(campaigns.values())
 
 
 def get_poblog_data(*, dry_run: bool = False) -> list[Campaign]:
     """
-    Collect the server-rendered public partitions as a coverage probe.
+    Traverse the same public API contract used by 4blog's infinite scroll.
 
-    4blog loads more campaigns with client-side infinite scroll. Until the
-    complete public loading contract is identified and validated, this
-    collector intentionally stays out of run_all.py and never writes to the
-    production database.
+    The API contract is now identified, but production DB writes remain
+    intentionally blocked until a live dry-run confirms catalogue size and
+    representative field accuracy.
     """
     with build_session() as session:
-        campaigns = collect_public_partitions(session)
+        campaigns = collect_api_catalogue(session)
 
-    if not campaigns:
-        raise RuntimeError("포블로그 공개 목록에서 캠페인을 파싱하지 못했습니다.")
-
-    print(f"포블로그 공개 분할 dry-run: 중복 제거 후 {len(campaigns)}개 확인")
+    print(f"포블로그 전체 API dry-run: 고유 {len(campaigns)}개 확인")
 
     if not dry_run:
         raise RuntimeError(
-            "포블로그 무한스크롤의 전체 로딩 계약이 아직 검증되지 않아 "
+            "포블로그 전체 API 계약은 구현됐지만 live dry-run 승인 전이라 "
             "production 저장을 차단합니다."
         )
 
@@ -352,7 +491,7 @@ def main() -> None:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="공개 분할 목록만 검증하고 DB에는 저장하지 않습니다.",
+        help="공개 전체 목록 API를 순회하고 DB에는 저장하지 않습니다.",
     )
     args = parser.parse_args()
     get_poblog_data(dry_run=args.dry_run)

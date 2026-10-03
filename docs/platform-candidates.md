@@ -49,9 +49,10 @@
 - 공개 비로그인 목록 사용 가능
 - 상세 링크: `/campaign/{numeric-id}/`
 - 목록은 JavaScript 무한스크롤
-- `?page=2`, `?page=3` 같은 단순 page query는 동일한 초기 목록을 반환해 전체 수집 방법으로 사용할 수 없음
-- 공개 분할 경로: 전체, 배송, 기자단, 당근, 지역별 목록
-- 전체 client-side 로딩 계약이 확정되기 전에는 production collector로 활성화하지 않음
+- 페이지 inline JS에서 공개 `POST /api/main/list` 확인
+- `page`, `offset`, `limit=20`, `count` 기반 전체 순회 계약 확인
+- 단순 `?page=N` query는 전체 pagination으로 사용하지 않음
+- API 전체 순회 구현 완료, live dry-run의 수집량/필드 정확도 확인 전 production collector 활성화 금지
 
 ## 연동 공통 체크
 

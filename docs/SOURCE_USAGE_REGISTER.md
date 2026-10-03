@@ -13,7 +13,7 @@
 | 미블 | active-with-review | 공개 HTML 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 확장 전 운영자 문의 권장 |
 | 리뷰플레이스 | active-with-review | 공개 HTML 카테고리 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 구조 확장 전 정책 재확인 |
 | 리뷰어스 | active-with-review | 공개 HTML 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 확장 전 정책 재확인 |
-| 포블로그 | paused-coverage | 공개 HTML 목록 + 비로그인 상세 | 공개 약관 확인. 자동 수집에 대한 명시적 허용은 확인하지 못함 | robots.txt는 `/` 허용, `/temp/`·`/admin/` 차단. 목록은 client-side 무한스크롤 | 숫자형 campaign ID와 공개 메타데이터 파싱 PoC 진행. 전체 로딩 계약 검증 전 production 저장/검색 노출 금지 |
+| 포블로그 | paused-live-validation | 공개 `POST /api/main/list` + 비로그인 상세 | 공개 약관 확인. 자동 수집에 대한 명시적 허용은 확인하지 못함 | robots.txt는 `/` 허용, `/temp/`·`/admin/` 차단. 페이지 자체가 공개 API를 무한스크롤에 사용 | `count/page/offset/limit` 전체 순회 계약 구현. live dry-run의 규모·필드 정확도 검증 전 production 저장/검색 노출 금지 |
 | 강남맛집 | paused-technical | 공개 상세 페이지 + `index_recommend.php` JSON | 상세/추천 데이터는 공개 접근 가능. 전체 목록의 안정적 공개 endpoint는 확인 못함 | 추천 JSON은 공개지만 10개 고정 추천만 반환 | 전체 목록 endpoint 확인 전 production 저장/검색 노출 금지 |
 | 레뷰 | paused-auth | 공개 웹 + 인증필수 `api.weble.net/v1/campaigns` | 2026-09-29 공개 약관/운영정책 확인. 자동수집 명시 허용은 확인 못함 | 공개 웹은 200, 캠페인 API 무인증 401 | 브라우저/앱 토큰 복사 없이 공식 API·제휴 또는 공개 목록 경로 확보 전 재활성화 금지 |
 | 슈퍼멤버스 | paused-auth | 블로거 앱 + 사장님용 공개 웹 | 공식 약관 확인. 앱/사이트 멤버십서비스 구조 명시 | 공개 웹은 200, `api.supermembers.co.kr` 노출되나 확인한 read GET은 무인증 403 | 앱 세션/회원 토큰 우회 없이 공식 제휴/API 경로가 확인될 때까지 운영 수집 보류 |
