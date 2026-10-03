@@ -49,6 +49,7 @@ class SourcePolicyTests(unittest.TestCase):
         self.assertNotIn("레뷰", run_all.COLLECTOR_MAP)
         self.assertNotIn("강남맛집", run_all.COLLECTOR_MAP)
         self.assertNotIn("슈퍼멤버스", run_all.COLLECTOR_MAP)
+        self.assertNotIn("아싸뷰", run_all.COLLECTOR_MAP)
 
     def test_registry_drives_enabled_collectors(self):
         connection = FakeConnection([
@@ -72,6 +73,15 @@ class SourcePolicyTests(unittest.TestCase):
         with patch.object(run_all, "get_database_connection", return_value=connection):
             with self.assertRaises(RuntimeError):
                 run_all.get_enabled_collectors()
+
+    def test_assaview_live_probe_is_dry_run_only(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "assaview-live-probe.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("python crawlers/assaview_crawler.py --dry-run", workflow)
+        self.assertNotIn("--write", workflow)
+        self.assertNotIn("DATABASE_URL", workflow)
 
 
 if __name__ == "__main__":

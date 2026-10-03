@@ -1,0 +1,48 @@
+{
+  "count": 3,
+  "last_page": 0,
+  "list": [
+    {
+      "cp_id": "1790924292",
+      "cp_subject": "[서울 구로구] 미인본가온 신도림",
+      "cp_type": "방문형",
+      "cp_media_reels": "1",
+      "cp_order": "7",
+      "cp_recruit": "5",
+      "cp_countdown": "2026/10/09 23:59:59",
+      "cp_opt_text": "[100,000원 상당] 성형윤곽관리",
+      "cp_opt_name": "성형윤곽관리",
+      "cp_point2": "9,000 P",
+      "cp_point_text": "최대 0P",
+      "cp_img": "./data/campaign/thumb/sample.jpg"
+    },
+    {
+      "cp_id": "1790928036",
+      "cp_subject": "꼬마생각뒤집기",
+      "cp_type": "배송형",
+      "cp_media_blog": 1,
+      "cp_order": 29,
+      "cp_recruit": 3,
+      "cp_countdown": "2026/10/09 23:59:59",
+      "cp_opt_text": "[42,900원 상당] 꼬마생각뒤집기",
+      "cp_opt_name": "꼬마생각뒤집기",
+      "cp_point2": "",
+      "cp_point_text": "최대 0P",
+      "cp_img": "./data/campaign/thumb/product.jpg"
+    },
+    {
+      "cp_id": "1689817213",
+      "cp_subject": "[경기 의정부시] 고품질 한돈 급랭삼겹살 전문점",
+      "cp_type": "결제형",
+      "cp_media_blog": "1",
+      "cp_order": "3",
+      "cp_recruit": "15",
+      "cp_countdown": "2026/10/09 14:00:00",
+      "cp_opt_text": "식사권 결제 후 환급",
+      "cp_opt_name": "고품질 한돈 급랭삼겹살",
+      "cp_point2": "",
+      "cp_point_text": "최대 0P",
+      "cp_img": "./data/campaign/thumb/payment.jpg"
+    }
+  ]
+}
