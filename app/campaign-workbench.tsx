@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FavoriteButton } from "./favorite-button";
 import { useFavorites } from "./favorites-provider";
+import { PlatformBadge } from "./platform-badge";
 
 export type CampaignWorkbenchItem = {
   id: number;
@@ -61,7 +62,7 @@ function DetailInspector({
     <aside className={mobile ? "campaign-inspector mobile" : "campaign-inspector"} aria-label="선택 캠페인 상세">
       <div className="campaign-inspector-head">
         <div className="campaign-inspector-badges">
-          <span className="inspector-platform">{item.platform}</span>
+          <PlatformBadge platform={item.platform} className="inspector-platform" />
           {item.campaignType && <span>{item.campaignType}</span>}
           {item.mediaType && <span>{item.mediaType}</span>}
         </div>
@@ -192,7 +193,7 @@ export function CampaignWorkbench({ items }: { items: CampaignWorkbenchItem[] })
                   />
                   <div className="campaign-workbench-main">
                     <div className="campaign-workbench-meta">
-                      <span className="platform-badge">{item.platform}</span>
+                      <PlatformBadge platform={item.platform} className="platform-badge" />
                       {item.campaignType && <span className="sub-badge">{item.campaignType}</span>}
                       {item.mediaType && <span className="campaign-source-copy">{item.mediaType}</span>}
                     </div>

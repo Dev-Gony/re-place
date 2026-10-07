@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { platformBrandStyle } from "@/lib/platform-brand";
 
 type FilterValues = {
   q: string;
@@ -260,7 +261,11 @@ export function FilterPanel({
           <span className="filter-toolbar-label">플랫폼</span>
           <div className="filter-inline-options">
             {platforms.map((item) => (
-              <label className="filter-check" key={item}>
+              <label
+                className="filter-check platform-filter-option"
+                key={item}
+                style={platformBrandStyle(item)}
+              >
                 <input
                   type="checkbox"
                   name="platform"
@@ -268,7 +273,7 @@ export function FilterPanel({
                   defaultChecked={values.platforms.includes(item)}
                 />
                 <span className="filter-check-box" aria-hidden="true" />
-                <span>{item}</span>
+                <span className="platform-filter-label">{item}</span>
               </label>
             ))}
           </div>
