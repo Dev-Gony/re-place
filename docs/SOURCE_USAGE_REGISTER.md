@@ -9,7 +9,7 @@
 | 플랫폼 | 운영 상태 | 현재 접근 방식 | 공식 약관/정책 확인 | robots/API 확인 | 현재 판단 |
 | --- | --- | --- | --- | --- | --- |
 | 리뷰노트 | blocked | Next.js 공개 데이터 경로 | 운영정책에서 사전 서면 동의 없는 자동 수집/크롤링 및 외부 게시 제한 확인 | robots.txt 별도 확인 | 운영 배치 제외. 서면 허용 또는 공식 API/제휴 전 재활성화 금지 |
-| 리뷰노트(공개목록) | ready-user-approved-portfolio | 공개 `/campaigns` HTML의 초기 목록만 | 기존 운영정책 제한 확인 기록 유지. 사용자가 개인 포트폴리오 목적의 수집·노출을 명시적으로 지시 | 목록 API 403, 상세 `/api/campaign?id=1471726` 401. 인증 없는 HTML에 96건, 블로그 포함 73건 | RPL-046 별도 제한 범위 source. 전체 catalogue 아님. 출시 전 수집·검색 토글로 비활성화 가능. 권리자 서면 허가 확보를 주장하지 않음 |
+| 리뷰노트(공개목록) | active-user-approved-portfolio | 공개 UI `/api/v2/campaigns` BLOG/BLOG_CLIP 전체 페이지 | 기존 운영정책 제한 확인 기록 유지. 사용자가 개인 포트폴리오 목적의 수집·노출을 명시적으로 지시 | 일반 Accept/Referer/Origin 헤더로 비로그인 목록 API 200. 앞선 헤더 누락 403 판단 정정. 상세 API 401은 유지 | RPL-046 별도 블로그 포함 공개 목록 source. 두 매체의 has_more=false까지 조회. 모든 매체 catalogue 아님. 출시 전 수집·검색 토글로 비활성화 가능. 권리자 서면 허가 확보를 주장하지 않음 |
 | 디너의여왕 | active-with-review | 공개 HTML 목록/상세 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 확장/재배포 범위 확대 금지 |
 | 미블 | active-with-review | 공개 HTML 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 확장 전 운영자 문의 권장 |
 | 리뷰플레이스 | active-with-review | 공개 HTML 카테고리 목록 | 공개 약관/정책 검색에서 자동 수집 허용을 확인하지 못함 | 공개 HTML 사용, 공식 공개 API 확인 못함 | 저빈도 공개 페이지 수집만 유지. 구조 확장 전 정책 재확인 |
@@ -65,8 +65,8 @@ RPL-045에서 사용자의 명시적 지시로 별도 `crawlers/inflexer_revu_cr
 확인 없이 단순히 크롤러가 다시 동작한다는 이유로 재활성화하지 않는다.
 
 2026-10-07 사용자가 개인 포트폴리오 용도로 공개 수집·노출을 명시적으로 지시했다.
-RPL-046은 이 지시를 반영해 별도 `reviewnote-public-list` source와 제한된 HTML 초기 목록을
-사용한다. 기존 `reviewnote` row와 실패하는 직접 API collector는 활성화하지 않는다.
+RPL-046은 이 지시를 반영해 별도 `reviewnote-public-list` source와 공개 UI의 전체
+BLOG/BLOG_CLIP 목록 API 페이지를 사용한다. 초기 HTML 한정 수집을 대체한다. 기존 `reviewnote` row와 실패하는 직접 API collector는 활성화하지 않는다.
 정책 제한 기록을 삭제하거나 개인 프로젝트라는 이유로 재사용 허가가 있다고 주장하지 않는다.
 출시 전 숨김은 새 row의 status=paused, collection_enabled=false, search_enabled=false로 가능하다.
 
