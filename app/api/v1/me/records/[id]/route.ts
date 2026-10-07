@@ -1,6 +1,6 @@
 import { queryDb } from "../../../../../../lib/db";
 import {
-  normalizeDeadline,
+  normalizeOptionalDeadline,
   normalizeOptionalText,
 } from "../../../../../../lib/private-data";
 import {
@@ -54,8 +54,13 @@ export async function PATCH(
   }
 
   const note = hasNote ? normalizeOptionalText(body.note, 4000) : null;
-  const deadlineAt =
-    body.deadlineAt === undefined ? undefined : normalizeDeadline(body.deadlineAt);
+  const hasDeadlineAt = Object.prototype.hasOwnProperty.call(body, "deadlineAt");
+  const deadlineAt = hasDeadlineAt
+    ? normalizeOptionalDeadline(body.deadlineAt)
+    : undefined;
+  if (hasDeadlineAt && deadlineAt === undefined) {
+    return v1Error("INVALID_INPUT", "deadlineAt must be a valid date", 400);
+  }
 
   const result = await queryDb(
     `update user_campaign_records
@@ -72,7 +77,7 @@ export async function PATCH(
       status,
       hasNote,
       note,
-      deadlineAt !== undefined,
+      hasDeadlineAt,
       deadlineAt ?? null,
     ],
   );

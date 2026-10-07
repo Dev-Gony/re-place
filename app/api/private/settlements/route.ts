@@ -1,7 +1,7 @@
 import { auth } from "../../../../lib/auth/server";
 import { queryDb } from "../../../../lib/db";
 import {
-  normalizeDeadline,
+  normalizeOptionalDeadline,
   normalizeOptionalText,
   privateHeaders,
 } from "../../../../lib/private-data";
@@ -20,11 +20,6 @@ function normalizeAmount(value: unknown) {
     return undefined;
   }
   return amount;
-}
-
-function normalizeOptionalDate(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  return normalizeDeadline(value) ?? undefined;
 }
 
 export async function GET() {
@@ -110,8 +105,8 @@ export async function PUT(request: Request) {
     );
   }
 
-  const cashReceivedAt = normalizeOptionalDate(body?.cashReceivedAt);
-  const reimbursementReceivedAt = normalizeOptionalDate(
+  const cashReceivedAt = normalizeOptionalDeadline(body?.cashReceivedAt);
+  const reimbursementReceivedAt = normalizeOptionalDeadline(
     body?.reimbursementReceivedAt,
   );
 

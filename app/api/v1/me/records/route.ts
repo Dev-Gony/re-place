@@ -1,7 +1,7 @@
 import { queryDb } from "../../../../../lib/db";
 import {
   getCampaignSnapshot,
-  normalizeDeadline,
+  normalizeOptionalDeadline,
   normalizeOptionalText,
 } from "../../../../../lib/private-data";
 import {
@@ -79,7 +79,10 @@ export async function POST(request: Request) {
   const reward = normalizeOptionalText(body.reward, 500);
   const region = normalizeOptionalText(body.region, 120);
   const note = normalizeOptionalText(body.note, 4000);
-  const deadlineAt = normalizeDeadline(body.deadlineAt);
+  const deadlineAt = normalizeOptionalDeadline(body.deadlineAt);
+  if (deadlineAt === undefined) {
+    return v1Error("INVALID_INPUT", "deadlineAt must be a valid date", 400);
+  }
 
   const snapshot = {
     title,

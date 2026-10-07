@@ -1,7 +1,7 @@
 import { auth } from "../../../../../lib/auth/server";
 import { queryDb } from "../../../../../lib/db";
 import {
-  normalizeDeadline,
+  normalizeOptionalDeadline,
   normalizeOptionalText,
   privateHeaders,
 } from "../../../../../lib/private-data";
@@ -49,8 +49,15 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return Response.json(
+      { error: "Invalid body" },
+      { status: 400, headers: privateHeaders() },
+    );
+  }
+
   const status =
-    typeof body?.status === "string" && STATUSES.has(body.status)
+    typeof body.status === "string" && STATUSES.has(body.status)
       ? body.status
       : null;
 
@@ -61,17 +68,35 @@ export async function PATCH(
     );
   }
 
-  const note = normalizeOptionalText(body.note, 4000);
-  const deadlineAt =
-    body.deadlineAt === undefined
-      ? undefined
-      : normalizeDeadline(body.deadlineAt);
+  const hasNote = Object.prototype.hasOwnProperty.call(body, "note");
+  if (
+    hasNote &&
+    body.note !== null &&
+    typeof body.note !== "string"
+  ) {
+    return Response.json(
+      { error: "Invalid note" },
+      { status: 400, headers: privateHeaders() },
+    );
+  }
+  const note = hasNote ? normalizeOptionalText(body.note, 4000) : null;
+
+  const hasDeadlineAt = Object.prototype.hasOwnProperty.call(body, "deadlineAt");
+  const deadlineAt = hasDeadlineAt
+    ? normalizeOptionalDeadline(body.deadlineAt)
+    : undefined;
+  if (hasDeadlineAt && deadlineAt === undefined) {
+    return Response.json(
+      { error: "Invalid deadlineAt" },
+      { status: 400, headers: privateHeaders() },
+    );
+  }
 
   const result = await queryDb(
     `update user_campaign_records
         set status = $3,
-            note = $4,
-            deadline_at = case when $5::boolean then $6::timestamptz else deadline_at end,
+            note = case when $4::boolean then $5 else note end,
+            deadline_at = case when $6::boolean then $7::timestamptz else deadline_at end,
             updated_at = now()
       where auth_user_id = $1
         and id = $2
@@ -80,8 +105,9 @@ export async function PATCH(
       owner,
       id,
       status,
+      hasNote,
       note,
-      deadlineAt !== undefined,
+      hasDeadlineAt,
       deadlineAt ?? null,
     ],
   );
