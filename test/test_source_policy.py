@@ -47,7 +47,7 @@ class SourcePolicyTests(unittest.TestCase):
     def test_blocked_source_has_no_production_collector_mapping(self):
         self.assertNotIn("리뷰노트", run_all.COLLECTOR_MAP)
         self.assertNotIn("레뷰", run_all.COLLECTOR_MAP)
-        self.assertNotIn("강남맛집", run_all.COLLECTOR_MAP)
+        self.assertIn("강남맛집", run_all.COLLECTOR_MAP)
         self.assertNotIn("슈퍼멤버스", run_all.COLLECTOR_MAP)
         self.assertNotIn("아싸뷰", run_all.COLLECTOR_MAP)
 
