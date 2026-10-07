@@ -1,7 +1,8 @@
-"""Initial public ReviewNote HTML listing for a personal portfolio, not full API coverage."""
+"""Anonymous ReviewNote public BLOG/BLOG_CLIP listing, including all public pages."""
 import argparse
 import json
 import re
+import time
 from datetime import datetime, timezone
 
 import requests
@@ -10,10 +11,20 @@ from bs4 import BeautifulSoup
 from common import Campaign, get_database_connection, upsert_campaigns
 
 URL = "https://www.reviewnote.co.kr/campaigns"
+API_URL = "https://www.reviewnote.co.kr/api/v2/campaigns"
 PLATFORM = "리뷰노트(공개목록)"
 MAX_BYTES = 4 * 1024 * 1024
-TYPES = {"VISIT": "방문형", "DELIVERY": "배송형", "TAKEOUT": "포장",
-         "PAYBACK": "페이백", "REPORTER": "기자단", "ETC": "기타"}
+MAX_PAGES = 200
+# Public initial HTML also uses 96; the anonymous listing API accepts this size.
+# Using 96 instead of the UI infinite scroll's 16 cuts requests by a factor of six.
+PAGE_SIZE = 96
+CHANNELS = ("BLOG", "BLOG_CLIP")
+HEADERS = {"User-Agent": "RePlace/1.0 (+https://re-place.devgony.com/)",
+           "Accept": "application/json", "Origin": "https://www.reviewnote.co.kr"}
+TYPES = {"VISIT": "방문형", "DELIVERY": "배송형", "TAKEOUT": "구매형",
+         "PAYBACK": "페이백", "REPORTER": "기자단", "ETC": "포장",
+         "PLATFORM_REPORTER": "기자단", "TODAY": "당일지급"}
+STATUSES = {"SELECT", "PROGRESS", "COMPLETE", "CANCELED", "REJECT", "REVIEW"}
 
 
 def parse_listing(html: str, *, now: datetime | None = None) -> list[Campaign]:
@@ -23,9 +34,12 @@ def parse_listing(html: str, *, now: datetime | None = None) -> list[Campaign]:
     payload = json.loads(tag.string)
     data = payload["props"]["pageProps"]["data"]
     rows = data.get("objects")
-    # Static snapshot metadata is NOT pagination authority (observed has_more=true).
     if not isinstance(rows, list) or not 1 <= len(rows) <= 1000:
         raise ValueError("리뷰노트 공개 목록 범위가 변경됐습니다.")
+    return parse_rows(rows, now=now)
+
+
+def parse_rows(rows: list[dict], *, now: datetime | None = None) -> list[Campaign]:
     observed = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     seen, campaigns = set(), []
     for row in rows:
@@ -45,18 +59,20 @@ def parse_listing(html: str, *, now: datetime | None = None) -> list[Campaign]:
         if not isinstance(raw_due, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})", raw_due):
             raise ValueError("리뷰노트 신청 마감일/시간대 누락.")
         due = datetime.fromisoformat(raw_due.replace("Z", "+00:00"))
-        if row.get("status") not in {"SELECT", "PROGRESS"} or row.get("sort") not in TYPES:
+        if row.get("status") not in STATUSES or row.get("sort") not in TYPES:
             raise ValueError("리뷰노트 목록 상태/유형 계약 변경.")
-        # Public detail UI enables PAYBACK at PROGRESS and other kinds at SELECT.
-        expected_status = "PROGRESS" if row["sort"] == "PAYBACK" else "SELECT"
-        if row["status"] != expected_status:
+        # Public list bundle's RP helper permits PAYBACK at SELECT or PROGRESS;
+        # other kinds must be SELECT. Complete/canceled/review states are closed.
+        allowed_statuses = {"SELECT", "PROGRESS"} if row["sort"] == "PAYBACK" else {"SELECT"}
+        if row["status"] not in allowed_statuses:
             continue
         if due < observed:
             continue
         counts = [row.get(k) for k in ("applicantCount", "infNum", "infPoint")]
         if any(type(n) is not int or n < 0 for n in counts):
             raise ValueError("리뷰노트 모집 인원/포인트 계약 변경.")
-        city, sido = row.get("city"), row.get("sido", {}).get("name")
+        district = row.get("sido")
+        city, sido = row.get("city"), district.get("name") if isinstance(district, dict) else None
         if not isinstance(city, str) or not isinstance(sido, str):
             raise ValueError("리뷰노트 지역 계약 변경.")
         # Despite the field name, sido.name is the district; city is the province.
@@ -72,23 +88,71 @@ def parse_listing(html: str, *, now: datetime | None = None) -> list[Campaign]:
             deadline_at=due.isoformat(), collected_at=observed.isoformat(),
         ))
     if not campaigns:
-        raise ValueError("공개 초기 목록에 마감 전 블로그 캠페인이 없습니다. 저장하지 않습니다.")
-    print(f"리뷰노트 공개 초기 목록 {len(rows)}건 → 마감 전 블로그 포함 {len(campaigns)}건", flush=True)
+        raise ValueError("공개 목록에 마감 전 블로그 캠페인이 없습니다. 저장하지 않습니다.")
+    print(f"리뷰노트 공개 목록 고유 {len(rows)}건 → 마감 전 블로그 포함 {len(campaigns)}건", flush=True)
     return campaigns
 
 
-def collect() -> list[Campaign]:
-    with requests.get(URL, headers={"User-Agent": "RePlace/1.0 (+https://re-place.devgony.com/)"},
+def fetch_page(channel: str, page: int) -> dict:
+    headers = {**HEADERS, "Referer": f"{URL}?channel={channel}"}
+    params = {"channel": channel, "gugunSelected": "", "s": "default",
+              "coord": "", "limit": PAGE_SIZE, "page": page}
+    with requests.get(API_URL, headers=headers, params=params,
                       timeout=(8, 25), stream=True, allow_redirects=False) as response:
         if response.status_code != 200:
             response.raise_for_status()
-            raise RuntimeError("리뷰노트 공개 HTML 응답 변경.")
+            raise RuntimeError("리뷰노트 공개 목록 API 응답 변경.")
         body = bytearray()
         for chunk in response.iter_content(chunk_size=65536):
             body.extend(chunk)
             if len(body) > MAX_BYTES:
-                raise ValueError("리뷰노트 공개 HTML 크기 제한 초과.")
-    return parse_listing(body.decode("utf-8"))
+                raise ValueError("리뷰노트 공개 목록 응답 크기 제한 초과.")
+    return json.loads(body.decode("utf-8"))
+
+
+def collect() -> list[Campaign]:
+    rows_by_id = {}
+    requests_count = 0
+    for channel in CHANNELS:
+        scope_ids, page_signatures = set(), set()
+        for page in range(MAX_PAGES):
+            if requests_count:
+                time.sleep(1)
+            payload = fetch_page(channel, page)
+            requests_count += 1
+            if (not isinstance(payload, dict) or type(payload.get("page")) is not int
+                    or payload["page"] != page or type(payload.get("has_more")) is not bool):
+                raise ValueError("리뷰노트 페이지/종료 계약 변경. 저장하지 않습니다.")
+            rows = payload.get("objects")
+            if not isinstance(rows, list) or len(rows) > PAGE_SIZE or (not rows and payload["has_more"]):
+                raise ValueError("리뷰노트 페이지 항목 계약 변경. 저장하지 않습니다.")
+            ids = []
+            for row in rows:
+                if (not isinstance(row, dict) or type(row.get("id")) is not int
+                        or row["id"] <= 0 or row.get("channel") != channel):
+                    raise ValueError("리뷰노트 페이지 ID/매체 계약 변경. 저장하지 않습니다.")
+                ids.append(row["id"])
+            signature = tuple(sorted(ids))
+            if len(ids) != len(set(ids)) or (rows and signature in page_signatures):
+                raise ValueError("리뷰노트 중복/반복 페이지. 저장하지 않습니다.")
+            page_signatures.add(signature)
+            scope_ids.update(ids)
+            # Offset listings can shift while new campaigns are published. Deduplicate
+            # overlaps, retaining the latest observed metadata for the original ID.
+            rows_by_id.update((row["id"], row) for row in rows)
+            if page and page % 20 == 0:
+                print(f"리뷰노트 {channel}: {page + 1}페이지, 고유 {len(scope_ids)}건 조회 중", flush=True)
+            if not payload["has_more"]:
+                if not scope_ids:
+                    raise ValueError("리뷰노트 매체 목록이 비었습니다. 저장하지 않습니다.")
+                print(f"리뷰노트 {channel}: {page + 1}페이지, 고유 {len(scope_ids)}건 완료", flush=True)
+                break
+        else:
+            raise ValueError("리뷰노트 최대 페이지 초과. 부분 목록을 저장하지 않습니다.")
+    # total_count is the current page length; total_pages grows page by page.
+    # Only has_more=false proves termination, not either of these metadata fields.
+    print(f"리뷰노트 공개 조회 {requests_count}요청 완료", flush=True)
+    return parse_rows(list(rows_by_id.values()))
 
 
 def get_reviewnote_public_data(*, dry_run: bool = True) -> list[Campaign]:

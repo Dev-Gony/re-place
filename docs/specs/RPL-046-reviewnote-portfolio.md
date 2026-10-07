@@ -7,13 +7,15 @@
 
 ## 범위
 
-공개 비로그인 `https://www.reviewnote.co.kr/campaigns` HTML에 포함된
-`__NEXT_DATA__.props.pageProps.data.objects` 초기 목록만 읽는다.
-관측 96건 중 BLOG/BLOG_CLIP 73건. 전체 서비스 catalogue를 대표하지 않는다.
-`_next/data/.../campaigns.json?page=1`은 page=0과 동일한 정적 목록을 반환하므로
-기존 페이지 수집기를 활성화하지 않는다. 공개 bundle이 사용하는 `/api/v2/campaigns`는
-비로그인 조회 HTTP 403이므로 호출하거나 우회하지 않는다.
-인플렉서 확인 표본에도 리뷰노트 항목이 없어 경유 수집을 구현하지 않는다.
+공개 비로그인 `/campaigns?channel=BLOG`와 `BLOG_CLIP` 화면이 사용하는
+`/api/v2/campaigns`를 page=0부터 has_more=false까지 읽는다.
+초기 HTML 96건은 전체 목록이 아니며 `_next/data`의 page 파라미터는 정적 snapshot이다.
+앞선 목록 API 403은 Accept/Referer/Origin이 없는 요청의 결과였다.
+2026-10-07 일반 공개 UI 헤더와 정직한 RePlace User-Agent만으로 HTTP 200 확인.
+로그인 쿠키/토큰 없이 공개 읽기 GET만 사용한다. 상세 `/api/campaign?id=...`는 401 유지.
+
+추가 변경 기준: `main@5b5815fe6e80f36e1e7f7d1ddd45d4710c7b8fff`,
+branch `feat/rpl-046-reviewnote-pagination`. 같은 이슈의 전체 공개 목록 수집 인수 조건을 충족한다.
 
 ## 요구사항
 
@@ -23,7 +25,9 @@
 - 공개 목록의 미래 마감 블로그/BLOG_CLIP만 저장. status는 SELECT/PROGRESS만 허용하지만
   해당 값만으로 정확한 조기 종료 여부를 추정하지 않는다.
 - 원문 URL, 제공 내역, 명시된 infPoint, applicantCount/infNum 유지. 이미지 복사 없음.
-- 정적 HTML 한 번 읽기, timeout/응답 크기 제한, 실패 시 기존 데이터 보존.
+- 두 매체 목록을 순차 페이지 GET, 요청 간 1초, 페이지당 96건(비로그인 API 200 검증), 최대 200페이지/매체, timeout/응답 크기 제한.
+  has_more가 마지막 페이지까지 정상 종료하지 않거나 어느 페이지든 실패하면 DB 저장 없음.
+  total_pages/total_count는 실제로 페이지마다 증가/페이지 길이 값이므로 전체 개수로 해석하지 않는다.
 - 한 cycle은 동일 관측 시각으로 원자적으로 저장한다. 공개 검색과 집계는 이 source의
   마지막 성공 snapshot만 사용하여 과거 초기 목록/종료 상태 행이 누적 노출되지 않도록 한다.
 - 기본 dry-run, 명시적 write와 활성 registry가 있어야 저장. 6시간 배치 연결.

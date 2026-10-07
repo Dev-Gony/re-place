@@ -8,7 +8,7 @@ import { CampaignWorkbench, type CampaignWorkbenchItem } from "./campaign-workbe
 
 const PAGE_SIZE = 40;
 const MEDIA_TYPES = ["블로그", "인스타그램", "유튜브", "숏폼", "숏폼(릴스)", "블로그+숏폼"];
-const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "페이백", "기자단"];
+const CAMPAIGN_TYPES = ["방문형", "배송형", "포장", "구매형", "페이백", "기자단", "당일지급"];
 const REGION_GROUPS = [
   "서울",
   "경기·인천",
