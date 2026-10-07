@@ -3,6 +3,7 @@ import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
 import { FilterPanel, HeroSearch } from "./filter-controls";
 import { WebHeader } from "./web-header";
 import { CampaignWorkbench, type CampaignWorkbenchItem } from "./campaign-workbench";
+import { PlatformBadge } from "./platform-badge";
 
 // searchParams keeps this page request-rendered; public DB reads are cached separately.
 
@@ -469,7 +470,9 @@ export default async function Home({
             <div className="active-filter-bar editorial-active-filters">
               <span>적용 중</span>
               {q && <strong>검색: {q}</strong>}
-              {platforms.map((item) => <strong key={item}>{item}</strong>)}
+              {platforms.map((item) => (
+                <PlatformBadge key={item} platform={item} className="active-platform-filter" />
+              ))}
               {regionGroup && <strong>{regionGroup}</strong>}
               {region && <strong>{region}</strong>}
               {media && <strong>{media}</strong>}
