@@ -72,3 +72,12 @@ Python 127개, Node 186개 통과. 페이지 종료/증분 metadata/매체별 �
 이전 hosted 배치 #102는 리뷰노트 70건과 레뷰 2,418건 저장에는 성공했으나
 강남맛집 반복 페이지 감지로 전체 결과 failure였다. 전체 정상으로 기록하지 않는다.
 실제 모델 설정 미확인, 권장 구현 High/저장 경계 Extra High.
+
+## 기존 데이터의 원문 URL 충돌 수정
+
+Hosted #103은 BLOG/BLOG_CLIP 전체 1,042요청, 고유 16,613건 중 모집 조건 11,261건까지
+수집했으나 campaigns_link_key에서 실패했다. 기존 리뷰노트 2,072행과 같은 원문 URL이 겹친다.
+트랜잭션이 rollback하여 최신 성공 70행은 보존되었다.
+실제 이번 cycle에서 관측한 원문과 같은 기존 platform=리뷰노트 행만 새 source로 연결한다.
+행 ID/개인 참조 보존, 데이터 삭제 없음, blocked registry 변경 없음.
+이 연결과 upsert는 같은 연결에서 단일 commit하며 upsert 실패 시 둘 다 rollback한다.

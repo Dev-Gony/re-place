@@ -99,17 +99,37 @@ class ReviewnotePublicTests(unittest.TestCase):
             db.assert_not_called()
 
     def test_registry_gate_and_atomic_write(self):
+        campaign = crawler.parse_listing(html([ROW]), now=NOW)[0]
         connection = MagicMock()
         connection.__enter__.return_value = connection
         cursor = connection.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = None
-        with patch.object(crawler, 'collect', return_value=['campaign']), patch.object(crawler, 'get_database_connection', return_value=connection), patch.object(crawler, 'upsert_campaigns') as save:
+        with patch.object(crawler, 'collect', return_value=[campaign]), patch.object(crawler, 'get_database_connection', return_value=connection), patch.object(crawler, 'upsert_campaigns') as save:
             with self.assertRaises(RuntimeError):
                 crawler.get_reviewnote_public_data(dry_run=False)
             save.assert_not_called()
             cursor.fetchone.return_value = (1,)
             crawler.get_reviewnote_public_data(dry_run=False)
-            save.assert_called_once_with(connection, ['campaign'])
+            save.assert_called_once_with(connection, [campaign])
+            sql, values = cursor.execute.call_args.args
+            self.assertIn("legacy.platform='리뷰노트'", sql)
+            self.assertIn('legacy.link=incoming.link', sql)
+            self.assertNotIn('delete', sql.lower())
+            self.assertEqual(values, (crawler.PLATFORM, ['1462459'], [campaign.link]))
+            connection.commit.assert_not_called()  # Only common upsert commits both operations.
+
+    def test_failed_refresh_rolls_back_legacy_promotion(self):
+        campaign = crawler.parse_listing(html([ROW]), now=NOW)[0]
+        connection = MagicMock()
+        connection.__enter__.return_value = connection
+        cursor = connection.cursor.return_value.__enter__.return_value
+        cursor.fetchone.return_value = (1,)
+        with patch.object(crawler, 'get_database_connection', return_value=connection), patch.object(crawler, 'upsert_campaigns', side_effect=RuntimeError('insert failed')):
+            with self.assertRaises(RuntimeError):
+                crawler.save_campaigns([campaign])
+        connection.__exit__.assert_called_once()
+        self.assertEqual(connection.__exit__.call_args.args[0], RuntimeError)
+        connection.commit.assert_not_called()
 
     def test_bounded_anonymous_public_api_only(self):
         response = MagicMock()
