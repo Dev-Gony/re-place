@@ -80,6 +80,7 @@ export function ContentDeadlineBoard({
   onCreate,
   onToggle,
   createPending,
+  pendingTaskActions,
 }: {
   tasks: DeadlineTask[];
   records: DeadlineRecord[];
@@ -92,6 +93,7 @@ export function ContentDeadlineBoard({
   }) => Promise<boolean>;
   onToggle: (task: DeadlineTask) => Promise<void>;
   createPending: boolean;
+  pendingTaskActions: ReadonlyMap<number, "toggle" | "delete">;
 }) {
   const deadlineTasks = useMemo(
     () => tasks.filter((task) => task.task_type === "content" || task.task_type === "submit"),
@@ -228,6 +230,7 @@ export function ContentDeadlineBoard({
             })
             .map((task) => {
               const state = deadlineState(task, todayKey);
+              const pendingAction = pendingTaskActions.get(task.id);
 
               return (
                 <article
@@ -255,8 +258,13 @@ export function ContentDeadlineBoard({
                     type="button"
                     className="my-content-deadline-complete"
                     onClick={() => onToggle(task)}
+                    disabled={Boolean(pendingAction)}
                   >
-                    {task.completed_at ? "완료 취소" : "완료"}
+                    {pendingAction
+                      ? "처리 중"
+                      : task.completed_at
+                        ? "완료 취소"
+                        : "완료"}
                   </button>
                 </article>
               );
