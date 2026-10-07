@@ -43,6 +43,24 @@ type FilterPanelProps = {
   hasActiveFilters: boolean;
 };
 
+const filterNavigation = new LatestNavigationCoordinator();
+
+function filterHrefFromValues(values: FilterValues) {
+  const query = new URLSearchParams();
+
+  if (values.q) query.set("q", values.q);
+  values.platforms.forEach((item) => query.append("platform", item));
+  if (values.regionGroup) query.set("regionGroup", values.regionGroup);
+  if (values.region) query.set("region", values.region);
+  if (values.media) query.set("media", values.media);
+  if (values.campaignType) query.set("type", values.campaignType);
+  if (values.reward) query.set("reward", values.reward);
+  if (values.sort !== "latest") query.set("sort", values.sort);
+
+  const suffix = query.toString();
+  return suffix ? `/?${suffix}` : "/";
+}
+
 function filterHrefFromForm(form: HTMLFormElement) {
   const formData = new FormData(form);
   const query = new URLSearchParams();
@@ -157,9 +175,8 @@ export function FilterPanel({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const regionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navigationRef = useRef(new LatestNavigationCoordinator());
-  const pendingObservedRef = useRef(false);
   const [isPending, startTransition] = useTransition();
+  const committedHref = filterHrefFromValues(values);
 
   const runNavigation = useCallback(
     (href: string) => {
@@ -172,24 +189,16 @@ export function FilterPanel({
 
   const requestNavigation = useCallback(
     (href: string) => {
-      const nextHref = navigationRef.current.request(href);
+      const nextHref = filterNavigation.request(href);
       if (nextHref) runNavigation(nextHref);
     },
     [runNavigation],
   );
 
   useEffect(() => {
-    if (isPending) {
-      pendingObservedRef.current = true;
-      return;
-    }
-
-    if (!pendingObservedRef.current) return;
-
-    pendingObservedRef.current = false;
-    const nextHref = navigationRef.current.settle();
+    const nextHref = filterNavigation.settleCommitted(committedHref);
     if (nextHref) runNavigation(nextHref);
-  }, [isPending, runNavigation]);
+  }, [committedHref, runNavigation]);
 
   function applyNow() {
     if (!formRef.current) return;

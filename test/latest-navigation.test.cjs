@@ -29,14 +29,35 @@ test("does not repeat a completed URL when the latest request is identical", () 
   assert.equal(coordinator.activeHref, null);
 });
 
-test("filter panel waits for the active transition before starting the queued URL", () => {
+test("waits for matching server values and survives a filter component remount", () => {
+  const coordinator = new LatestNavigationCoordinator();
+
+  assert.equal(coordinator.request("/?platform=revu"), "/?platform=revu");
+  assert.equal(coordinator.request("/?platform=reviewnote&platform=revu"), null);
+  assert.equal(coordinator.settleCommitted("/"), null);
+  assert.equal(coordinator.activeHref, "/?platform=revu");
+
+  assert.equal(
+    coordinator.settleCommitted("/?platform=revu"),
+    "/?platform=reviewnote&platform=revu",
+  );
+  assert.equal(coordinator.activeHref, "/?platform=reviewnote&platform=revu");
+  assert.equal(
+    coordinator.settleCommitted("/?platform=reviewnote&platform=revu"),
+    null,
+  );
+  assert.equal(coordinator.activeHref, null);
+});
+
+test("filter panel settles against committed server values outside component refs", () => {
   const source = fs.readFileSync(
     path.join(__dirname, "..", "app", "filter-controls.tsx"),
     "utf8",
   );
 
-  assert.match(source, /new LatestNavigationCoordinator\(\)/);
-  assert.match(source, /pendingObservedRef\.current = true/);
-  assert.match(source, /navigationRef\.current\.settle\(\)/);
-  assert.match(source, /navigationRef\.current\.request\(href\)/);
+  assert.match(source, /const filterNavigation = new LatestNavigationCoordinator\(\)/);
+  assert.match(source, /const committedHref = filterHrefFromValues\(values\)/);
+  assert.match(source, /filterNavigation\.settleCommitted\(committedHref\)/);
+  assert.match(source, /filterNavigation\.request\(href\)/);
+  assert.doesNotMatch(source, /useRef\(new LatestNavigationCoordinator/);
 });

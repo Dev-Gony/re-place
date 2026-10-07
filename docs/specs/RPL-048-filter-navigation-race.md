@@ -3,9 +3,12 @@
 ## 상태
 
 - Issue: #153
-- 기준 main: `6d71d36c72e571e5616fb47d23c724b00bfe2b57`
+- 최초 기준 main: `6d71d36c72e571e5616fb47d23c724b00bfe2b57`
+- hotfix 기준 main: `541d9f21a3666a676dda77be9ef11bd5f2e4997e`
 - 작업 브랜치: `fix/rpl-048-filter-navigation-race`
-- 상태: 구현·로컬 검증 완료, PR 준비
+- 첫 PR: #154 (`541d9f2`, Production 재검증 실패)
+- hotfix 브랜치: `hotfix/rpl-048-filter-remount`
+- 상태: hotfix 구현·로컬 검증 완료, PR 준비
 
 ## 배경
 
@@ -17,7 +20,8 @@
 ## 범위
 
 - 진행 중인 필터 탐색이 있을 때 추가 변경을 최신 URL 하나로 합친다.
-- 활성 탐색이 끝난 뒤 최신 대기 URL을 한 번만 후속 탐색한다.
+- 서버가 활성 URL의 필터 값을 실제 커밋한 뒤 최신 대기 URL을 한 번만 후속 탐색한다.
+- 서버 결과 커밋 중 FilterPanel이 재마운트되어도 대기 URL을 보존한다.
 - 선택 해제, 지역 입력 debounce, 초기화와 모바일 필터도 같은 직렬화 경로를 사용한다.
 - 수집기, 운영 DB, 인증, 환경변수는 변경하지 않는다.
 
@@ -33,10 +37,14 @@
 ## 검증 기록
 
 - 운영 재현: URL은 리뷰노트+레뷰, 체크 2개인데 적용 중 배지는 레뷰, 결과는 2,418개로 10초 이상 고착.
+- PR #154 Production 재검증: 새 탭에서도 레뷰 2,418개에 고착. 컴포넌트 ref에
+  둔 coordinator가 서버 결과 커밋 중 재마운트되며 대기 URL을 잃는 원인을 확인.
 - 구현 후 로컬 실제 브라우저: `서울`과 `3만원+`를 대기 없이 연속 선택했을 때 URL,
   체크 상태와 적용 중 요약이 모두 최신 두 필터로 수렴했고 4초 동안 유지됨.
-- 자동 시험: JS 192개, Python 128개, compileall, production build 통과.
+- hotfix 후 같은 로컬 브라우저 시나리오를 다시 실행해 최신 두 필터 수렴과 가로
+  넘침 0을 확인.
+- 자동 시험: JS 193개, Python 128개, compileall, production build 통과.
 - lint: 오류 0개. 변경과 무관한 기존 unused import/function 경고 2개 유지.
 - 운영에서 확인했던 뒤로가기, 빈 결과, 데스크톱/390px 가로 넘침 0은 RPL-047
   배포 기준으로 통과. 이 수정의 Production 재검증은 병합 후 수행한다.
-- Preview/Production: 미배포.
+- hotfix Preview/Production: 미배포.
