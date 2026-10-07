@@ -121,7 +121,7 @@ class ReviewnotePublicTests(unittest.TestCase):
                 crawler.fetch_page('BLOG', 0)
             self.assertEqual(get.call_args.args[0], crawler.API_URL)
             self.assertFalse(get.call_args.kwargs['allow_redirects'])
-            self.assertEqual(get.call_args.kwargs['params']['limit'], 96)
+            self.assertEqual(get.call_args.kwargs['params']['limit'], 16)
             self.assertEqual(get.call_args.kwargs['headers']['Referer'], crawler.URL + '?channel=BLOG')
             self.assertEqual(set(get.call_args.kwargs['headers']), {'User-Agent', 'Accept', 'Origin', 'Referer'})
         response.status_code = 302
@@ -163,6 +163,7 @@ class ReviewnotePublicTests(unittest.TestCase):
             {'page': 0, 'has_more': False, 'objects': [ROW, ROW]},
             {'page': 0, 'has_more': False, 'objects': [{**ROW, 'channel': 'INSTAGRAM'}]},
             {'page': 0, 'has_more': False, 'objects': [{**ROW, 'id': True}]},
+            {'page': 0, 'has_more': False, 'objects': [{**ROW, 'id': n + 1} for n in range(17)]},
         ]
         for payload in bad:
             with self.subTest(payload=payload), patch.object(crawler, 'fetch_page', return_value=payload), patch.object(crawler, 'get_database_connection') as db:

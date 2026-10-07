@@ -14,10 +14,11 @@ URL = "https://www.reviewnote.co.kr/campaigns"
 API_URL = "https://www.reviewnote.co.kr/api/v2/campaigns"
 PLATFORM = "리뷰노트(공개목록)"
 MAX_BYTES = 4 * 1024 * 1024
-MAX_PAGES = 200
-# Public initial HTML also uses 96; the anonymous listing API accepts this size.
-# Using 96 instead of the UI infinite scroll's 16 cuts requests by a factor of six.
-PAGE_SIZE = 96
+MAX_PAGES = 1500
+# Larger limits affect only page zero; subsequent pages always return 16.
+# Keep the UI's page size so offsets and coverage are consistent.
+PAGE_SIZE = 16
+REQUEST_INTERVAL = 0.25
 CHANNELS = ("BLOG", "BLOG_CLIP")
 HEADERS = {"User-Agent": "RePlace/1.0 (+https://re-place.devgony.com/)",
            "Accept": "application/json", "Origin": "https://www.reviewnote.co.kr"}
@@ -117,7 +118,7 @@ def collect() -> list[Campaign]:
         scope_ids, page_signatures = set(), set()
         for page in range(MAX_PAGES):
             if requests_count:
-                time.sleep(1)
+                time.sleep(REQUEST_INTERVAL)
             payload = fetch_page(channel, page)
             requests_count += 1
             if (not isinstance(payload, dict) or type(payload.get("page")) is not int
