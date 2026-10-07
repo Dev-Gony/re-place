@@ -95,7 +95,7 @@ test("all calendar task surfaces consume the same per-task pending map", () => {
 test("failed edits keep the form values and editing task available for retry", () => {
   assert.match(
     calendar,
-    /await updateTaskRequest\(editingTask\.id,[\s\S]*?await reloadTasks\(\);[\s\S]*?setEditingTaskId\(null\);[\s\S]*?catch \{[\s\S]*?setNotice\(/,
+    /await updateTaskRequest\(editingTask\.id,[\s\S]*?upsertTaskMutation\([\s\S]*?setEditingTaskId\(null\);[\s\S]*?catch \{[\s\S]*?setNotice\(/,
   );
   assert.match(calendar, /defaultValue=\{editingTask\.title\}/);
   assert.match(
