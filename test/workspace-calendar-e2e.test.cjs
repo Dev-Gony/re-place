@@ -257,6 +257,18 @@ function fixtureHarness() {
 test("isolated owner can create a campaign task and see both dates on the calendar", async () => {
   const fixture = fixtureHarness();
 
+  const invalidRecord = await fixture.recordRoute.POST(
+    new Request("http://fixture/api/v1/me/records", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Invalid fixture campaign",
+        deadlineAt: "2026-02-30",
+      }),
+    }),
+  );
+  assert.equal(invalidRecord.status, 400);
+  assert.equal(fixture.records.length, 1);
+
   const recordResponse = await fixture.recordRoute.POST(
     new Request("http://fixture/api/v1/me/records", {
       method: "POST",
@@ -272,6 +284,20 @@ test("isolated owner can create a campaign task and see both dates on the calend
   const recordBody = await recordResponse.json();
   const recordId = recordBody.data.item.id;
   assert.equal(recordBody.data.item.auth_user_id, fixture.owner);
+
+  const invalidTask = await fixture.taskRoute.POST(
+    new Request("http://fixture/api/v1/me/tasks", {
+      method: "POST",
+      body: JSON.stringify({
+        recordId,
+        taskType: "content",
+        title: "Invalid date must not persist",
+        dueAt: "2026-02-30",
+      }),
+    }),
+  );
+  assert.equal(invalidTask.status, 400);
+  assert.equal(fixture.tasks.length, 0);
 
   const taskResponse = await fixture.taskRoute.POST(
     new Request("http://fixture/api/v1/me/tasks", {

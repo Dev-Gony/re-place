@@ -166,3 +166,46 @@ test("invalid note is rejected and foreign record remains hidden", async () => {
   assert.equal(fixture.records[1].status, "selected");
   assert.equal(fixture.records[1].note, "Foreign private note");
 });
+
+test("explicit deadline can update or clear without ambiguous rollover", async () => {
+  const fixture = fixtureHarness();
+
+  const update = await fixture.patch(1, {
+    status: "review_pending",
+    deadlineAt: "2026-02-28",
+  });
+  assert.equal(update.status, 200);
+  assert.equal(
+    (await update.json()).data.item.deadline_at,
+    "2026-02-28T00:00:00.000Z",
+  );
+
+  const clear = await fixture.patch(1, {
+    status: "review_pending",
+    deadlineAt: null,
+  });
+  assert.equal(clear.status, 200);
+  assert.equal((await clear.json()).data.item.deadline_at, null);
+});
+
+test("invalid deadline returns 400 without changing the existing record", async () => {
+  for (const deadlineAt of [
+    "2026-02-30",
+    "2026-10-03T00:00:00",
+    { invalid: true },
+  ]) {
+    const fixture = fixtureHarness();
+    const response = await fixture.patch(1, {
+      status: "review_pending",
+      deadlineAt,
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(fixture.records[0].status, "selected");
+    assert.equal(
+      fixture.records[0].deadline_at,
+      "2026-10-20T00:00:00.000Z",
+    );
+    assert.equal(fixture.records[0].note, "Keep this private note");
+  }
+});

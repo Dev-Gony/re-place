@@ -19,8 +19,10 @@ const settlementUi = read("app/my/settlement-section.tsx");
 const client = read("lib/workspace-client.ts");
 const legacyFavorites = read("app/api/private/favorites/route.ts");
 const legacyRecords = read("app/api/private/records/route.ts");
+const legacyRecordItem = read("app/api/private/records/[id]/route.ts");
 const legacyTasks = read("app/api/private/tasks/route.ts");
 const legacySettlements = read("app/api/private/settlements/route.ts");
+const privateData = read("lib/private-data.ts");
 
 test("v1 mutation helpers define one success and error contract", () => {
   assert.match(helper, /WORKSPACE_SCHEMA_VERSION/);
@@ -118,4 +120,19 @@ test("all v1 mutation routes use structured error helpers", () => {
     assert.match(route, /v1Error/);
     assert.match(route, /v1Mutation/);
   }
+});
+
+test("all private date mutations share strict optional deadline boundaries", () => {
+  assert.match(privateData, /DATE_ONLY_PATTERN/);
+  assert.match(privateData, /ISO_DATE_TIME_PATTERN/);
+  assert.match(privateData, /normalizeOptionalDeadline/);
+  assert.match(records, /normalizeOptionalDeadline/);
+  assert.match(recordItem, /hasDeadlineAt[\s\S]*normalizeOptionalDeadline/);
+  assert.match(settlement, /normalizeOptionalDeadline/);
+  assert.match(legacyRecords, /normalizeOptionalDeadline/);
+  assert.match(
+    legacyRecordItem,
+    /hasDeadlineAt[\s\S]*normalizeOptionalDeadline/,
+  );
+  assert.match(legacySettlements, /normalizeOptionalDeadline/);
 });

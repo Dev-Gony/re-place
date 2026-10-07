@@ -2,7 +2,7 @@ import { auth } from "../../../../lib/auth/server";
 import { queryDb } from "../../../../lib/db";
 import {
   getCampaignSnapshot,
-  normalizeDeadline,
+  normalizeOptionalDeadline,
   normalizeOptionalText,
   privateHeaders,
 } from "../../../../lib/private-data";
@@ -131,7 +131,13 @@ export async function POST(request: Request) {
   const reward = normalizeOptionalText(body.reward, 500);
   const region = normalizeOptionalText(body.region, 120);
   const note = normalizeOptionalText(body.note, 4000);
-  const deadline = normalizeDeadline(body.deadlineAt);
+  const deadline = normalizeOptionalDeadline(body.deadlineAt);
+  if (deadline === undefined) {
+    return Response.json(
+      { error: "Invalid deadlineAt" },
+      { status: 400, headers: privateHeaders() },
+    );
+  }
 
   const snapshot = {
     title,
