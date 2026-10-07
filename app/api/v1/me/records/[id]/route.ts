@@ -33,22 +33,35 @@ export async function PATCH(
   if (!id) return v1Error("INVALID_INPUT", "id must be a positive integer", 400);
 
   const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return v1Error("INVALID_INPUT", "A record update is required", 400);
+  }
+
   const status =
-    typeof body?.status === "string" && STATUSES.has(body.status)
+    typeof body.status === "string" && STATUSES.has(body.status)
       ? body.status
       : null;
 
   if (!status) return v1Error("INVALID_INPUT", "Invalid status", 400);
 
-  const note = normalizeOptionalText(body?.note, 4000);
+  const hasNote = Object.prototype.hasOwnProperty.call(body, "note");
+  if (
+    hasNote &&
+    body.note !== null &&
+    typeof body.note !== "string"
+  ) {
+    return v1Error("INVALID_INPUT", "note must be a string or null", 400);
+  }
+
+  const note = hasNote ? normalizeOptionalText(body.note, 4000) : null;
   const deadlineAt =
-    body?.deadlineAt === undefined ? undefined : normalizeDeadline(body.deadlineAt);
+    body.deadlineAt === undefined ? undefined : normalizeDeadline(body.deadlineAt);
 
   const result = await queryDb(
     `update user_campaign_records
         set status = $3,
-            note = $4,
-            deadline_at = case when $5::boolean then $6::timestamptz else deadline_at end,
+            note = case when $4::boolean then $5 else note end,
+            deadline_at = case when $6::boolean then $7::timestamptz else deadline_at end,
             updated_at = now()
       where auth_user_id = $1
         and id = $2
@@ -57,6 +70,7 @@ export async function PATCH(
       owner,
       id,
       status,
+      hasNote,
       note,
       deadlineAt !== undefined,
       deadlineAt ?? null,
