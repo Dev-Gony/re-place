@@ -39,6 +39,11 @@ export type TaskItem = {
   record_platform: string | null;
 };
 
+export type TaskMutationItem = Omit<
+  TaskItem,
+  "record_title" | "record_platform"
+>;
+
 export type SettlementItem = {
   record_id: number;
   record_title: string;

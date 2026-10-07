@@ -1,6 +1,9 @@
 "use client";
 
-import type { WorkspaceSnapshot } from "./workspace-contract";
+import type {
+  TaskMutationItem,
+  WorkspaceSnapshot,
+} from "./workspace-contract";
 
 export type WorkspaceSession = {
   schemaVersion: 1;
@@ -129,7 +132,9 @@ export function deleteRecord(id: number) {
 }
 
 export function createTask(input: Record<string, unknown>) {
-  return requestJson<MutationEnvelope<{ item: unknown; created: boolean }>>(
+  return requestJson<
+    MutationEnvelope<{ item: TaskMutationItem; created: boolean }>
+  >(
     "/api/v1/me/tasks",
     {
       method: "POST",
@@ -139,7 +144,7 @@ export function createTask(input: Record<string, unknown>) {
 }
 
 export function updateTask(id: number, input: Record<string, unknown>) {
-  return requestJson<MutationEnvelope<{ item: unknown }>>(
+  return requestJson<MutationEnvelope<{ item: TaskMutationItem }>>(
     `/api/v1/me/tasks/${id}`,
     {
       method: "PATCH",

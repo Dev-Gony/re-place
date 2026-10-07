@@ -4,11 +4,14 @@ import { FormEvent, useMemo, useRef, useState } from "react";
 
 import { createPendingActionRegistry } from "../../lib/pending-actions";
 import { seoulDateKey } from "../../lib/task-date";
+import {
+  removeTaskMutation,
+  upsertTaskMutation,
+} from "../../lib/task-mutation-state";
 import type { RecordItem, TaskItem } from "../../lib/workspace-contract";
 import {
   createTask as createTaskRequest,
   deleteTask as deleteTaskRequest,
-  getWorkspace,
   updateTask as updateTaskRequest,
 } from "../../lib/workspace-client";
 import { MonthCalendar } from "../my/month-calendar";
@@ -167,11 +170,6 @@ export function CalendarWorkspace({
     return groups.filter((group) => group.items.length > 0);
   }, [mobileAgenda, todayKey]);
 
-  async function reloadTasks() {
-    const workspace = await getWorkspace();
-    setTasks(workspace.tasks ?? []);
-  }
-
   async function createTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -182,13 +180,22 @@ export function CalendarWorkspace({
 
     try {
       const data = new FormData(form);
+      const recordId = Number(data.get("recordId"));
+      const record = records.find((item) => item.id === recordId);
+      if (!record) throw new Error("Selected record is unavailable");
+
       const result = await createTaskRequest({
-        recordId: data.get("recordId"),
+        recordId,
         taskType: data.get("taskType"),
         title: data.get("title"),
         dueAt: data.get("dueAt"),
       });
-      await reloadTasks();
+      setTasks((items) =>
+        upsertTaskMutation(items, result.data.item, {
+          record_title: record.title,
+          record_platform: record.platform,
+        }),
+      );
       form.reset();
       setFormOpen(false);
       setNotice(
@@ -217,12 +224,14 @@ export function CalendarWorkspace({
 
     try {
       const data = new FormData(event.currentTarget);
-      await updateTaskRequest(editingTask.id, {
+      const result = await updateTaskRequest(editingTask.id, {
         taskType: data.get("taskType"),
         title: data.get("title"),
         dueAt: data.get("dueAt"),
       });
-      await reloadTasks();
+      setTasks((items) =>
+        upsertTaskMutation(items, result.data.item, editingTask),
+      );
       setEditingTaskId(null);
       setNotice(null);
     } catch {
@@ -236,10 +245,12 @@ export function CalendarWorkspace({
     if (!beginTaskAction(task.id, "toggle")) return;
 
     try {
-      await updateTaskRequest(task.id, {
+      const result = await updateTaskRequest(task.id, {
         completed: !task.completed_at,
       });
-      await reloadTasks();
+      setTasks((items) =>
+        upsertTaskMutation(items, result.data.item, task),
+      );
       setNotice(null);
     } catch {
       setNotice("일정 상태를 변경하지 못했습니다.");
@@ -253,7 +264,7 @@ export function CalendarWorkspace({
 
     try {
       await deleteTaskRequest(id);
-      await reloadTasks();
+      setTasks((items) => removeTaskMutation(items, id));
       if (editingTaskId === id) setEditingTaskId(null);
       setNotice(null);
     } catch {
