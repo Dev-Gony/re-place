@@ -1,8 +1,16 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { platformBrandStyle } from "@/lib/platform-brand";
+import { LatestNavigationCoordinator } from "@/lib/latest-navigation";
 
 type FilterValues = {
   q: string;
@@ -35,11 +43,7 @@ type FilterPanelProps = {
   hasActiveFilters: boolean;
 };
 
-function navigateFromForm(
-  form: HTMLFormElement,
-  router: ReturnType<typeof useRouter>,
-  startTransition: (callback: () => void) => void,
-) {
+function filterHrefFromForm(form: HTMLFormElement) {
   const formData = new FormData(form);
   const query = new URLSearchParams();
 
@@ -71,9 +75,7 @@ function navigateFromForm(
 
   const suffix = query.toString();
 
-  startTransition(() => {
-    router.replace(suffix ? `/?${suffix}` : "/", { scroll: false });
-  });
+  return suffix ? `/?${suffix}` : "/";
 }
 
 export function HeroSearch({ initialQuery }: HeroSearchProps) {
@@ -155,11 +157,43 @@ export function FilterPanel({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const regionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigationRef = useRef(new LatestNavigationCoordinator());
+  const pendingObservedRef = useRef(false);
   const [isPending, startTransition] = useTransition();
+
+  const runNavigation = useCallback(
+    (href: string) => {
+      startTransition(() => {
+        router.replace(href, { scroll: false });
+      });
+    },
+    [router, startTransition],
+  );
+
+  const requestNavigation = useCallback(
+    (href: string) => {
+      const nextHref = navigationRef.current.request(href);
+      if (nextHref) runNavigation(nextHref);
+    },
+    [runNavigation],
+  );
+
+  useEffect(() => {
+    if (isPending) {
+      pendingObservedRef.current = true;
+      return;
+    }
+
+    if (!pendingObservedRef.current) return;
+
+    pendingObservedRef.current = false;
+    const nextHref = navigationRef.current.settle();
+    if (nextHref) runNavigation(nextHref);
+  }, [isPending, runNavigation]);
 
   function applyNow() {
     if (!formRef.current) return;
-    navigateFromForm(formRef.current, router, startTransition);
+    requestNavigation(filterHrefFromForm(formRef.current));
   }
 
   function handleChange(event: FormEvent<HTMLFormElement>) {
@@ -184,9 +218,7 @@ export function FilterPanel({
 
   function handleReset() {
     if (regionTimer.current) clearTimeout(regionTimer.current);
-    startTransition(() => {
-      router.replace("/", { scroll: false });
-    });
+    requestNavigation("/");
   }
 
   const pausedSources = sourceStatuses.filter(
