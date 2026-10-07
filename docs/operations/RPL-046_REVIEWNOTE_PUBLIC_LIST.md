@@ -28,6 +28,9 @@ Issue [#145](https://github.com/Dev-Gony/re-place/issues/145).
 현재 73건에는 PAYBACK 4건이 포함되며 PROGRESS인 것만으로 배제하면 정상 구매형을 누락한다.
 
 city/sido, sort, applicantCount/infNum, infPoint를 명시값 그대로 사용한다.
+운영 화면 대조에서 실제 city=인천, sido.name=부평구임을 확인했다.
+필드 이름만으로 해석하면 순서가 뒤집히므로 city/sido.name 순서로 원문 지역과 제목을 구성한다.
+이 실제 공개 행의 최소 fixture로 회귀를 확인한다.
 모집 수 0과 결측을 혼동하지 않고 음수/문자/결측은 실패 처리한다.
 금액을 혜택 문구에 지어내지 않고 points_amount에 실제 infPoint를 넣는다.
 이미지 저장/호스팅 없음. 원문 숫자 ID 링크 유지.

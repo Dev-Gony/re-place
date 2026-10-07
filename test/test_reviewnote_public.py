@@ -36,11 +36,21 @@ class ReviewnotePublicTests(unittest.TestCase):
 
     def test_blog_clip_and_regional_type(self):
         row = {**ROW, 'sort': 'VISIT', 'channel': 'BLOG_CLIP',
-               'city': '노원구', 'sido': {'name': '서울'}}
+               'city': '서울', 'sido': {'name': '노원구'}}
         campaign = crawler.parse_listing(html([row]), now=NOW)[0]
         self.assertEqual(campaign.region, '서울/노원구')
         self.assertEqual(campaign.media_type, '블로그+숏폼')
         self.assertEqual(campaign.campaign_type, '방문형')
+
+    def test_observed_public_row_field_roles(self):
+        fixture = Path(__file__).parent / 'fixtures' / 'reviewnote_public.json'
+        row = json.loads(fixture.read_text(encoding='utf-8'))
+        campaign = crawler.parse_listing(html([row]), now=NOW)[0]
+        self.assertEqual(campaign.region, '인천/부평구')
+        self.assertEqual(campaign.title, '[인천/부평구] 위니미니네일')
+        self.assertEqual(campaign.apply_count, 9)
+        self.assertEqual(campaign.recruit_count, 3)
+        self.assertEqual(campaign.points_amount, 5000)
 
     def test_excludes_expired_and_nonblog(self):
         expired = {**ROW, 'id': 2, 'applyEndAt': '2026-10-01T14:59:59Z'}

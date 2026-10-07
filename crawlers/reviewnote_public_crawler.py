@@ -59,10 +59,11 @@ def parse_listing(html: str, *, now: datetime | None = None) -> list[Campaign]:
         city, sido = row.get("city"), row.get("sido", {}).get("name")
         if not isinstance(city, str) or not isinstance(sido, str):
             raise ValueError("리뷰노트 지역 계약 변경.")
-        region = "배송" if city == "재택" else "/".join(dict.fromkeys([sido, city]))
+        # Despite the field name, sido.name is the district; city is the province.
+        region = "배송" if city == "재택" else "/".join(dict.fromkeys([city, sido]))
         campaigns.append(Campaign(
             platform=PLATFORM, source_campaign_id=str(source_id),
-            title=f"[{sido}/{city}] {title.strip()}" if sido != city else f"[{city}] {title.strip()}",
+            title=f"[{city}/{sido}] {title.strip()}" if sido != city else f"[{city}] {title.strip()}",
             link=f"https://www.reviewnote.co.kr/campaigns/{source_id}",
             media_type="블로그" if row["channel"] == "BLOG" else "블로그+숏폼",
             campaign_type=TYPES[row["sort"]], region=region or None,
