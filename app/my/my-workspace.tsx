@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   FavoriteItem,
@@ -129,6 +129,12 @@ export function MyWorkspace({
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [taskCreatePending, setTaskCreatePending] = useState(false);
+  const [deadlineCreatePending, setDeadlineCreatePending] = useState(false);
+  const [manualCreatePending, setManualCreatePending] = useState(false);
+  const taskCreateLock = useRef(false);
+  const deadlineCreateLock = useRef(false);
+  const manualCreateLock = useRef(false);
 
   function showError(message: string) {
     setNotice(message);
@@ -232,6 +238,10 @@ export function MyWorkspace({
     title: string;
     dueAt: string;
   }) {
+    if (deadlineCreateLock.current) return false;
+    deadlineCreateLock.current = true;
+    setDeadlineCreatePending(true);
+
     try {
       await createTaskRequest(input);
       await reload();
@@ -239,11 +249,18 @@ export function MyWorkspace({
     } catch {
       showError("마감을 추가하지 못했습니다. 입력값을 확인해 주세요.");
       return false;
+    } finally {
+      deadlineCreateLock.current = false;
+      setDeadlineCreatePending(false);
     }
   }
 
   async function createTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (taskCreateLock.current) return;
+    taskCreateLock.current = true;
+    setTaskCreatePending(true);
+
     const form = event.currentTarget;
     const data = new FormData(form);
 
@@ -258,6 +275,9 @@ export function MyWorkspace({
       await reload();
     } catch {
       showError("할 일을 추가하지 못했습니다. 입력값을 확인해 주세요.");
+    } finally {
+      taskCreateLock.current = false;
+      setTaskCreatePending(false);
     }
   }
 
@@ -281,6 +301,10 @@ export function MyWorkspace({
 
   async function createManual(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (manualCreateLock.current) return;
+    manualCreateLock.current = true;
+    setManualCreatePending(true);
+
     const form = event.currentTarget;
     const data = new FormData(form);
 
@@ -299,6 +323,9 @@ export function MyWorkspace({
       await reload();
     } catch {
       showError("캠페인을 등록하지 못했습니다. 입력값을 확인해 주세요.");
+    } finally {
+      manualCreateLock.current = false;
+      setManualCreatePending(false);
     }
   }
 
@@ -400,6 +427,7 @@ export function MyWorkspace({
         todayKey={todayKey}
         onCreate={createDeadlineTask}
         onToggle={toggleTask}
+        createPending={deadlineCreatePending}
         />
       </div>
 
@@ -431,7 +459,11 @@ export function MyWorkspace({
         </div>
 
         {records.length ? (
-          <form className="my-task-form" onSubmit={createTask}>
+          <form
+            className="my-task-form"
+            onSubmit={createTask}
+            aria-busy={taskCreatePending}
+          >
             <select name="recordId" required defaultValue="" aria-label="체험단 기록">
               <option value="" disabled>체험단 선택</option>
               {records
@@ -453,7 +485,9 @@ export function MyWorkspace({
               aria-label="할 일"
             />
             <input name="taskDueAt" type="date" required aria-label="일정 날짜" />
-            <button type="submit">추가</button>
+            <button type="submit" disabled={taskCreatePending}>
+              {taskCreatePending ? "추가 중" : "추가"}
+            </button>
           </form>
         ) : (
           <div className="my-task-empty-callout">
@@ -552,7 +586,11 @@ export function MyWorkspace({
         </div>
 
         {manualOpen && (
-          <form className="manual-record-form compact" onSubmit={createManual}>
+          <form
+            className="manual-record-form compact"
+            onSubmit={createManual}
+            aria-busy={manualCreatePending}
+          >
             <input name="title" required maxLength={240} placeholder="캠페인명 *" />
             <input name="platform" maxLength={80} placeholder="플랫폼" />
             <input name="link" type="url" placeholder="원문 링크" />
@@ -560,7 +598,9 @@ export function MyWorkspace({
             <input name="reward" maxLength={500} placeholder="혜택" />
             <input name="region" maxLength={120} placeholder="지역" />
             <input name="note" maxLength={4000} placeholder="메모" />
-            <button type="submit">등록</button>
+            <button type="submit" disabled={manualCreatePending}>
+              {manualCreatePending ? "저장 중" : "등록"}
+            </button>
           </form>
         )}
 
