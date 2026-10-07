@@ -8,6 +8,7 @@ import type {
   SettlementItem,
   TaskItem,
 } from "../../lib/workspace-contract";
+import { createPendingActionRegistry } from "../../lib/pending-actions";
 import {
   createRecord,
   createTask as createTaskRequest,
@@ -24,6 +25,8 @@ import { ContentDeadlineBoard } from "./content-deadline-board";
 import { SettlementSection } from "./settlement-section";
 
 export type { FavoriteItem, RecordItem, TaskItem };
+
+type TaskPendingAction = "toggle" | "delete";
 
 const STATUS_LABELS: Record<string, string> = {
   saved: "저장",
@@ -132,9 +135,43 @@ export function MyWorkspace({
   const [taskCreatePending, setTaskCreatePending] = useState(false);
   const [deadlineCreatePending, setDeadlineCreatePending] = useState(false);
   const [manualCreatePending, setManualCreatePending] = useState(false);
+  const [pendingTaskActions, setPendingTaskActions] = useState<
+    ReadonlyMap<number, TaskPendingAction>
+  >(() => new Map());
+  const [pendingRecordActions, setPendingRecordActions] = useState<
+    ReadonlyMap<number, "delete">
+  >(() => new Map());
   const taskCreateLock = useRef(false);
   const deadlineCreateLock = useRef(false);
   const manualCreateLock = useRef(false);
+  const taskActionRegistry = useRef(
+    createPendingActionRegistry<TaskPendingAction>(),
+  );
+  const recordActionRegistry = useRef(
+    createPendingActionRegistry<"delete">(),
+  );
+
+  function beginTaskAction(id: number, action: TaskPendingAction) {
+    if (!taskActionRegistry.current.begin(id, action)) return false;
+    setPendingTaskActions(taskActionRegistry.current.snapshot());
+    return true;
+  }
+
+  function endTaskAction(id: number) {
+    taskActionRegistry.current.end(id);
+    setPendingTaskActions(taskActionRegistry.current.snapshot());
+  }
+
+  function beginRecordDelete(id: number) {
+    if (!recordActionRegistry.current.begin(id, "delete")) return false;
+    setPendingRecordActions(recordActionRegistry.current.snapshot());
+    return true;
+  }
+
+  function endRecordDelete(id: number) {
+    recordActionRegistry.current.end(id);
+    setPendingRecordActions(recordActionRegistry.current.snapshot());
+  }
 
   function showError(message: string) {
     setNotice(message);
@@ -180,6 +217,9 @@ export function MyWorkspace({
   const pendingDeleteRecord = pendingDeleteId
     ? records.find((item) => item.id === pendingDeleteId) ?? null
     : null;
+  const recordDeletePending = pendingDeleteId
+    ? pendingRecordActions.has(pendingDeleteId)
+    : false;
 
   function openDetail(recordId: number) {
     setDetailRecordId(recordId);
@@ -282,20 +322,28 @@ export function MyWorkspace({
   }
 
   async function toggleTask(task: TaskItem) {
+    if (!beginTaskAction(task.id, "toggle")) return;
+
     try {
       await updateTaskRequest(task.id, { completed: !task.completed_at });
       await reload();
     } catch {
       showError("할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      endTaskAction(task.id);
     }
   }
 
   async function deleteTask(id: number) {
+    if (!beginTaskAction(id, "delete")) return;
+
     try {
       await deleteTaskRequest(id);
       setTasks((items) => items.filter((item) => item.id !== id));
     } catch {
       showError("할 일을 삭제하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      endTaskAction(id);
     }
   }
 
@@ -342,7 +390,19 @@ export function MyWorkspace({
     setPendingDeleteId(id);
   }
 
+  function dismissDelete() {
+    if (
+      pendingDeleteId &&
+      recordActionRegistry.current.has(pendingDeleteId)
+    ) {
+      return;
+    }
+    setPendingDeleteId(null);
+  }
+
   async function deleteRecord(id: number) {
+    if (!beginRecordDelete(id)) return;
+
     try {
       await deleteRecordRequest(id);
       setRecords((items) => items.filter((item) => item.id !== id));
@@ -355,6 +415,8 @@ export function MyWorkspace({
       setPendingDeleteId(null);
     } catch {
       showError("기록을 삭제하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      endRecordDelete(id);
     }
   }
 
@@ -422,12 +484,13 @@ export function MyWorkspace({
 
       <div id="content-deadlines" className="my-anchor-target">
         <ContentDeadlineBoard
-        tasks={tasks}
-        records={records}
-        todayKey={todayKey}
-        onCreate={createDeadlineTask}
-        onToggle={toggleTask}
-        createPending={deadlineCreatePending}
+          tasks={tasks}
+          records={records}
+          todayKey={todayKey}
+          onCreate={createDeadlineTask}
+          onToggle={toggleTask}
+          createPending={deadlineCreatePending}
+          pendingTaskActions={pendingTaskActions}
         />
       </div>
 
@@ -511,6 +574,7 @@ export function MyWorkspace({
           {tasks.length ? (
             tasks.map((task) => {
               const urgency = taskUrgency(task, todayKey);
+              const pendingAction = pendingTaskActions.get(task.id);
 
               return (
                 <article
@@ -530,15 +594,24 @@ export function MyWorkspace({
                     {urgency.label}
                   </div>
                   <div className="my-task-actions">
-                    <button type="button" onClick={() => toggleTask(task)}>
-                      {task.completed_at ? "되돌리기" : "완료"}
+                    <button
+                      type="button"
+                      onClick={() => toggleTask(task)}
+                      disabled={Boolean(pendingAction)}
+                    >
+                      {pendingAction === "toggle"
+                        ? "처리 중"
+                        : task.completed_at
+                          ? "되돌리기"
+                          : "완료"}
                     </button>
                     <button
                       type="button"
                       className="danger-text"
                       onClick={() => deleteTask(task.id)}
+                      disabled={Boolean(pendingAction)}
                     >
-                      삭제
+                      {pendingAction === "delete" ? "삭제 중" : "삭제"}
                     </button>
                   </div>
                 </article>
@@ -693,12 +766,17 @@ export function MyWorkspace({
       </details>
 
       {pendingDeleteRecord && (
-        <div className="my-confirm-backdrop" role="presentation" onMouseDown={() => setPendingDeleteId(null)}>
+        <div
+          className="my-confirm-backdrop"
+          role="presentation"
+          onMouseDown={dismissDelete}
+        >
           <section
             className="my-confirm-dialog"
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-campaign-title"
+            aria-busy={recordDeletePending}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <span className="my-confirm-icon" aria-hidden="true">×</span>
@@ -706,9 +784,20 @@ export function MyWorkspace({
             <p>{pendingDeleteRecord.title}</p>
             <small>일정과 관리 기록도 함께 정리됩니다.</small>
             <div className="my-confirm-actions">
-              <button type="button" onClick={() => setPendingDeleteId(null)}>취소</button>
-              <button type="button" className="danger" onClick={() => deleteRecord(pendingDeleteRecord.id)}>
-                삭제
+              <button
+                type="button"
+                onClick={dismissDelete}
+                disabled={recordDeletePending}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => deleteRecord(pendingDeleteRecord.id)}
+                disabled={recordDeletePending}
+              >
+                {recordDeletePending ? "삭제 중" : "삭제"}
               </button>
             </div>
           </section>
