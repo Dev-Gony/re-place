@@ -269,6 +269,13 @@ export default async function Home({
               now() - make_interval(hours => ps.freshness_hours)
      )`,
     "(campaigns.deadline_at IS NULL OR campaigns.deadline_at >= now())",
+    // This source is a bounded initial HTML snapshot, not an accumulating catalogue.
+    // Its collector atomically stores all accepted rows with one observation time.
+    `(campaigns.platform <> '리뷰노트(공개목록)' OR campaigns.collected_at = (
+        SELECT max(snapshot.collected_at)
+          FROM campaigns snapshot
+         WHERE snapshot.platform = '리뷰노트(공개목록)'
+      ))`,
   ];
   const where: string[] = [...visibilityWhere];
   const values: unknown[] = [];

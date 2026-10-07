@@ -24,6 +24,8 @@
   해당 값만으로 정확한 조기 종료 여부를 추정하지 않는다.
 - 원문 URL, 제공 내역, 명시된 infPoint, applicantCount/infNum 유지. 이미지 복사 없음.
 - 정적 HTML 한 번 읽기, timeout/응답 크기 제한, 실패 시 기존 데이터 보존.
+- 한 cycle은 동일 관측 시각으로 원자적으로 저장한다. 공개 검색과 집계는 이 source의
+  마지막 성공 snapshot만 사용하여 과거 초기 목록/종료 상태 행이 누적 노출되지 않도록 한다.
 - 기본 dry-run, 명시적 write와 활성 registry가 있어야 저장. 6시간 배치 연결.
 - 출시 전 collection_enabled=false/search_enabled=false/status=paused로 숨길 수 있다.
 - 기존 운영정책 제한 기록은 사용자 승인과 구분해 보존. 기존 직접 API source는 유지.

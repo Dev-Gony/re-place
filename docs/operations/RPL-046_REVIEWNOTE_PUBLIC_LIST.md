@@ -41,6 +41,11 @@ collected_at은 우리 HTML 관측 시각이며 원본 업데이트 시각은 �
 HTML GET 한 번, timeout 8/25초, 응답 최대 4MiB, redirect/HTTP 오류 즉시 실패.
 파싱/응답 계약이 완전히 성공한 뒤 DB 활성 registry gate 확인 및 원자적 upsert.
 기본 dry-run, CLI --write/운영 wrapper만 저장. 6시간 batch에 연결.
+운영 재조회에서 신청 가능 상태인 블로그 항목이 73 → 70건으로 변경됐다.
+기존 upsert가 이전 행을 보존하므로 검색/집계에는 이 source만 마지막 성공 cycle의
+max(collected_at)과 같은 행으로 제한한다. 한 cycle의 모든 행은 동일 관측 시각이며
+원자적으로 저장한다. 실패 cycle은 DB 쓰기가 없으므로 직전 성공 snapshot을 유지한다.
+원문에서 닫힌 상태를 확인한 행은 새 snapshot에 들어가지 않아 노출되지 않는다.
 기존 reviewnote blocked row/과거 데이터는 섞지 않는다.
 출시 전 아래 토글로 새 source를 수집·검색에서 함께 숨긴다. 데이터 삭제가 필요하지 않다.
 
