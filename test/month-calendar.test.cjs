@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
 const calendar = read("app/my/month-calendar.tsx");
+const calendarEvents = read("lib/calendar-events.ts");
 const taskDate = read("lib/task-date.ts");
 const css = read("app/globals.css");
 
@@ -45,11 +46,15 @@ test("calendar supports previous current and next month navigation", () => {
 });
 
 test("calendar combines task dates and active campaign deadlines", () => {
-  assert.match(calendar, /task\.due_at/);
-  assert.match(calendar, /record\.deadline_at/);
-  assert.match(calendar, /\["completed", "cancelled"\]\.includes\(record\.status\)/);
-  assert.match(calendar, /kind:\s*"task"/);
-  assert.match(calendar, /kind:\s*"deadline"/);
+  assert.match(calendar, /buildCalendarEventsByDate\(tasks, records\)/);
+  assert.match(calendarEvents, /task\.due_at/);
+  assert.match(calendarEvents, /record\.deadline_at/);
+  assert.match(
+    calendarEvents,
+    /\["completed", "cancelled"\]\.includes\(record\.status\)/,
+  );
+  assert.match(calendarEvents, /kind:\s*"task"/);
+  assert.match(calendarEvents, /kind:\s*"deadline"/);
 });
 
 test("completed tasks are visually distinct", () => {
