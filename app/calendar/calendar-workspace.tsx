@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 
+import { createPendingActionRegistry } from "../../lib/pending-actions";
 import { seoulDateKey } from "../../lib/task-date";
 import type { RecordItem, TaskItem } from "../../lib/workspace-contract";
 import {
@@ -18,6 +19,8 @@ const TASK_LABELS: Record<TaskItem["task_type"], string> = {
   submit: "제출",
   other: "기타",
 };
+
+type CalendarTaskPendingAction = "edit" | "toggle" | "delete";
 
 function dayDiff(value: string, todayKey: string) {
   const due = seoulDateKey(value);
@@ -60,12 +63,34 @@ export function CalendarWorkspace({
   const [formOpen, setFormOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [taskMutationPending, setTaskMutationPending] = useState(false);
+  const [taskCreatePending, setTaskCreatePending] = useState(false);
+  const [pendingTaskActions, setPendingTaskActions] = useState<
+    ReadonlyMap<number, CalendarTaskPendingAction>
+  >(() => new Map());
   const [viewMode, setViewMode] = useState<"month" | "week" | "list">("month");
   const [taskFilter, setTaskFilter] = useState<"all" | "visit" | "content" | "submit">("all");
+  const taskCreateLock = useRef(false);
+  const taskActionRegistry = useRef(
+    createPendingActionRegistry<CalendarTaskPendingAction>(),
+  );
 
   const editingTask =
     tasks.find((task) => task.id === editingTaskId) ?? null;
+  const editingTaskPendingAction = editingTask
+    ? pendingTaskActions.get(editingTask.id)
+    : undefined;
+  const editingTaskPending = Boolean(editingTaskPendingAction);
+
+  function beginTaskAction(id: number, action: CalendarTaskPendingAction) {
+    if (!taskActionRegistry.current.begin(id, action)) return false;
+    setPendingTaskActions(taskActionRegistry.current.snapshot());
+    return true;
+  }
+
+  function endTaskAction(id: number) {
+    taskActionRegistry.current.end(id);
+    setPendingTaskActions(taskActionRegistry.current.snapshot());
+  }
 
   const visibleTasks = useMemo(
     () =>
@@ -149,13 +174,14 @@ export function CalendarWorkspace({
 
   async function createTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (taskMutationPending) return;
-
     const form = event.currentTarget;
-    const data = new FormData(form);
-    setTaskMutationPending(true);
+    if (taskCreateLock.current) return;
+    taskCreateLock.current = true;
+
+    setTaskCreatePending(true);
 
     try {
+      const data = new FormData(form);
       const result = await createTaskRequest({
         recordId: data.get("recordId"),
         taskType: data.get("taskType"),
@@ -173,11 +199,13 @@ export function CalendarWorkspace({
     } catch {
       setNotice("일정을 추가하지 못했습니다. 입력값을 확인해 주세요.");
     } finally {
-      setTaskMutationPending(false);
+      taskCreateLock.current = false;
+      setTaskCreatePending(false);
     }
   }
 
   function startEditingTask(task: TaskItem) {
+    if (taskActionRegistry.current.has(task.id)) return;
     setEditingTaskId(task.id);
     setFormOpen(false);
     setNotice(null);
@@ -185,12 +213,10 @@ export function CalendarWorkspace({
 
   async function editTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editingTask || taskMutationPending) return;
-
-    const data = new FormData(event.currentTarget);
-    setTaskMutationPending(true);
+    if (!editingTask || !beginTaskAction(editingTask.id, "edit")) return;
 
     try {
+      const data = new FormData(event.currentTarget);
       await updateTaskRequest(editingTask.id, {
         taskType: data.get("taskType"),
         title: data.get("title"),
@@ -202,13 +228,12 @@ export function CalendarWorkspace({
     } catch {
       setNotice("일정을 수정하지 못했습니다. 동일한 일정이 있는지 확인해 주세요.");
     } finally {
-      setTaskMutationPending(false);
+      endTaskAction(editingTask.id);
     }
   }
 
   async function toggleTask(task: TaskItem) {
-    if (taskMutationPending) return;
-    setTaskMutationPending(true);
+    if (!beginTaskAction(task.id, "toggle")) return;
 
     try {
       await updateTaskRequest(task.id, {
@@ -219,13 +244,12 @@ export function CalendarWorkspace({
     } catch {
       setNotice("일정 상태를 변경하지 못했습니다.");
     } finally {
-      setTaskMutationPending(false);
+      endTaskAction(task.id);
     }
   }
 
   async function removeTask(id: number) {
-    if (taskMutationPending) return;
-    setTaskMutationPending(true);
+    if (!beginTaskAction(id, "delete")) return;
 
     try {
       await deleteTaskRequest(id);
@@ -235,7 +259,7 @@ export function CalendarWorkspace({
     } catch {
       setNotice("일정을 삭제하지 못했습니다.");
     } finally {
-      setTaskMutationPending(false);
+      endTaskAction(id);
     }
   }
 
@@ -254,7 +278,11 @@ export function CalendarWorkspace({
       {notice && <div className="calendar-notice" role="status">{notice}</div>}
 
       {formOpen && (
-        <form className="calendar-quick-form" onSubmit={createTask}>
+        <form
+          className="calendar-quick-form"
+          onSubmit={createTask}
+          aria-busy={taskCreatePending}
+        >
           <select name="recordId" required defaultValue="">
             <option value="" disabled>체험단 선택</option>
             {records
@@ -273,8 +301,8 @@ export function CalendarWorkspace({
           </select>
           <input name="title" required maxLength={240} placeholder="일정명" />
           <input name="dueAt" type="date" required />
-          <button type="submit" disabled={taskMutationPending}>
-            {taskMutationPending ? "저장 중" : "추가"}
+          <button type="submit" disabled={taskCreatePending}>
+            {taskCreatePending ? "저장 중" : "추가"}
           </button>
         </form>
       )}
@@ -284,6 +312,7 @@ export function CalendarWorkspace({
           className="calendar-quick-form calendar-edit-form"
           key={editingTask.id}
           onSubmit={editTask}
+          aria-busy={editingTaskPending}
         >
           <div className="calendar-edit-context">
             <small>일정 수정</small>
@@ -307,14 +336,14 @@ export function CalendarWorkspace({
             required
             defaultValue={seoulDateKey(editingTask.due_at) ?? ""}
           />
-          <button type="submit" disabled={taskMutationPending}>
-            {taskMutationPending ? "저장 중" : "저장"}
+          <button type="submit" disabled={editingTaskPending}>
+            {editingTaskPendingAction === "edit" ? "저장 중" : "저장"}
           </button>
           <button
             type="button"
             className="calendar-secondary-action"
             onClick={() => setEditingTaskId(null)}
-            disabled={taskMutationPending}
+            disabled={editingTaskPending}
           >
             취소
           </button>
@@ -332,6 +361,9 @@ export function CalendarWorkspace({
               <div className="calendar-mobile-items">
                 {group.items.map((item) => {
                   const state = dday(item.dueAt, todayKey);
+                  const pendingAction = item.task
+                    ? pendingTaskActions.get(item.task.id)
+                    : undefined;
                   return (
                     <article className="calendar-mobile-item" key={item.key}>
                       <div className="calendar-mobile-time">
@@ -350,16 +382,16 @@ export function CalendarWorkspace({
                           <button
                             type="button"
                             onClick={() => startEditingTask(item.task)}
-                            disabled={taskMutationPending}
+                            disabled={Boolean(pendingAction)}
                           >
-                            수정
+                            {pendingAction === "edit" ? "수정 중" : "수정"}
                           </button>
                           <button
                             type="button"
                             onClick={() => toggleTask(item.task)}
-                            disabled={taskMutationPending}
+                            disabled={Boolean(pendingAction)}
                           >
-                            완료
+                            {pendingAction === "toggle" ? "처리 중" : "완료"}
                           </button>
                         </div>
                       )}
@@ -429,6 +461,7 @@ export function CalendarWorkspace({
               {(viewMode === "week" ? weekTasks : visibleTasks).length ? (
                 (viewMode === "week" ? weekTasks : visibleTasks).map((task) => {
                   const state = dday(task.due_at, todayKey);
+                  const pendingAction = pendingTaskActions.get(task.id);
                   return (
                     <article className="calendar-agenda-row" key={task.id}>
                       <div className="calendar-agenda-date">
@@ -443,16 +476,20 @@ export function CalendarWorkspace({
                         <button
                           type="button"
                           onClick={() => startEditingTask(task)}
-                          disabled={taskMutationPending}
+                          disabled={Boolean(pendingAction)}
                         >
-                          수정
+                          {pendingAction === "edit" ? "수정 중" : "수정"}
                         </button>
                         <button
                           type="button"
                           onClick={() => toggleTask(task)}
-                          disabled={taskMutationPending}
+                          disabled={Boolean(pendingAction)}
                         >
-                          {task.completed_at ? "되돌리기" : "완료"}
+                          {pendingAction === "toggle"
+                            ? "처리 중"
+                            : task.completed_at
+                              ? "되돌리기"
+                              : "완료"}
                         </button>
                       </div>
                     </article>
@@ -478,6 +515,7 @@ export function CalendarWorkspace({
             {upcoming.length ? (
               upcoming.map((task) => {
                 const state = dday(task.due_at, todayKey);
+                const pendingAction = pendingTaskActions.get(task.id);
                 return (
                   <article key={task.id} className="calendar-upcoming-item">
                     <div className="calendar-upcoming-meta">
@@ -490,23 +528,23 @@ export function CalendarWorkspace({
                       <button
                         type="button"
                         onClick={() => startEditingTask(task)}
-                        disabled={taskMutationPending}
+                        disabled={Boolean(pendingAction)}
                       >
-                        수정
+                        {pendingAction === "edit" ? "수정 중" : "수정"}
                       </button>
                       <button
                         type="button"
                         onClick={() => toggleTask(task)}
-                        disabled={taskMutationPending}
+                        disabled={Boolean(pendingAction)}
                       >
-                        완료
+                        {pendingAction === "toggle" ? "처리 중" : "완료"}
                       </button>
                       <button
                         type="button"
                         onClick={() => removeTask(task.id)}
-                        disabled={taskMutationPending}
+                        disabled={Boolean(pendingAction)}
                       >
-                        삭제
+                        {pendingAction === "delete" ? "삭제 중" : "삭제"}
                       </button>
                     </div>
                   </article>
