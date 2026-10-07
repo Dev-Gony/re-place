@@ -161,15 +161,31 @@ def get_reviewnote_public_data(*, dry_run: bool = True) -> list[Campaign]:
     if dry_run:
         print(f"리뷰노트 공개목록 dry-run {len(campaigns)}건. DB 저장 없음.", flush=True)
         return campaigns
+    save_campaigns(campaigns)
+    return campaigns
+
+
+def save_campaigns(campaigns: list[Campaign]) -> None:
+    """Reuse matching legacy row IDs, then atomically refresh the public snapshot."""
+    if not campaigns:
+        raise ValueError("빈 리뷰노트 snapshot을 저장하지 않습니다.")
     with get_database_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute("""select 1 from platform_sources where slug='reviewnote-public-list'
                 and name=%s and status='active' and collection_enabled=true""", (PLATFORM,))
             if cursor.fetchone() is None:
                 raise RuntimeError("리뷰노트 공개목록 registry 미활성. 저장하지 않습니다.")
+            # campaigns.link is globally unique. The old blocked source can own
+            # the very same original campaign. Preserve its row ID and personal
+            # references; promote only IDs actually observed in this full cycle.
+            # This update and the common upsert share one transaction/commit.
+            cursor.execute("""update campaigns as legacy
+                set platform=%s, source_campaign_id=incoming.source_id
+                from unnest(%s::text[], %s::text[]) as incoming(source_id, link)
+                where legacy.platform='리뷰노트' and legacy.link=incoming.link""",
+                (PLATFORM, [c.source_campaign_id for c in campaigns], [c.link for c in campaigns]))
         saved = upsert_campaigns(connection, campaigns)
     print(f"리뷰노트 공개목록 {saved}건 DB 동기화 완료", flush=True)
-    return campaigns
 
 
 def collect_reviewnote_public_production() -> None:

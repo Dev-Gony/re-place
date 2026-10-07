@@ -39,3 +39,13 @@ branch `feat/rpl-046-reviewnote-pagination`. 같은 이슈의 전체 공개 목�
 
 fixture/실패 경계 시험, 실제 공개 목록 dry-run, CI/PR/병합,
 운영 적재와 필터/원문/혜택/신청 마감 브라우저 확인, hosted 실행 확인.
+
+## 기존 원문 URL 호환 (후속 수정)
+
+기준 main 3956dc2bce4d0ee740ac92d126017f725d2dc6c7, branch fix/rpl-046-reviewnote-legacy-links.
+실제 hosted 전체 수집은 성공했으나 저장에서 campaigns_link_key 충돌로 rollback.
+DB에는 기존 blocked 리뷰노트 원문 2,072행이 있고 새 source와 동일 원문이 겹친다.
+현재 전체 cycle에 실제 관측된 원문 URL과 같은 기존 리뷰노트 행만 새 platform/ID로 연결한다.
+행 ID 및 사용자 참조는 유지하고 삭제하지 않는다. 기존 source registry는 blocked 유지.
+registry gate → 기존 동일 원문 행 연결 → 공통 upsert를 같은 transaction에서 commit한다.
+새 저장이 실패하면 기존 행 연결도 rollback하여 직전 성공 snapshot을 보존한다.
