@@ -1,7 +1,8 @@
 """Bounded public search evidence. This tool never opens a database connection.
 
 Inflexer's search API is a second-hand source, not an official REVU feed.
-Do not use it as a production collector without a separately agreed reuse scope.
+RPL-045 adds a separately scoped production adapter. This diagnostic remains
+DB-free; user authorization is not recorded as verified rights-holder permission.
 """
 import argparse
 import json

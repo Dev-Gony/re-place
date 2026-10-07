@@ -5,8 +5,9 @@
 - Base: `main@76c59c7fb8802425085cb56540d39b624c5039cd`
 - Branch: `feat/rpl-044-public-source-collectors`
 - Issue: [#141](https://github.com/Dev-Gony/re-place/issues/141)
-- PR: 준비 중
-- Status: LOCAL + LIVE DRY-RUN VERIFIED; PRODUCTION ACTIVATION PENDING
+- PR: [#142](https://github.com/Dev-Gony/re-place/pull/142), main `a4fe226`에 병합
+- Status: GANGNAM PRODUCTION VERIFIED. 레뷰 경유 운영 연동은 후속 RPL-045.
+- 후속 사용자 승인 후 강남맛집 6,828건 DB 적재·검색·hosted 운영 배치 #99 검증 완료.
 - 요청: 인플렉서의 레뷰·강남맛집 표시 경로를 조사하고 Re:Place에 적용
 
 ## 목표 및 범위

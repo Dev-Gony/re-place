@@ -1,0 +1,20 @@
+{
+  "is_valid": true,
+  "num_result": 2,
+  "result": [
+    {
+      "apl_due_dt": "2026-10-07", "apl_stt_dt": "2026-10-01",
+      "category": "맛집", "domain": "레뷰", "media": "BP_",
+      "offer": "[1인 1회] 얼굴축소 70분 (20만원 상당)", "point": "X",
+      "pub_due_dt": "2026-10-26", "title": "[강남] 바른태 강남본점",
+      "type": "VST", "url": "https://www.revu.net/campaign/1393018"
+    },
+    {
+      "apl_due_dt": "2026-10-07", "apl_stt_dt": "2026-09-30",
+      "category": "음식", "domain": "레뷰", "media": "BP_",
+      "offer": "비오비타 우리가족 쾌변젤리 골드 20포 1개 (20일분)",
+      "pub_due_dt": "2026-10-20", "title": "[비오비타] 우리가족 쾌변젤리 골드",
+      "type": "SHP", "url": "https://www.revu.net/campaign/1411366"
+    }
+  ]
+}
