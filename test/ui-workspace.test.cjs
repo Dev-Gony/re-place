@@ -34,7 +34,9 @@ test('filters remain URL-driven while adopting compact reference controls', () =
   assert.match(filters, /mobile-filter-trigger/);
   assert.match(filters, /onChange=\{handleChange\}/);
   assert.match(filters, /router\.replace/);
-  assert.match(filters, /setTimeout\(applyNow, 350\)/);
+  assert.match(filters, /const FILTER_CHANGE_DELAY_MS = 400/);
+  assert.match(filters, /const REGION_INPUT_DELAY_MS = 350/);
+  assert.match(filters, /setTimeout\(applyNow, delay\)/);
   assert.match(filters, /inputRef\.current\?\.focus/);
   assert.match(filters, /search-shortcut/);
   assert.match(page, /방문형/);

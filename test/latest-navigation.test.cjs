@@ -58,6 +58,9 @@ test("filter panel settles against committed server values outside component ref
   assert.match(source, /const filterNavigation = new LatestNavigationCoordinator\(\)/);
   assert.match(source, /const committedHref = filterHrefFromValues\(values\)/);
   assert.match(source, /filterNavigation\.settleCommitted\(committedHref\)/);
+  assert.match(source, /window\.location\.replace\(nextHref\)/);
   assert.match(source, /filterNavigation\.request\(href\)/);
+  assert.match(source, /const FILTER_CHANGE_DELAY_MS = 400/);
+  assert.match(source, /filterTimer\.current = setTimeout\(applyNow, delay\)/);
   assert.doesNotMatch(source, /useRef\(new LatestNavigationCoordinator/);
 });

@@ -44,6 +44,8 @@ type FilterPanelProps = {
 };
 
 const filterNavigation = new LatestNavigationCoordinator();
+const FILTER_CHANGE_DELAY_MS = 400;
+const REGION_INPUT_DELAY_MS = 350;
 
 function filterHrefFromValues(values: FilterValues) {
   const query = new URLSearchParams();
@@ -174,7 +176,7 @@ export function FilterPanel({
 }: FilterPanelProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const regionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPending, startTransition] = useTransition();
   const committedHref = filterHrefFromValues(values);
 
@@ -197,8 +199,8 @@ export function FilterPanel({
 
   useEffect(() => {
     const nextHref = filterNavigation.settleCommitted(committedHref);
-    if (nextHref) runNavigation(nextHref);
-  }, [committedHref, runNavigation]);
+    if (nextHref) window.location.replace(nextHref);
+  }, [committedHref]);
 
   function applyNow() {
     if (!formRef.current) return;
@@ -216,17 +218,16 @@ export function FilterPanel({
 
     if (!target.name) return;
 
-    if (target.name === "region" && target instanceof HTMLInputElement) {
-      if (regionTimer.current) clearTimeout(regionTimer.current);
-      regionTimer.current = setTimeout(applyNow, 350);
-      return;
-    }
-
-    applyNow();
+    if (filterTimer.current) clearTimeout(filterTimer.current);
+    const delay =
+      target.name === "region" && target instanceof HTMLInputElement
+        ? REGION_INPUT_DELAY_MS
+        : FILTER_CHANGE_DELAY_MS;
+    filterTimer.current = setTimeout(applyNow, delay);
   }
 
   function handleReset() {
-    if (regionTimer.current) clearTimeout(regionTimer.current);
+    if (filterTimer.current) clearTimeout(filterTimer.current);
     requestNavigation("/");
   }
 
