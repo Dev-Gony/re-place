@@ -46,6 +46,7 @@ class FakeConnection:
 class SourcePolicyTests(unittest.TestCase):
     def test_blocked_source_has_no_production_collector_mapping(self):
         self.assertNotIn("리뷰노트", run_all.COLLECTOR_MAP)
+        self.assertIn("리뷰노트(공개목록)", run_all.COLLECTOR_MAP)
         self.assertNotIn("레뷰", run_all.COLLECTOR_MAP)
         self.assertIn("레뷰(인플렉서)", run_all.COLLECTOR_MAP)
         self.assertIn("강남맛집", run_all.COLLECTOR_MAP)

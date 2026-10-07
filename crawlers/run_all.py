@@ -9,11 +9,13 @@ from reviewplace_crawler import get_reviewplace_data
 from reviewus_crawler import get_reviewus_data
 from gangnam_crawler import collect_gangnam_production
 from inflexer_revu_crawler import PLATFORM as INFLEXER_REVU, collect_inflexer_revu_production
+from reviewnote_public_crawler import PLATFORM as REVIEWNOTE_PUBLIC, collect_reviewnote_public_production
 
 
 Collector = tuple[str, Callable[[], None]]
 
 COLLECTOR_MAP: dict[str, Callable[[], None]] = {
+    REVIEWNOTE_PUBLIC: collect_reviewnote_public_production,
     INFLEXER_REVU: collect_inflexer_revu_production,
     "강남맛집": collect_gangnam_production,
     "디너의여왕": get_dinnerqueen_data,
