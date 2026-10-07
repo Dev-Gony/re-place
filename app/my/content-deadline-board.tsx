@@ -79,6 +79,7 @@ export function ContentDeadlineBoard({
   todayKey,
   onCreate,
   onToggle,
+  createPending,
 }: {
   tasks: DeadlineTask[];
   records: DeadlineRecord[];
@@ -90,6 +91,7 @@ export function ContentDeadlineBoard({
     dueAt: string;
   }) => Promise<boolean>;
   onToggle: (task: DeadlineTask) => Promise<void>;
+  createPending: boolean;
 }) {
   const deadlineTasks = useMemo(
     () => tasks.filter((task) => task.task_type === "content" || task.task_type === "submit"),
@@ -128,6 +130,8 @@ export function ContentDeadlineBoard({
 
   async function createDeadline(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createPending) return;
+
     const form = event.currentTarget;
     const data = new FormData(form);
     const recordId = Number(data.get("recordId"));
@@ -183,7 +187,11 @@ export function ContentDeadlineBoard({
       </div>
 
       {actionableRecords.length ? (
-        <form className="my-content-deadline-form" onSubmit={createDeadline}>
+        <form
+          className="my-content-deadline-form"
+          onSubmit={createDeadline}
+          aria-busy={createPending}
+        >
           <select name="recordId" defaultValue="" required aria-label="체험단 선택">
             <option value="" disabled>선정 체험단 선택</option>
             {actionableRecords.map((record) => (
@@ -197,7 +205,9 @@ export function ContentDeadlineBoard({
             <option value="submit">리뷰 제출</option>
           </select>
           <input name="dueAt" type="date" required aria-label="마감 날짜" />
-          <button type="submit">마감 추가</button>
+          <button type="submit" disabled={createPending}>
+            {createPending ? "마감 추가 중" : "마감 추가"}
+          </button>
         </form>
       ) : (
         <div className="my-task-empty-callout">
