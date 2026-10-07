@@ -1,0 +1,38 @@
+name: Collect Revu via Inflexer
+
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: Store the validated feed using the active production registry
+        type: boolean
+        default: false
+        required: true
+
+concurrency:
+  group: re-place-campaign-collection
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Read and optionally store the Inflexer Revu feed
+        env:
+          DATABASE_URL: ${{ inputs.write && secrets.PRODUCTION_DATABASE_URL || '' }}
+          WRITE: ${{ inputs.write }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          if [ "$WRITE" = "true" ]; then
+            python crawlers/inflexer_revu_crawler.py --write
+          else
+            python crawlers/inflexer_revu_crawler.py --dry-run
+          fi
