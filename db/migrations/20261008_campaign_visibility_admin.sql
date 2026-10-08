@@ -81,11 +81,11 @@ create index campaign_publication_audit_created_idx
 create or replace function public.reject_campaign_publication_audit_mutation()
 returns trigger
 language plpgsql
-as $$
+as '
 begin
-  raise exception 'campaign_publication_audit is append-only';
+  raise exception ''campaign_publication_audit is append-only'';
 end;
-$$;
+';
 
 create trigger campaign_publication_audit_append_only
 before update or delete on public.campaign_publication_audit
@@ -113,7 +113,7 @@ from (
 create or replace function public.initialize_campaign_publication_state()
 returns trigger
 language plpgsql
-as $$
+as '
 begin
   insert into public.campaign_publication_states (campaign_id, state)
   values (
@@ -124,14 +124,14 @@ begin
         from public.campaign_publication_policies policy
         where policy.platform = new.platform
       ),
-      'review_pending'
+      ''review_pending''
     )
   )
   on conflict (campaign_id) do nothing;
 
   return new;
 end;
-$$;
+';
 
 create trigger campaigns_initialize_publication_state
 after insert on public.campaigns

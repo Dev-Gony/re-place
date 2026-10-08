@@ -156,6 +156,7 @@ test("migration preserves existing exposure and keeps ReviewNote private", () =>
   assert.match(migration, /then 'review_pending'/);
   assert.match(migration, /on conflict \(campaign_id\) do nothing/i);
   assert.match(migration, /before update or delete/i);
+  assert.doesNotMatch(migration, /as \$\$/i);
   assert.equal((migration.match(/version bigint not null default 1/g) || []).length, 2);
   assert.doesNotMatch(
     migration,
