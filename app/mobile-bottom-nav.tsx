@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 type NavItem = {
   href: string;
   label: string;
-  key: "discover" | "workspace" | "schedule" | "analysis";
+  key: "discover" | "favorites" | "workspace" | "schedule" | "analysis";
 };
 
 const ITEMS: NavItem[] = [
   { href: "/", label: "탐색", key: "discover" },
+  { href: "/my#favorites", label: "찜목록", key: "favorites" },
   { href: "/my", label: "내 체험단", key: "workspace" },
   { href: "/calendar", label: "일정", key: "schedule" },
   { href: "/blog-analysis", label: "분석", key: "analysis" },
@@ -30,6 +31,13 @@ function Icon({ type }: { type: NavItem["key"] }) {
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="4" y="5" width="16" height="14" rx="2" />
         <path d="M8 9h8M8 13h5" />
+      </svg>
+    );
+  }
+  if (type === "favorites") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 20.2 4.7 13A4.8 4.8 0 0 1 11.5 6.2L12 6.7l.5-.5A4.8 4.8 0 0 1 19.3 13Z" />
       </svg>
     );
   }
@@ -62,6 +70,7 @@ export function MobileBottomNav() {
 
   function isActive(item: NavItem) {
     if (item.key === "discover") return pathname === "/";
+    if (item.key === "favorites") return false;
     if (item.key === "workspace") return pathname === "/my";
     if (item.key === "schedule") return pathname === "/calendar";
     if (item.key === "analysis") return pathname === "/blog-analysis";

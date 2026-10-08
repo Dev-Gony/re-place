@@ -7,6 +7,7 @@ const root = path.join(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 const workspace = read("app/my/my-workspace.tsx");
+const favoriteList = read("app/my/favorite-list.tsx");
 const overview = read("app/my/my-overview.tsx");
 const css = read("app/globals.css");
 
@@ -39,7 +40,8 @@ test("overview settlement totals only use cash and reimbursement", () => {
 test("overview quick links map to real workspace section anchors", () => {
   for (const id of ["content-deadlines", "schedule", "settlements", "records", "favorites"]) {
     assert.match(overview, new RegExp(`href="#${id}"`));
-    assert.match(workspace, new RegExp(`id="${id}"`));
+    const anchorSource = id === "favorites" ? favoriteList : workspace;
+    assert.match(anchorSource, new RegExp(`id="${id}"`));
   }
 });
 

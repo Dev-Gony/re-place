@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const page = fs.readFileSync(path.join(root, "app/my/page.tsx"), "utf8");
 const workspace = fs.readFileSync(path.join(root, "app/my/my-workspace.tsx"), "utf8");
+const favoriteList = fs.readFileSync(path.join(root, "app/my/favorite-list.tsx"), "utf8");
 const board = fs.readFileSync(path.join(root, "app/my/my-campaign-board.tsx"), "utf8");
 const header = fs.readFileSync(path.join(root, "app/web-header.tsx"), "utf8");
 const css = fs.readFileSync(path.join(root, "app/globals.css"), "utf8");
@@ -50,8 +51,8 @@ test("manual registration remains available but compact", () => {
 });
 
 test("favorites use compact rows and keep add/remove actions", () => {
-  assert.match(workspace, /className="my-favorite-row"/);
-  assert.match(workspace, /내 체험단 추가/);
-  assert.match(workspace, /removeFavorite/);
+  assert.match(favoriteList, /className="my-favorite-row"/);
+  assert.match(favoriteList, /내 체험단 추가/);
+  assert.match(favoriteList, /removeFavorite/);
   assert.match(workspace, /addFavoriteToRecords/);
 });

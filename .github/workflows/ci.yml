@@ -29,6 +29,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: node --test test/*.test.cjs
+      - run: npm run test:dom
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
