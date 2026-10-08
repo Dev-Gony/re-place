@@ -2,6 +2,8 @@ import { unstable_cache } from "next/cache";
 import type { QueryResultRow } from "pg";
 import { queryDb } from "./db";
 
+export const PUBLIC_CAMPAIGN_CACHE_TAG = "re-place-campaigns";
+
 // Only the public campaign catalogue may use this cache. User data must not.
 // SQL and bound values are arguments so every filter/page has its own cache key.
 const readCachedCampaigns = unstable_cache(
@@ -11,7 +13,7 @@ const readCachedCampaigns = unstable_cache(
     return { rows: result.rows };
   },
   ["re-place-public-campaigns-v1"],
-  { revalidate: 600, tags: ["re-place-campaigns"] },
+  { revalidate: 600, tags: [PUBLIC_CAMPAIGN_CACHE_TAG] },
 );
 
 export async function queryCampaignDb<T extends QueryResultRow = QueryResultRow>(

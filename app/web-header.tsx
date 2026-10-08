@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AuthStatus } from "./auth-status";
 
 type WebHeaderProps = {
-  active: "explore" | "my" | "calendar" | "analysis";
+  active: "explore" | "my" | "calendar" | "analysis" | "admin";
 };
 
 const NAV_ITEMS = [

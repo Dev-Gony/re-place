@@ -4,6 +4,7 @@ import {
   isPublicCampaignPlatformVisible,
   TEMPORARILY_HIDDEN_PUBLIC_CAMPAIGN_SQL,
 } from "@/lib/public-campaign-visibility";
+import { isCampaignVisibilityAdminEnabled } from "@/lib/admin/campaign-visibility-access";
 import { FilterPanel, HeroSearch } from "./filter-controls";
 import { WebHeader } from "./web-header";
 import { CampaignWorkbench, type CampaignWorkbenchItem } from "./campaign-workbench";
@@ -44,6 +45,7 @@ type SourceRow = {
   status: string;
   search_enabled: boolean;
   freshness_hours: number;
+  platform_visible: boolean;
 };
 
 type CampaignCountRow = {
@@ -230,12 +232,22 @@ export default async function Home({
 
   let sourceRows: SourceRow[] = [];
   let registryError: Error | null = null;
+  const managedVisibilityEnabled = isCampaignVisibilityAdminEnabled();
 
   try {
     const sourceResult = await queryDb<SourceRow>(
-      `SELECT name, status, search_enabled, freshness_hours
-         FROM platform_sources
-        ORDER BY priority, name`,
+      managedVisibilityEnabled
+        ? `SELECT source.name, source.status, source.search_enabled,
+                  source.freshness_hours,
+                  coalesce(policy.platform_visible, false) as platform_visible
+             FROM platform_sources source
+             LEFT JOIN campaign_publication_policies policy
+               ON policy.platform = source.name
+            ORDER BY source.priority, source.name`
+        : `SELECT name, status, search_enabled, freshness_hours,
+                  true as platform_visible
+             FROM platform_sources
+            ORDER BY priority, name`,
     );
     sourceRows = sourceResult.rows;
   } catch (caught) {
@@ -249,6 +261,7 @@ export default async function Home({
       (source) =>
         source.status === "active" &&
         source.search_enabled &&
+        source.platform_visible &&
         isPublicCampaignPlatformVisible(source.name),
     )
     .map((source) => source.name);
@@ -288,6 +301,17 @@ export default async function Home({
          WHERE snapshot.platform = '리뷰노트(공개목록)'
       ))`,
   ];
+  if (managedVisibilityEnabled) {
+    visibilityWhere.push(`EXISTS (
+      SELECT 1
+        FROM campaign_publication_states publication
+        JOIN campaign_publication_policies policy
+          ON policy.platform = campaigns.platform
+       WHERE publication.campaign_id = campaigns.id
+         AND publication.state = 'published'
+         AND policy.platform_visible = true
+    )`);
+  }
   const where: string[] = [...visibilityWhere];
   const values: unknown[] = [];
 

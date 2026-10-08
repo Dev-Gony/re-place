@@ -1,0 +1,276 @@
+.page {
+  min-height: 100vh;
+  background: var(--rp-canvas, #faf9f6);
+  color: #1f2925;
+}
+
+.shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 36px 0 80px;
+}
+
+.heading,
+.sectionHeading,
+.cardFoot,
+.bulkBar,
+.campaignRow,
+.auditList article > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heading h1,
+.sectionHeading h2 {
+  margin: 0;
+}
+
+.heading p,
+.sectionHeading p {
+  margin: 6px 0 0;
+  color: #66706c;
+}
+
+.eyebrow {
+  color: #1b3b30 !important;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scopeBadge,
+.sectionHeading > span {
+  flex: none;
+  border: 1px solid #c9d5cf;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #fff;
+  color: #1b3b30;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notice {
+  margin-top: 20px;
+  border: 1px solid #b7c9bf;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #eef6f1;
+}
+
+.section {
+  margin-top: 28px;
+  border: 1px solid #e6e5e1;
+  border-radius: 16px;
+  padding: 22px;
+  background: #fff;
+}
+
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.policyCard {
+  min-width: 0;
+  border: 1px solid #e6e5e1;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fbfbf9;
+}
+
+.policyCard > label:not(.toggleLabel) {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  color: #66706c;
+  font-size: 12px;
+}
+
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.policyCard select,
+.filters input,
+.filters select {
+  min-width: 0;
+  border: 1px solid #d8d9d5;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #fff;
+  color: inherit;
+}
+
+.cardFoot {
+  margin-top: 14px;
+}
+
+.cardFoot small,
+.campaignCopy small,
+.auditList small {
+  color: #7a827e;
+  font-variant-numeric: tabular-nums;
+}
+
+.section button,
+.filters button {
+  border: 1px solid #1b3b30;
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: #1b3b30;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.section button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 180px 150px auto;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.bulkBar {
+  flex-wrap: wrap;
+  margin-top: 14px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f2f3f0;
+}
+
+.bulkBar label,
+.bulkBar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulkBar > span {
+  margin-right: auto;
+  color: #66706c;
+  font-size: 13px;
+}
+
+.campaignList,
+.auditList {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.campaignRow {
+  justify-content: flex-start;
+  border: 1px solid #ecece8;
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+
+.campaignCopy {
+  min-width: 0;
+}
+
+.campaignCopy > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.campaignCopy > div span,
+.campaignCopy em {
+  font-size: 11px;
+  font-style: normal;
+}
+
+.campaignCopy strong {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaignCopy em {
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-weight: 800;
+}
+
+.published { background: #e6f4eb; color: #17653b; }
+.review_pending { background: #fff2cc; color: #795b00; }
+.hidden { background: #ececea; color: #565b58; }
+
+.auditList article {
+  border-bottom: 1px solid #ecece8;
+  padding: 10px 2px;
+}
+
+.auditList article:last-child {
+  border-bottom: 0;
+}
+
+.auditList span,
+.auditList p {
+  color: #66706c;
+  font-size: 13px;
+}
+
+.auditList p {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  border: 1px dashed #d8d9d5;
+  border-radius: 10px;
+  padding: 30px 16px;
+  color: #66706c;
+  text-align: center;
+}
+
+@media (max-width: 820px) {
+  .policyGrid { grid-template-columns: 1fr 1fr; }
+  .filters { grid-template-columns: 1fr 1fr; }
+  .filters input { grid-column: 1 / -1; }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    width: min(100% - 20px, 1120px);
+    padding-top: 22px;
+  }
+
+  .heading,
+  .sectionHeading {
+    align-items: flex-start;
+  }
+
+  .section { padding: 16px; }
+  .policyGrid,
+  .filters { grid-template-columns: minmax(0, 1fr); }
+  .filters input { grid-column: auto; }
+
+  .bulkBar > div {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bulkBar button {
+    min-width: 0;
+    padding-inline: 6px;
+  }
+}
