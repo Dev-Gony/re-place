@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { authClient } from "../lib/auth/client";
 import { FavoritesProvider } from "./favorites-provider";
+import { CampaignVisibilityAdminEntryProvider } from "./campaign-visibility-admin-entry";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -21,7 +22,9 @@ export function Providers({ children }: { children: ReactNode }) {
       redirectTo="/my"
       Link={Link}
     >
-      <FavoritesProvider>{children}</FavoritesProvider>
+      <CampaignVisibilityAdminEntryProvider>
+        <FavoritesProvider>{children}</FavoritesProvider>
+      </CampaignVisibilityAdminEntryProvider>
     </NeonAuthUIProvider>
   );
 }

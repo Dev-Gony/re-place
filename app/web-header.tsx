@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AuthStatus } from "./auth-status";
+import { CampaignVisibilityAdminLink } from "./campaign-visibility-admin-entry";
 
 type WebHeaderProps = {
   active: "explore" | "my" | "calendar" | "analysis" | "admin";
@@ -34,6 +35,7 @@ export function WebHeader({ active }: WebHeaderProps) {
                 {item.label}
               </Link>
             ))}
+            <CampaignVisibilityAdminLink surface="header" active={active === "admin"} />
           </nav>
         </div>
 

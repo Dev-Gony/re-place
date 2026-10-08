@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { authClient } from "../lib/auth/client";
+import { CampaignVisibilityAdminLink } from "./campaign-visibility-admin-entry";
 
 function initials(value: string) {
   const text = value.trim();
@@ -52,6 +53,7 @@ export function AuthStatus() {
         <Link href="/my#favorites">찜목록</Link>
         <Link href="/my">내 체험단</Link>
         <Link href="/calendar">캘린더</Link>
+        <CampaignVisibilityAdminLink surface="account" />
         <button type="button" onClick={signOut}>로그아웃</button>
       </div>
     </details>

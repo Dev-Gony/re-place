@@ -450,3 +450,41 @@ test("admin UI exposes text-first platform, bulk campaign, and audit controls", 
   assert.match(css, /@media \(max-width: 560px\)/);
   assert.doesNotMatch(client, /<img|next\/image/);
 });
+test("admin entry is server-authorized and shared across navigation surfaces", () => {
+  const endpoint = fs.readFileSync(
+    path.join(
+      __dirname,
+      "../app/api/admin/campaign-visibility/access/route.ts",
+    ),
+    "utf8",
+  );
+  const entry = fs.readFileSync(
+    path.join(__dirname, "../app/campaign-visibility-admin-entry.tsx"),
+    "utf8",
+  );
+  const header = fs.readFileSync(
+    path.join(__dirname, "../app/web-header.tsx"),
+    "utf8",
+  );
+  const account = fs.readFileSync(
+    path.join(__dirname, "../app/auth-status.tsx"),
+    "utf8",
+  );
+  const mobile = fs.readFileSync(
+    path.join(__dirname, "../app/mobile-bottom-nav.tsx"),
+    "utf8",
+  );
+
+  assert.match(endpoint, /currentCampaignVisibilityAdmin\(\)/);
+  assert.match(endpoint, /Cache-Control": "private, no-store"/);
+  assert.match(endpoint, /Vary: "Cookie"/);
+  assert.match(entry, /authClient\.useSession\(\)/);
+  assert.match(entry, /fetch\("\/api\/admin\/campaign-visibility\/access"/);
+  assert.match(entry, /credentials: "include"/);
+  assert.match(entry, /window\.addEventListener\("pageshow", refresh\)/);
+  assert.doesNotMatch(entry, /email|@/i);
+  assert.match(header, /CampaignVisibilityAdminLink surface="header"/);
+  assert.match(account, /CampaignVisibilityAdminLink surface="account"/);
+  assert.match(mobile, /useCampaignVisibilityAdminEntry\(\)/);
+  assert.match(mobile, /href: "\/admin\/campaigns"/);
+});

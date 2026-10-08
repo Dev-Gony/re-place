@@ -83,9 +83,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <MobileBottomNav />
+        </Providers>
         <PwaRegister />
-        <MobileBottomNav />
         <Analytics />
         <SpeedInsights />
       </body>
