@@ -44,7 +44,7 @@ describe("FavoriteList", () => {
   test("renders a discoverable list with original, add, and remove actions", () => {
     const result = render(
       <FavoriteList
-        initialItems={[favorite(101, "강남 카페 체험")]} 
+        initialItems={[favorite(101, "강남 카페 체험")]}
         recordCampaignIds={[]}
         onAddToRecords={() => undefined}
         removeRequest={async () => ({})}

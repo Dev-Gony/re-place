@@ -121,7 +121,10 @@ function fixtureHarness() {
     async queryDb(sql, values = []) {
       const normalized = sql.replace(/\s+/g, " ").trim().toLowerCase();
 
-      if (normalized.startsWith("insert into user_campaign_records")) {
+      if (
+        normalized.startsWith("with saved_record as") &&
+        normalized.includes("insert into user_campaign_records")
+      ) {
         const item = {
           id: nextRecordId++,
           auth_user_id: values[0],
@@ -140,7 +143,26 @@ function fixtureHarness() {
           updated_at: "2026-10-07T00:00:00.000Z",
         };
         records.push(item);
-        return { rows: [{ ...item }] };
+        return {
+          rows: [
+            {
+              ...item,
+              settlement_expected_cash_amount: null,
+              settlement_expected_provided_value_amount: null,
+              settlement_expected_points_amount: null,
+              settlement_expected_reimbursement_amount: null,
+              settlement_actual_cash_received_amount: null,
+              settlement_actual_reimbursement_received_amount: null,
+              settlement_cash_received_at: null,
+              settlement_reimbursement_received_at: null,
+              settlement_note: null,
+              source_cash_amount: null,
+              source_provided_value_amount: null,
+              source_points_amount: null,
+              source_reimbursement_amount: null,
+            },
+          ],
+        };
       }
 
       if (normalized.includes("from user_favorites")) return { rows: [] };
@@ -283,7 +305,13 @@ test("isolated owner can create a campaign task and see both dates on the calend
   assert.equal(recordResponse.status, 201);
   const recordBody = await recordResponse.json();
   const recordId = recordBody.data.item.id;
-  assert.equal(recordBody.data.item.auth_user_id, fixture.owner);
+  assert.equal(recordBody.data.item.auth_user_id, undefined);
+  assert.equal(recordBody.data.settlement.record_id, recordId);
+  assert.equal(recordBody.data.settlement.record_title, "Isolated fixture campaign");
+  assert.equal(
+    fixture.records.find((item) => item.id === recordId).auth_user_id,
+    fixture.owner,
+  );
 
   const invalidTask = await fixture.taskRoute.POST(
     new Request("http://fixture/api/v1/me/tasks", {

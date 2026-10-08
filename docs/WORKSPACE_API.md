@@ -63,6 +63,8 @@ RPL-024 adds versioned workspace mutation endpoints.
 - `PATCH /api/v1/me/records/:id`
 - `DELETE /api/v1/me/records/:id`
 
+Record creation returns both `data.item` and `data.settlement`. The settlement object is the complete read model for the created record, including any existing user-entered settlement values and the separate campaign source amounts. Clients can reconcile both collections from this response without a follow-up workspace read.
+
 ### Tasks
 - `POST /api/v1/me/tasks`
 - `PATCH /api/v1/me/tasks/:id`
@@ -100,7 +102,7 @@ Supported v1 error codes are `UNAUTHORIZED`, `INVALID_INPUT`, `NOT_FOUND`, and `
 
 The owner ID always comes from the authenticated server session. Client-provided `auth_user_id` or `userId` values are not trusted.
 
-The existing `/api/private/*` write endpoints remain available as backward-compatible routes during this migration phase. The web workspace now uses the v1 mutation routes directly and refreshes from `GET /api/v1/me/workspace` after mutations that need a full workspace resync.
+The existing `/api/private/*` write endpoints remain available as backward-compatible routes during this migration phase. The web workspace uses typed v1 mutation responses for local reconciliation. `GET /api/v1/me/workspace` remains the initial-load and explicit full-resync contract.
 
 ## Future mobile step
 

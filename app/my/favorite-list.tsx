@@ -10,6 +10,7 @@ import { removeFavorite as removeFavoriteRequest } from "../../lib/workspace-cli
 type FavoriteListProps = {
   initialItems: FavoriteItem[];
   recordCampaignIds: Array<number | null>;
+  pendingRecordCampaignIds?: ReadonlySet<number>;
   onAddToRecords: (campaignId: number) => void | Promise<void>;
   removeRequest?: (campaignId: number) => Promise<unknown>;
 };
@@ -28,6 +29,7 @@ function formatDeadline(value: string | null) {
 export function FavoriteList({
   initialItems,
   recordCampaignIds,
+  pendingRecordCampaignIds,
   onAddToRecords,
   removeRequest = removeFavoriteRequest,
 }: FavoriteListProps) {
@@ -90,6 +92,8 @@ export function FavoriteList({
           items.map((item) => {
             const snapshot = item.campaign_snapshot ?? {};
             const alreadyAdded = addedIds.has(item.campaign_id);
+            const addPending =
+              pendingRecordCampaignIds?.has(item.campaign_id) ?? false;
             const removePending = pendingIds.has(item.campaign_id);
 
             return (
@@ -112,9 +116,13 @@ export function FavoriteList({
                   <button
                     type="button"
                     onClick={() => onAddToRecords(item.campaign_id)}
-                    disabled={alreadyAdded}
+                    disabled={alreadyAdded || addPending}
                   >
-                    {alreadyAdded ? "추가됨" : "내 체험단 추가"}
+                    {addPending
+                      ? "추가 중"
+                      : alreadyAdded
+                        ? "추가됨"
+                        : "내 체험단 추가"}
                   </button>
                   <button
                     type="button"

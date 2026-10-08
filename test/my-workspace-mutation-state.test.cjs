@@ -126,6 +126,10 @@ test("latest request gate rejects an older refresh response", () => {
 test("MyWorkspace consumes typed record and task mutation responses", () => {
   assert.match(client, /MutationEnvelope<\{ item: RecordItem \}>/);
   assert.match(
+    client,
+    /MutationEnvelope<\{ item: RecordItem; settlement: SettlementItem \}>/,
+  );
+  assert.match(
     workspace,
     /async function addFavoriteToRecords[\s\S]*?upsertRecordMutation/,
   );
@@ -151,15 +155,21 @@ test("MyWorkspace consumes typed record and task mutation responses", () => {
   );
 });
 
-test("settlement refresh cannot replace record or task state", () => {
-  const reload = workspace.slice(
-    workspace.indexOf("async function reloadSettlements"),
-    workspace.indexOf("const openTaskCount"),
+test("record creation reconciles its settlement without a workspace refresh", () => {
+  const favoriteCreate = workspace.slice(
+    workspace.indexOf("async function addFavoriteToRecords"),
+    workspace.indexOf("async function createDeadlineTask"),
+  );
+  const manualCreate = workspace.slice(
+    workspace.indexOf("async function createManual"),
+    workspace.indexOf("async function updateRecord"),
   );
 
-  assert.match(reload, /createLatestRequestGate|settlementReloadGate/);
-  assert.match(reload, /setSettlements/);
-  assert.doesNotMatch(reload, /setFavorites|setRecords|setTasks/);
+  assert.match(favoriteCreate, /result\.data\.settlement/);
+  assert.match(favoriteCreate, /upsertSettlementMutation/);
+  assert.match(manualCreate, /result\.data\.settlement/);
+  assert.match(manualCreate, /upsertSettlementMutation/);
+  assert.doesNotMatch(workspace, /reloadSettlements|getWorkspace\(\)/);
 });
 
 test("failed mutations preserve lists and success-only form state", () => {

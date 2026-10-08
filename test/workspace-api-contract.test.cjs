@@ -11,6 +11,7 @@ const loader = read("lib/workspace-data.ts");
 const route = read("app/api/v1/me/workspace/route.ts");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
+const recordRoute = read("app/api/v1/me/records/route.ts");
 const client = read("lib/workspace-client.ts");
 const favorites = read("app/api/private/favorites/route.ts");
 const records = read("app/api/private/records/route.ts");
@@ -52,16 +53,19 @@ test("SSR uses the same workspace loader instead of duplicating workspace SQL", 
   assert.match(page, /initialSettlements=\{workspace\.settlements\}/);
 });
 
-test("client refresh isolates settlements from mutation-owned collections", () => {
-  assert.match(workspace, /getWorkspace\(\)/);
+test("record creation owns its record and settlement state without a refresh", () => {
   assert.match(client, /requestJson<WorkspaceSnapshot>\("\/api\/v1\/me\/workspace"\)/);
-  assert.match(workspace, /setSettlements\(data\.settlements/);
-  const refresh = workspace.slice(
-    workspace.indexOf("async function reloadSettlements"),
-    workspace.indexOf("const openTaskCount"),
+  assert.match(
+    client,
+    /MutationEnvelope<\{ item: RecordItem; settlement: SettlementItem \}>/,
   );
-  assert.doesNotMatch(refresh, /setFavorites|setRecords|setTasks/);
+  assert.match(recordRoute, /with saved_record as/);
+  assert.match(recordRoute, /left join user_campaign_settlements s/);
+  assert.match(recordRoute, /left join campaigns c/);
+  assert.match(workspace, /result\.data\.settlement/);
+  assert.doesNotMatch(workspace, /reloadSettlements|getWorkspace\(\)/);
   assert.match(workspace, /upsertRecordMutation/);
+  assert.match(workspace, /upsertSettlementMutation/);
   assert.match(workspace, /upsertTaskMutation/);
   assert.doesNotMatch(
     workspace,
