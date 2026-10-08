@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { queryCampaignDb as queryDb } from "@/lib/campaign-cache";
+import {
+  isPublicCampaignPlatformVisible,
+  TEMPORARILY_HIDDEN_PUBLIC_CAMPAIGN_SQL,
+} from "@/lib/public-campaign-visibility";
 import { FilterPanel, HeroSearch } from "./filter-controls";
 import { WebHeader } from "./web-header";
 import { CampaignWorkbench, type CampaignWorkbenchItem } from "./campaign-workbench";
@@ -241,7 +245,12 @@ export default async function Home({
   }
 
   const PLATFORMS = sourceRows
-    .filter((source) => source.status === "active" && source.search_enabled)
+    .filter(
+      (source) =>
+        source.status === "active" &&
+        source.search_enabled &&
+        isPublicCampaignPlatformVisible(source.name),
+    )
     .map((source) => source.name);
   const q = firstValue(resolved.q).trim();
   const platforms = listValue(resolved.platform).filter((item) =>
@@ -260,6 +269,7 @@ export default async function Home({
 
   const from = (currentPage - 1) * PAGE_SIZE;
   const visibilityWhere: string[] = [
+    TEMPORARILY_HIDDEN_PUBLIC_CAMPAIGN_SQL,
     `EXISTS (
        SELECT 1
          FROM platform_sources ps
