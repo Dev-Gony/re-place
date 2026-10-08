@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  RecordItem,
   TaskMutationItem,
   WorkspaceSnapshot,
 } from "./workspace-contract";
@@ -105,7 +106,7 @@ export function removeFavorite(campaignId: number) {
 }
 
 export function createRecord(input: Record<string, unknown>) {
-  return requestJson<MutationEnvelope<{ item: unknown }>>(
+  return requestJson<MutationEnvelope<{ item: RecordItem }>>(
     "/api/v1/me/records",
     {
       method: "POST",
@@ -115,7 +116,7 @@ export function createRecord(input: Record<string, unknown>) {
 }
 
 export function updateRecord(id: number, input: Record<string, unknown>) {
-  return requestJson<MutationEnvelope<{ item: unknown }>>(
+  return requestJson<MutationEnvelope<{ item: RecordItem }>>(
     `/api/v1/me/records/${id}`,
     {
       method: "PATCH",
