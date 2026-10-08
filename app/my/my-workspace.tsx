@@ -21,13 +21,13 @@ import {
   createTask as createTaskRequest,
   deleteRecord as deleteRecordRequest,
   deleteTask as deleteTaskRequest,
-  removeFavorite as removeFavoriteRequest,
   updateRecord as updateRecordRequest,
   updateTask as updateTaskRequest,
 } from "../../lib/workspace-client";
 import { MonthCalendar } from "./month-calendar";
 import { MyCampaignBoard } from "./my-campaign-board";
 import { ContentDeadlineBoard } from "./content-deadline-board";
+import { FavoriteList } from "./favorite-list";
 import { SettlementSection } from "./settlement-section";
 
 export type { FavoriteItem, RecordItem, TaskItem };
@@ -123,7 +123,6 @@ export function MyWorkspace({
   initialSettlements: SettlementItem[];
   todayKey: string;
 }) {
-  const [favorites, setFavorites] = useState<FavoriteItem[]>(initialFavorites);
   const [records, setRecords] = useState<RecordItem[]>(initialRecords);
   const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
   const [settlements, setSettlements] = useState<SettlementItem[]>(initialSettlements);
@@ -267,17 +266,6 @@ export function MyWorkspace({
       document.body.style.overflow = previousOverflow;
     };
   }, [detailOpen]);
-
-  async function removeFavorite(campaignId: number) {
-    try {
-      await removeFavoriteRequest(campaignId);
-      setFavorites((items) =>
-        items.filter((item) => item.campaign_id !== campaignId),
-      );
-    } catch {
-      showError("찜을 해제하지 못했습니다. 다시 시도해 주세요.");
-    }
-  }
 
   async function addFavoriteToRecords(campaignId: number) {
     if (!beginFavoriteRecordCreate(campaignId)) return;
@@ -498,6 +486,13 @@ export function MyWorkspace({
           {notice}
         </div>
       )}
+
+      <FavoriteList
+        initialItems={initialFavorites}
+        recordCampaignIds={records.map((record) => record.campaign_id)}
+        pendingRecordCampaignIds={new Set(pendingFavoriteRecordActions.keys())}
+        onAddToRecords={addFavoriteToRecords}
+      />
 
       <MyCampaignBoard
         records={records}
@@ -776,70 +771,6 @@ export function MyWorkspace({
         </div>
       </section>
 
-      <section id="favorites" className="my-section my-anchor-target">
-        <div className="my-section-head">
-          <div>
-            <h2>찜한 캠페인</h2>
-            <p>나중에 다시 볼 캠페인입니다.</p>
-          </div>
-          <span className="my-section-count">{favorites.length}개</span>
-        </div>
-
-        <div className="my-favorite-table">
-          {favorites.length ? (
-            favorites.map((item) => {
-              const snapshot = item.campaign_snapshot ?? {};
-              const alreadyAdded = records.some(
-                (record) => record.campaign_id === item.campaign_id,
-              );
-              const createPending = pendingFavoriteRecordActions.has(
-                item.campaign_id,
-              );
-
-              return (
-                <article key={item.id} className="my-favorite-row">
-                  <div className="my-favorite-main">
-                    <span>{snapshot.platform || "플랫폼 미확인"}</span>
-                    <h3>{snapshot.title || "제목 없음"}</h3>
-                    <p>{snapshot.reward || snapshot.region || "상세페이지 확인"}</p>
-                  </div>
-                  <div className="my-favorite-deadline">
-                    <span>마감</span>
-                    <strong>{formatDeadline(snapshot.deadline_at || null)}</strong>
-                  </div>
-                  <div className="my-favorite-actions">
-                    {snapshot.link && (
-                      <a href={snapshot.link} target="_blank" rel="noreferrer">
-                        원문
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => addFavoriteToRecords(item.campaign_id)}
-                      disabled={alreadyAdded || createPending}
-                    >
-                      {createPending
-                        ? "추가 중"
-                        : alreadyAdded
-                          ? "추가됨"
-                          : "내 체험단 추가"}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger-text"
-                      onClick={() => removeFavorite(item.campaign_id)}
-                    >
-                      해제
-                    </button>
-                  </div>
-                </article>
-              );
-            })
-          ) : (
-            <div className="my-empty-row">찜한 캠페인이 없습니다.</div>
-          )}
-        </div>
-      </section>
         </div>
       </details>
 

@@ -8,6 +8,7 @@ type WebHeaderProps = {
 
 const NAV_ITEMS = [
   { key: "explore", href: "/", label: "탐색" },
+  { key: "favorites", href: "/my#favorites", label: "찜목록" },
   { key: "my", href: "/my", label: "내 체험단" },
   { key: "calendar", href: "/calendar", label: "캘린더" },
   { key: "analysis", href: "/blog-analysis", label: "블로그 분석" },

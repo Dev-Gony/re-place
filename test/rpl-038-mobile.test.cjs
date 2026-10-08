@@ -14,12 +14,13 @@ const calendar = read("app/calendar/calendar-workspace.tsx");
 const css = read("app/globals.css");
 const spec = read("docs/specs/RPL-038-mobile-responsive.md");
 
-test("mobile bottom navigation has four real product routes", () => {
+test("mobile bottom navigation has five real product routes", () => {
   assert.match(nav, /href: "\/"/);
   assert.match(nav, /href: "\/my"/);
   assert.match(nav, /href: "\/calendar"/);
   assert.match(nav, /href: "\/blog-analysis"/);
-  assert.doesNotMatch(nav, /favorites|\/my#favorites/);
+  assert.match(nav, /key: "favorites"/);
+  assert.match(nav, /\/my#favorites/);
 });
 
 test("discover uses a mobile filter sheet and existing detail bottom sheet", () => {
