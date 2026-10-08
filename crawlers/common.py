@@ -154,8 +154,8 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
             cash_fee_amount = excluded.cash_fee_amount,
             provided_value_amount = excluded.provided_value_amount,
             points_amount = excluded.points_amount,
-              reimbursement_amount = excluded.reimbursement_amount,
-              collected_at = excluded.collected_at
+            reimbursement_amount = excluded.reimbursement_amount,
+            collected_at = excluded.collected_at
           returning id, platform
         )
         insert into campaign_publication_states (campaign_id, state)

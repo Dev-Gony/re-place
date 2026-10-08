@@ -146,6 +146,13 @@ test("migration preserves existing exposure and keeps ReviewNote private", () =>
     ),
     "utf8",
   );
+  const auditGuard = fs.readFileSync(
+    path.join(
+      __dirname,
+      "../db/migrations/20261008_campaign_visibility_audit_guard.sql",
+    ),
+    "utf8",
+  );
 
   assert.match(migration, /references public\.campaigns\(id\) on delete cascade/i);
   assert.match(
@@ -158,6 +165,11 @@ test("migration preserves existing exposure and keeps ReviewNote private", () =>
   assert.match(migration, /campaign_publication_audit_no_update/i);
   assert.match(migration, /campaign_publication_audit_no_delete/i);
   assert.doesNotMatch(migration, /create (or replace )?function/i);
+  assert.match(auditGuard, /reject_campaign_publication_audit_mutation/i);
+  assert.match(auditGuard, /before update or delete/i);
+  assert.match(auditGuard, /raise exception ''campaign_publication_audit is append-only''/i);
+  assert.match(auditGuard, /drop rule campaign_publication_audit_no_update/i);
+  assert.match(auditGuard, /drop rule campaign_publication_audit_no_delete/i);
   assert.equal((migration.match(/version bigint not null default 1/g) || []).length, 2);
   assert.doesNotMatch(
     migration,

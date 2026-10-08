@@ -35,7 +35,7 @@ RPL-060은 리뷰노트 캠페인을 공개 검색에서 서버 측으로 임시
 - [x] 기존 `campaigns` ID와 개인 찜·기록 참조를 변경하지 않는다.
 - [x] migration 적용 직후 기존 일반 플랫폼은 공개 상태를 유지하고 리뷰노트는 계속 비공개도록 SQL을 준비했다.
 - [x] crawler가 새 캠페인을 넣을 때 플랫폼 기본 상태가 생성되며 기존 관리자 상태를 덮어쓰지 않는다.
-- [x] 감사 로그의 수정·삭제는 DB rule로 무시되어 기존 행이 보존된다.
+- [x] 기본 migration의 DB rule은 수정·삭제 영향 행을 0으로 만들고, 후속 hardening migration은 이를 오류 반환 trigger로 교체해 감사 로그를 보존한다.
 - [x] mutation은 same-origin, 입력·배치 제한, version 충돌 검사를 통과해야 한다.
 - [x] 상태와 감사 로그는 한 transaction에서 변경되며 공개 cache tag를 만료한다.
 - [ ] 운영 migration, role 부여, flag 활성화는 각각 별도 승인 후 수행한다.
@@ -45,9 +45,9 @@ RPL-060은 리뷰노트 캠페인을 공개 검색에서 서버 측으로 임시
 1. production에서 분기한 격리 DB branch에 migration을 적용하고 backfill 수량과 공개 쿼리를 검증한다.
 2. 앱 코드와 관리자 UI를 Preview에서 검증한다.
 3. 승인된 Auth user ID에 `campaign_visibility` 역할 한 건만 부여한다.
-4. production migration을 적용한다. 이 시점에도 feature flag는 꺼 둔다.
+4. production 기본 migration 직후 같은 배포 단위에서 감사 로그 hardening migration을 적용한다. hardening이 실패하면 rule을 유지하고 중단하며, 이 시점에도 feature flag는 꺼 둔다.
 5. 기존 공개 수량과 리뷰노트 비공개를 다시 확인한 뒤 feature flag를 활성화한다.
 
 ## Rollback
 
-feature flag를 먼저 끄면 관리자 경로가 즉시 닫힌다. 공개 검색은 RPL-060의 리뷰노트 하드 차단을 계속 사용하므로, 관리자 테이블을 제거하거나 비워도 리뷰노트가 공개되지 않는다. DB rollback은 감사 보호 rule을 먼저 제거한 다음 신규 네 테이블만 역순으로 제거하며, `campaigns`, `platform_sources`, 개인 기록 테이블은 변경하지 않는다.
+feature flag를 먼저 끄면 관리자 경로가 즉시 닫힌다. 공개 검색은 RPL-060의 리뷰노트 하드 차단을 계속 사용하므로, 관리자 테이블을 제거하거나 비워도 리뷰노트가 공개되지 않는다. DB rollback은 감사 보호 trigger와 함수를 먼저 제거하고, 기본 rule이 남아 있다면 이어서 제거한 다음 신규 네 테이블만 역순으로 제거한다. `campaigns`, `platform_sources`, 개인 기록 테이블은 변경하지 않는다.
