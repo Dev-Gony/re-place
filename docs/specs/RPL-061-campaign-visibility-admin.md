@@ -11,6 +11,10 @@ RPL-060은 리뷰노트 캠페인을 공개 검색에서 서버 측으로 임시
 - 플랫폼 정책, 캠페인 상태, 최소 관리자 역할, append-only 감사 로그 migration 준비
 - 기존 공개 캠페인은 `published`, 리뷰노트 두 플랫폼 표기는 `hidden`으로 유지하는 backfill
 - 신규 리뷰노트 캠페인은 원본을 삭제하지 않고 `review_pending`으로 시작
+- 기본 비활성 `/admin/campaigns` UI와 `/api/admin/campaign-visibility` 조회·변경 API
+- same-origin mutation, 100개 배치 제한, 입력 검증, version 충돌 검출
+- 상태 변경과 append-only 감사 로그의 단일 transaction 처리
+- flag 활성화 뒤 공개 필터·목록·집계에 플랫폼 정책과 캠페인 상태 연결
 - 격리 단위 테스트
 
 ## 승인 전 비범위
@@ -18,20 +22,22 @@ RPL-060은 리뷰노트 캠페인을 공개 검색에서 서버 측으로 임시
 - 운영 DB migration 실행 또는 backfill
 - 최초 관리자 역할 부여
 - feature flag 활성화
-- 관리자 UI와 mutation endpoint 공개
+- 관리자 UI와 mutation endpoint의 운영 활성화
 - 수집 범위 확대, 인증 설정 변경, 사용자 데이터 수정
 - 리뷰노트 임시 공개 차단 해제
 
 ## Acceptance Criteria
 
-- [ ] flag가 명시적으로 `true`가 아니면 권한 테이블을 조회하기 전 `feature_disabled`로 닫힌다.
-- [ ] 로그인 사용자 ID가 없거나 `emailVerified !== true`이면 접근이 거부된다.
-- [ ] `campaign_visibility` scope의 활성 역할만 접근할 수 있다.
-- [ ] 후보 이메일을 코드, migration, 문서, 이슈에 저장하지 않는다.
-- [ ] 기존 `campaigns` ID와 개인 찜·기록 참조를 변경하지 않는다.
-- [ ] migration 적용 직후 기존 일반 플랫폼은 공개 상태를 유지하고 리뷰노트는 계속 비공개다.
-- [ ] crawler가 새 캠페인을 넣을 때 플랫폼 기본 상태가 생성되며 기존 관리자 상태를 덮어쓰지 않는다.
-- [ ] 감사 로그의 수정·삭제는 DB에서 거부된다.
+- [x] flag가 명시적으로 `true`가 아니면 권한 테이블을 조회하기 전 `feature_disabled`로 닫힌다.
+- [x] 로그인 사용자 ID가 없거나 `emailVerified !== true`이면 접근이 거부된다.
+- [x] `campaign_visibility` scope의 활성 역할만 접근할 수 있다.
+- [x] 후보 이메일을 코드, migration, 문서, 이슈에 저장하지 않는다.
+- [x] 기존 `campaigns` ID와 개인 찜·기록 참조를 변경하지 않는다.
+- [x] migration 적용 직후 기존 일반 플랫폼은 공개 상태를 유지하고 리뷰노트는 계속 비공개도록 SQL을 준비했다.
+- [x] crawler가 새 캠페인을 넣을 때 플랫폼 기본 상태가 생성되며 기존 관리자 상태를 덮어쓰지 않는다.
+- [x] 감사 로그의 수정·삭제는 DB에서 거부된다.
+- [x] mutation은 same-origin, 입력·배치 제한, version 충돌 검사를 통과해야 한다.
+- [x] 상태와 감사 로그는 한 transaction에서 변경되며 공개 cache tag를 만료한다.
 - [ ] 운영 migration, role 부여, flag 활성화는 각각 별도 승인 후 수행한다.
 
 ## 활성화 순서

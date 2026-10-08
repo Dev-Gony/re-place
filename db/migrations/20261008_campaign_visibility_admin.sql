@@ -11,7 +11,10 @@ create table public.campaign_admin_roles (
   constraint campaign_admin_roles_scope_check
     check (scope = 'campaign_visibility'),
   constraint campaign_admin_roles_revocation_check
-    check ((active and revoked_at is null) or (not active))
+    check (
+      (active and revoked_at is null)
+      or (not active and revoked_at is not null)
+    )
 );
 
 create index campaign_admin_roles_active_scope_idx
@@ -22,22 +25,28 @@ create table public.campaign_publication_policies (
   platform text primary key,
   platform_visible boolean not null default true,
   new_campaign_default text not null default 'review_pending',
+  version bigint not null default 1,
   updated_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint campaign_publication_policies_default_check
-    check (new_campaign_default in ('review_pending', 'published'))
+    check (new_campaign_default in ('review_pending', 'published')),
+  constraint campaign_publication_policies_version_check
+    check (version > 0)
 );
 
 create table public.campaign_publication_states (
   campaign_id bigint primary key
     references public.campaigns(id) on delete cascade,
   state text not null,
+  version bigint not null default 1,
   updated_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint campaign_publication_states_state_check
-    check (state in ('review_pending', 'published', 'hidden'))
+    check (state in ('review_pending', 'published', 'hidden')),
+  constraint campaign_publication_states_version_check
+    check (version > 0)
 );
 
 create index campaign_publication_states_state_campaign_idx
@@ -56,6 +65,8 @@ create table public.campaign_publication_audit (
   created_at timestamptz not null default now(),
   constraint campaign_publication_audit_target_type_check
     check (target_type in ('platform', 'campaign')),
+  constraint campaign_publication_audit_action_check
+    check (action in ('platform_policy_changed', 'campaign_state_changed')),
   constraint campaign_publication_audit_target_check
     check (
       (target_type = 'platform' and platform is not null and campaign_id is null)
