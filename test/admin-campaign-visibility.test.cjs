@@ -155,8 +155,9 @@ test("migration preserves existing exposure and keeps ReviewNote private", () =>
   assert.match(migration, /else 'published'/);
   assert.match(migration, /then 'review_pending'/);
   assert.match(migration, /on conflict \(campaign_id\) do nothing/i);
-  assert.match(migration, /before update or delete/i);
-  assert.doesNotMatch(migration, /as \$\$/i);
+  assert.match(migration, /campaign_publication_audit_no_update/i);
+  assert.match(migration, /campaign_publication_audit_no_delete/i);
+  assert.doesNotMatch(migration, /create (or replace )?function/i);
   assert.equal((migration.match(/version bigint not null default 1/g) || []).length, 2);
   assert.doesNotMatch(
     migration,
@@ -395,7 +396,10 @@ test("crawler upserts and ReviewNote promotion preserve publication state", () =
   );
 
   assert.match(common, /on conflict \(platform, source_campaign_id\)[\s\S]*do update set/i);
-  assert.doesNotMatch(common, /campaign_publication_states/);
+  assert.match(
+    common,
+    /insert into campaign_publication_states[\s\S]*on conflict \(campaign_id\) do nothing/i,
+  );
   assert.match(reviewnote, /update campaigns as legacy/);
   assert.doesNotMatch(reviewnote, /campaign_publication_states/);
   assert.match(

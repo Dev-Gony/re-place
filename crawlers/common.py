@@ -88,7 +88,8 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
 
     records = [campaign.to_record() for campaign in campaigns]
     sql = """
-        insert into campaigns (
+        with saved_campaign as (
+          insert into campaigns (
             platform,
             source_campaign_id,
             title,
@@ -134,8 +135,8 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
             %(reimbursement_amount)s,
             %(collected_at)s
         )
-        on conflict (platform, source_campaign_id)
-        do update set
+          on conflict (platform, source_campaign_id)
+          do update set
             title = excluded.title,
             link = excluded.link,
             image_url = excluded.image_url,
@@ -153,8 +154,18 @@ def upsert_campaigns(connection: psycopg.Connection, campaigns: list[Campaign]) 
             cash_fee_amount = excluded.cash_fee_amount,
             provided_value_amount = excluded.provided_value_amount,
             points_amount = excluded.points_amount,
-            reimbursement_amount = excluded.reimbursement_amount,
-            collected_at = excluded.collected_at
+              reimbursement_amount = excluded.reimbursement_amount,
+              collected_at = excluded.collected_at
+          returning id, platform
+        )
+        insert into campaign_publication_states (campaign_id, state)
+        select
+          saved_campaign.id,
+          coalesce(policy.new_campaign_default, 'review_pending')
+        from saved_campaign
+        left join campaign_publication_policies policy
+          on policy.platform = saved_campaign.platform
+        on conflict (campaign_id) do nothing
     """
 
     with connection.cursor() as cursor:

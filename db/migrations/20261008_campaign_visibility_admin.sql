@@ -78,18 +78,11 @@ create table public.campaign_publication_audit (
 create index campaign_publication_audit_created_idx
   on public.campaign_publication_audit (created_at desc, id desc);
 
-create or replace function public.reject_campaign_publication_audit_mutation()
-returns trigger
-language plpgsql
-as '
-begin
-  raise exception ''campaign_publication_audit is append-only'';
-end;
-';
+create rule campaign_publication_audit_no_update as
+on update to public.campaign_publication_audit do instead nothing;
 
-create trigger campaign_publication_audit_append_only
-before update or delete on public.campaign_publication_audit
-for each row execute function public.reject_campaign_publication_audit_mutation();
+create rule campaign_publication_audit_no_delete as
+on delete to public.campaign_publication_audit do instead nothing;
 
 insert into public.campaign_publication_policies (
   platform,
@@ -109,33 +102,6 @@ from (
   union
   select name from public.platform_sources
 ) known_platforms;
-
-create or replace function public.initialize_campaign_publication_state()
-returns trigger
-language plpgsql
-as '
-begin
-  insert into public.campaign_publication_states (campaign_id, state)
-  values (
-    new.id,
-    coalesce(
-      (
-        select policy.new_campaign_default
-        from public.campaign_publication_policies policy
-        where policy.platform = new.platform
-      ),
-      ''review_pending''
-    )
-  )
-  on conflict (campaign_id) do nothing;
-
-  return new;
-end;
-';
-
-create trigger campaigns_initialize_publication_state
-after insert on public.campaigns
-for each row execute function public.initialize_campaign_publication_state();
 
 insert into public.campaign_publication_states (campaign_id, state)
 select
