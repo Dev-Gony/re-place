@@ -63,12 +63,12 @@ test("analysis UI has loading empty and error states", () => {
   assert.match(client, /role="alert"/);
 });
 
-test("mobile navigation exposes four real product routes", () => {
-  assert.match(css, /grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
-  for (const label of ["탐색", "내 체험단", "일정", "분석"]) {
+test("mobile navigation exposes five real product routes", () => {
+  assert.match(css, /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/);
+  for (const label of ["탐색", "찜목록", "내 체험단", "일정", "분석"]) {
     assert.ok(mobile.includes(label));
   }
-  assert.doesNotMatch(mobile, /찜|\/my#favorites/);
+  assert.match(mobile, /\/my#favorites/);
 });
 
 

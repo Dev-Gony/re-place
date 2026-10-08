@@ -7,6 +7,7 @@ const root = path.join(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 const workspace = read("app/my/my-workspace.tsx");
+const favoriteList = read("app/my/favorite-list.tsx");
 const overview = read("app/my/my-overview.tsx");
 const deadlines = read("app/my/content-deadline-board.tsx");
 const settlement = read("app/my/settlement-section.tsx");
@@ -31,7 +32,8 @@ test("V2 lifecycle is connected from favorite to record task deadline and settle
 test("workspace lifecycle anchors exist and overview links follow lifecycle order", () => {
   const expected = ["favorites", "records", "schedule", "content-deadlines", "settlements"];
   for (const id of expected) {
-    assert.match(workspace, new RegExp('id="' + id + '"'));
+    const anchorSource = id === "favorites" ? favoriteList : workspace;
+    assert.match(anchorSource, new RegExp('id="' + id + '"'));
     assert.match(overview, new RegExp('href="#' + id + '"'));
   }
 
@@ -58,7 +60,7 @@ test("mobile lifecycle navigation remains compatible with route-based bottom nav
   assert.match(nav, /href: "\/my"/);
   assert.match(nav, /href: "\/calendar"/);
   assert.match(nav, /href: "\/blog-analysis"/);
-  assert.doesNotMatch(nav, /\/my#favorites/);
+  assert.match(nav, /\/my#favorites/);
 });
 
 test("V2 completion document records the full end-to-end user journey", () => {

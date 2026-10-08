@@ -10,15 +10,17 @@ const nav = read("app/mobile-bottom-nav.tsx");
 const layout = read("app/layout.tsx");
 const css = read("app/globals.css");
 const workspace = read("app/my/my-workspace.tsx");
+const favoriteList = read("app/my/favorite-list.tsx");
 const agents = read("AGENTS.md");
 const plan = read("docs/MODEL_EXECUTION_PLAN.md");
 
-test("mobile app shell exposes the four real product routes", () => {
+test("mobile app shell exposes the product routes and a direct favorites entry", () => {
   assert.match(nav, /href: "\/"/);
   assert.match(nav, /href: "\/my"/);
   assert.match(nav, /href: "\/calendar"/);
   assert.match(nav, /href: "\/blog-analysis"/);
-  assert.doesNotMatch(nav, /\/my#favorites|key: "favorites"/);
+  assert.match(nav, /href: "\/my#favorites"/);
+  assert.match(nav, /key: "favorites"/);
   assert.match(nav, /aria-current=\{active \? "page" : undefined\}/);
 });
 
@@ -34,7 +36,11 @@ test("bottom navigation is mobile only and respects safe area", () => {
   assert.match(css, /\.mobile-bottom-nav\s*\{\s*display:\s*none/);
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.mobile-bottom-nav\s*\{[\s\S]*?position:\s*fixed/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
-  assert.match(css, /grid-template-columns:\s*repeat\(4/);
+  assert.match(css, /grid-template-columns:\s*repeat\(5/);
+  assert.doesNotMatch(
+    css,
+    /\.mobile-bottom-nav\s*\{[^}]*grid-template-columns:\s*repeat\(4/s,
+  );
 });
 
 test("mobile content and sticky filters stay clear of the bottom navigation", () => {
@@ -44,7 +50,7 @@ test("mobile content and sticky filters stay clear of the bottom navigation", ()
 
 test("workspace exposes schedule and favorites deep-link anchors", () => {
   assert.match(workspace, /id="schedule"/);
-  assert.match(workspace, /id="favorites"/);
+  assert.match(favoriteList, /id="favorites"/);
 });
 
 test("repository policy batches branch updates and preview builds", () => {

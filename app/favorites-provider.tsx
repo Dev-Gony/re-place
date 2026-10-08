@@ -13,6 +13,10 @@ import { useRouter } from "next/navigation";
 
 import { authClient } from "../lib/auth/client";
 import {
+  FAVORITE_STATE_EVENT,
+  type FavoriteStateDetail,
+} from "../lib/favorite-events";
+import {
   addFavorite,
   createRecord,
   getWorkspace,
@@ -65,6 +69,24 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [session.data?.user, session.isPending]);
+
+  useEffect(() => {
+    function syncFavoriteState(event: Event) {
+      const { campaignId, favorited } = (
+        event as CustomEvent<FavoriteStateDetail>
+      ).detail;
+
+      setIds((previous) => {
+        const next = new Set(previous);
+        if (favorited) next.add(campaignId);
+        else next.delete(campaignId);
+        return next;
+      });
+    }
+
+    window.addEventListener(FAVORITE_STATE_EVENT, syncFavoriteState);
+    return () => window.removeEventListener(FAVORITE_STATE_EVENT, syncFavoriteState);
+  }, []);
 
   const toggle = useCallback(
     async (campaignId: number) => {

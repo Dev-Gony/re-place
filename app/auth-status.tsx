@@ -49,6 +49,7 @@ export function AuthStatus() {
           <strong>{label}</strong>
           {email && <span>{email}</span>}
         </div>
+        <Link href="/my#favorites">찜목록</Link>
         <Link href="/my">내 체험단</Link>
         <Link href="/calendar">캘린더</Link>
         <button type="button" onClick={signOut}>로그아웃</button>
