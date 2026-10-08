@@ -2,6 +2,7 @@
 
 import type {
   RecordItem,
+  SettlementMutationItem,
   TaskMutationItem,
   WorkspaceSnapshot,
 } from "./workspace-contract";
@@ -165,7 +166,7 @@ export function saveSettlement(
   recordId: number,
   input: Record<string, unknown>,
 ) {
-  return requestJson<MutationEnvelope<{ item: unknown }>>(
+  return requestJson<MutationEnvelope<{ item: SettlementMutationItem }>>(
     `/api/v1/me/settlements/${recordId}`,
     {
       method: "PUT",

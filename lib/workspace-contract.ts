@@ -64,6 +64,20 @@ export type SettlementItem = {
   source_reimbursement_amount: number | null;
 };
 
+export type SettlementMutationItem = Pick<
+  SettlementItem,
+  | "record_id"
+  | "expected_cash_amount"
+  | "expected_provided_value_amount"
+  | "expected_points_amount"
+  | "expected_reimbursement_amount"
+  | "actual_cash_received_amount"
+  | "actual_reimbursement_received_amount"
+  | "cash_received_at"
+  | "reimbursement_received_at"
+  | "note"
+>;
+
 export type WorkspaceSnapshot = {
   schemaVersion: typeof WORKSPACE_SCHEMA_VERSION;
   syncedAt: string;

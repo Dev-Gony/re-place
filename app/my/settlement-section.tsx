@@ -1,8 +1,15 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 
-import type { SettlementItem } from "../../lib/workspace-contract";
+import {
+  remainingSettlementAmount,
+  summarizeSettlements,
+} from "../../lib/settlement-mutation-state";
+import type {
+  SettlementItem,
+  SettlementMutationItem,
+} from "../../lib/workspace-contract";
 import { saveSettlement } from "../../lib/workspace-client";
 
 export type { SettlementItem };
@@ -30,11 +37,6 @@ function dateInput(value: string | null) {
   return value ? value.slice(0, 10) : "";
 }
 
-function remainingAmount(expected: number | null, actual: number | null) {
-  if (expected === null) return null;
-  return Math.max(expected - (actual ?? 0), 0);
-}
-
 function inputNumber(value: string) {
   if (!value.trim()) return null;
   const number = Number(value);
@@ -46,47 +48,12 @@ export function SettlementSection({
   onSaved,
 }: {
   items: SettlementItem[];
-  onSaved: () => Promise<void>;
+  onSaved: (
+    mutation: SettlementMutationItem,
+    context: SettlementItem,
+  ) => void;
 }) {
-  const summary = useMemo(() => {
-    let cash = 0;
-    let reimbursement = 0;
-    let cashKnown = false;
-    let reimbursementKnown = false;
-    let cashPending = 0;
-    let reimbursementPending = 0;
-
-    for (const item of items) {
-      const cashRemaining = remainingAmount(
-        item.expected_cash_amount,
-        item.actual_cash_received_amount,
-      );
-      if (cashRemaining !== null) {
-        cashKnown = true;
-        cash += cashRemaining;
-        if (cashRemaining > 0) cashPending += 1;
-      }
-
-      const reimbursementRemaining = remainingAmount(
-        item.expected_reimbursement_amount,
-        item.actual_reimbursement_received_amount,
-      );
-      if (reimbursementRemaining !== null) {
-        reimbursementKnown = true;
-        reimbursement += reimbursementRemaining;
-        if (reimbursementRemaining > 0) reimbursementPending += 1;
-      }
-    }
-
-    return {
-      cash,
-      reimbursement,
-      cashKnown,
-      reimbursementKnown,
-      cashPending,
-      reimbursementPending,
-    };
-  }, [items]);
+  const summary = useMemo(() => summarizeSettlements(items), [items]);
 
   return (
     <section className="my-section my-settlement-section">
@@ -141,7 +108,10 @@ function SettlementEditor({
   onSaved,
 }: {
   item: SettlementItem;
-  onSaved: () => Promise<void>;
+  onSaved: (
+    mutation: SettlementMutationItem,
+    context: SettlementItem,
+  ) => void;
 }) {
   const [expectedCash, setExpectedCash] = useState(
     item.expected_cash_amount?.toString() ?? "",
@@ -168,6 +138,7 @@ function SettlementEditor({
   const [note, setNote] = useState(item.note ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const saveLock = useRef(false);
 
   const sourceReferences = [
     item.source_cash_amount !== null
@@ -184,19 +155,24 @@ function SettlementEditor({
       : null,
   ].filter(Boolean);
 
-  const cashRemaining = remainingAmount(inputNumber(expectedCash), inputNumber(actualCash));
-  const reimbursementRemaining = remainingAmount(
+  const cashRemaining = remainingSettlementAmount(
+    inputNumber(expectedCash),
+    inputNumber(actualCash),
+  );
+  const reimbursementRemaining = remainingSettlementAmount(
     inputNumber(expectedReimbursement),
     inputNumber(actualReimbursement),
   );
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saveLock.current) return;
+    saveLock.current = true;
     setSaving(true);
     setMessage(null);
 
     try {
-      await saveSettlement(item.record_id, {
+      const result = await saveSettlement(item.record_id, {
         expectedCashAmount: expectedCash,
         expectedProvidedValueAmount: expectedProvidedValue,
         expectedPointsAmount: expectedPoints,
@@ -208,11 +184,12 @@ function SettlementEditor({
         note,
       });
 
-      await onSaved();
+      onSaved(result.data.item, item);
       setMessage("저장됨");
     } catch {
       setMessage("정산 정보를 저장하지 못했습니다. 금액과 날짜를 확인해 주세요.");
     } finally {
+      saveLock.current = false;
       setSaving(false);
     }
   }
