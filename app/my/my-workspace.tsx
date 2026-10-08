@@ -6,11 +6,13 @@ import type {
   FavoriteItem,
   RecordItem,
   SettlementItem,
+  SettlementMutationItem,
   TaskItem,
 } from "../../lib/workspace-contract";
 import { createLatestRequestGate } from "../../lib/latest-request";
 import { createPendingActionRegistry } from "../../lib/pending-actions";
 import { upsertRecordMutation } from "../../lib/record-mutation-state";
+import { upsertSettlementMutation } from "../../lib/settlement-mutation-state";
 import {
   removeTaskMutation,
   upsertTaskMutation,
@@ -198,6 +200,15 @@ export function MyWorkspace({
         showError("정산 목록을 새로고침하지 못했습니다. 저장은 완료되었으니 잠시 뒤 다시 확인해 주세요.");
       }
     }
+  }
+
+  function reconcileSettlement(
+    mutation: SettlementMutationItem,
+    context: SettlementItem,
+  ) {
+    setSettlements((items) =>
+      upsertSettlementMutation(items, mutation, context),
+    );
   }
 
   const openTaskCount = useMemo(
@@ -670,7 +681,7 @@ export function MyWorkspace({
       </section>
 
       <div id="settlements" className="my-anchor-target">
-        <SettlementSection items={settlements} onSaved={reloadSettlements} />
+        <SettlementSection items={settlements} onSaved={reconcileSettlement} />
       </div>
 
       <section id="records" className="my-section my-anchor-target">

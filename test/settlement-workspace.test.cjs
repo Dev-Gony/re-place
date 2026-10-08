@@ -11,6 +11,7 @@ const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
 const workspaceData = read("lib/workspace-data.ts");
 const section = read("app/my/settlement-section.tsx");
+const mutationState = read("lib/settlement-mutation-state.ts");
 const client = read("lib/workspace-client.ts");
 const css = read("app/globals.css");
 
@@ -36,6 +37,8 @@ test("settlement workspace server-loads settlement rows through the shared loade
 
 test("settlement UI saves through the shared v1 client", () => {
   assert.match(section, /saveSettlement\(item\.record_id/);
+  assert.match(section, /onSaved\(result\.data\.item, item\)/);
+  assert.match(client, /item: SettlementMutationItem/);
   assert.match(client, /\/api\/v1\/me\/settlements\/\$\{recordId\}/);
   assert.doesNotMatch(section, /\/api\/private\/settlements/);
 });
@@ -51,14 +54,14 @@ test("settlement UI keeps reward categories separate", () => {
 });
 
 test("pending settlement summary only uses cash and reimbursement", () => {
-  assert.match(section, /remainingAmount/);
-  assert.match(section, /expected_cash_amount/);
-  assert.match(section, /actual_cash_received_amount/);
-  assert.match(section, /expected_reimbursement_amount/);
-  assert.match(section, /actual_reimbursement_received_amount/);
+  assert.match(section, /summarizeSettlements/);
+  assert.match(mutationState, /expected_cash_amount/);
+  assert.match(mutationState, /actual_cash_received_amount/);
+  assert.match(mutationState, /expected_reimbursement_amount/);
+  assert.match(mutationState, /actual_reimbursement_received_amount/);
   assert.doesNotMatch(
-    section,
-    /remainingAmount\([\s\S]{0,120}expected_provided_value_amount/,
+    mutationState,
+    /remainingSettlementAmount\([\s\S]{0,120}expected_provided_value_amount/,
   );
 });
 
