@@ -9,7 +9,6 @@ import type {
   SettlementMutationItem,
   TaskItem,
 } from "../../lib/workspace-contract";
-import { createLatestRequestGate } from "../../lib/latest-request";
 import { createPendingActionRegistry } from "../../lib/pending-actions";
 import { upsertRecordMutation } from "../../lib/record-mutation-state";
 import { upsertSettlementMutation } from "../../lib/settlement-mutation-state";
@@ -22,7 +21,6 @@ import {
   createTask as createTaskRequest,
   deleteRecord as deleteRecordRequest,
   deleteTask as deleteTaskRequest,
-  getWorkspace,
   removeFavorite as removeFavoriteRequest,
   updateRecord as updateRecordRequest,
   updateTask as updateTaskRequest,
@@ -61,10 +59,6 @@ const TASK_TYPE_LABELS: Record<TaskItem["task_type"], string> = {
   submit: "제출",
   other: "기타",
 };
-
-function dateInput(value: string | null) {
-  return value ? value.slice(0, 10) : "";
-}
 
 function formatDeadline(value: string | null) {
   if (!value) return "마감 없음";
@@ -149,15 +143,20 @@ export function MyWorkspace({
   const [pendingRecordActions, setPendingRecordActions] = useState<
     ReadonlyMap<number, "delete">
   >(() => new Map());
+  const [pendingFavoriteRecordActions, setPendingFavoriteRecordActions] = useState<
+    ReadonlyMap<number, "create">
+  >(() => new Map());
   const taskCreateLock = useRef(false);
   const deadlineCreateLock = useRef(false);
   const manualCreateLock = useRef(false);
-  const settlementReloadGate = useRef(createLatestRequestGate());
   const taskActionRegistry = useRef(
     createPendingActionRegistry<TaskPendingAction>(),
   );
   const recordActionRegistry = useRef(
     createPendingActionRegistry<"delete">(),
+  );
+  const favoriteRecordActionRegistry = useRef(
+    createPendingActionRegistry<"create">(),
   );
 
   function beginTaskAction(id: number, action: TaskPendingAction) {
@@ -182,24 +181,26 @@ export function MyWorkspace({
     setPendingRecordActions(recordActionRegistry.current.snapshot());
   }
 
+  function beginFavoriteRecordCreate(campaignId: number) {
+    if (!favoriteRecordActionRegistry.current.begin(campaignId, "create")) {
+      return false;
+    }
+    setPendingFavoriteRecordActions(
+      favoriteRecordActionRegistry.current.snapshot(),
+    );
+    return true;
+  }
+
+  function endFavoriteRecordCreate(campaignId: number) {
+    favoriteRecordActionRegistry.current.end(campaignId);
+    setPendingFavoriteRecordActions(
+      favoriteRecordActionRegistry.current.snapshot(),
+    );
+  }
+
   function showError(message: string) {
     setNotice(message);
     window.setTimeout(() => setNotice(null), 3500);
-  }
-
-  async function reloadSettlements() {
-    const version = settlementReloadGate.current.begin();
-
-    try {
-      const data = await getWorkspace();
-      if (settlementReloadGate.current.isLatest(version)) {
-        setSettlements(data.settlements ?? []);
-      }
-    } catch {
-      if (settlementReloadGate.current.isLatest(version)) {
-        showError("정산 목록을 새로고침하지 못했습니다. 저장은 완료되었으니 잠시 뒤 다시 확인해 주세요.");
-      }
-    }
   }
 
   function reconcileSettlement(
@@ -279,10 +280,18 @@ export function MyWorkspace({
   }
 
   async function addFavoriteToRecords(campaignId: number) {
+    if (!beginFavoriteRecordCreate(campaignId)) return;
+
     try {
       const result = await createRecord({ campaignId });
       setRecords((items) => upsertRecordMutation(items, result.data.item));
-      void reloadSettlements();
+      setSettlements((items) =>
+        upsertSettlementMutation(
+          items,
+          result.data.settlement,
+          result.data.settlement,
+        ),
+      );
       setNotice("내 체험단에 추가했습니다. 상태와 캠페인 마감을 확인해 주세요.");
       document.getElementById("records")?.scrollIntoView({
         behavior: "smooth",
@@ -291,6 +300,8 @@ export function MyWorkspace({
       window.setTimeout(() => setNotice(null), 3500);
     } catch {
       showError("내 체험단에 추가하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      endFavoriteRecordCreate(campaignId);
     }
   }
 
@@ -408,9 +419,15 @@ export function MyWorkspace({
         note: data.get("note"),
       });
       setRecords((items) => upsertRecordMutation(items, result.data.item));
+      setSettlements((items) =>
+        upsertSettlementMutation(
+          items,
+          result.data.settlement,
+          result.data.settlement,
+        ),
+      );
       form.reset();
       setManualOpen(false);
-      void reloadSettlements();
     } catch {
       showError("캠페인을 등록하지 못했습니다. 입력값을 확인해 주세요.");
     } finally {
@@ -775,6 +792,9 @@ export function MyWorkspace({
               const alreadyAdded = records.some(
                 (record) => record.campaign_id === item.campaign_id,
               );
+              const createPending = pendingFavoriteRecordActions.has(
+                item.campaign_id,
+              );
 
               return (
                 <article key={item.id} className="my-favorite-row">
@@ -796,9 +816,13 @@ export function MyWorkspace({
                     <button
                       type="button"
                       onClick={() => addFavoriteToRecords(item.campaign_id)}
-                      disabled={alreadyAdded}
+                      disabled={alreadyAdded || createPending}
                     >
-                      {alreadyAdded ? "추가됨" : "내 체험단 추가"}
+                      {createPending
+                        ? "추가 중"
+                        : alreadyAdded
+                          ? "추가됨"
+                          : "내 체험단 추가"}
                     </button>
                     <button
                       type="button"

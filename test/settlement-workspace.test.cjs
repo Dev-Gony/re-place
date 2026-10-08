@@ -10,6 +10,7 @@ const route = read("app/api/private/settlements/route.ts");
 const page = read("app/my/page.tsx");
 const workspace = read("app/my/my-workspace.tsx");
 const workspaceData = read("lib/workspace-data.ts");
+const recordRoute = read("app/api/v1/me/records/route.ts");
 const section = read("app/my/settlement-section.tsx");
 const mutationState = read("lib/settlement-mutation-state.ts");
 const client = read("lib/workspace-client.ts");
@@ -31,7 +32,10 @@ test("settlement workspace server-loads settlement rows through the shared loade
   assert.match(workspaceData, /left join user_campaign_settlements s/);
   assert.match(page, /initialSettlements=\{workspace\.settlements\}/);
   assert.match(workspace, /initialSettlements/);
-  assert.match(workspace, /getWorkspace\(\)/);
+  assert.match(recordRoute, /left join user_campaign_settlements s/);
+  assert.match(recordRoute, /source_cash_amount/);
+  assert.match(workspace, /result\.data\.settlement/);
+  assert.doesNotMatch(workspace, /getWorkspace\(\)/);
   assert.match(client, /"\/api\/v1\/me\/workspace"/);
 });
 

@@ -2,6 +2,7 @@
 
 import type {
   RecordItem,
+  SettlementItem,
   SettlementMutationItem,
   TaskMutationItem,
   WorkspaceSnapshot,
@@ -107,7 +108,9 @@ export function removeFavorite(campaignId: number) {
 }
 
 export function createRecord(input: Record<string, unknown>) {
-  return requestJson<MutationEnvelope<{ item: RecordItem }>>(
+  return requestJson<
+    MutationEnvelope<{ item: RecordItem; settlement: SettlementItem }>
+  >(
     "/api/v1/me/records",
     {
       method: "POST",
