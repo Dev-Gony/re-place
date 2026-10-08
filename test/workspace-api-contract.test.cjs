@@ -52,13 +52,17 @@ test("SSR uses the same workspace loader instead of duplicating workspace SQL", 
   assert.match(page, /initialSettlements=\{workspace\.settlements\}/);
 });
 
-test("client reload refreshes all collections from one workspace snapshot", () => {
+test("client refresh isolates settlements from mutation-owned collections", () => {
   assert.match(workspace, /getWorkspace\(\)/);
   assert.match(client, /requestJson<WorkspaceSnapshot>\("\/api\/v1\/me\/workspace"\)/);
-  assert.match(workspace, /setFavorites\(data\.favorites/);
-  assert.match(workspace, /setRecords\(data\.records/);
-  assert.match(workspace, /setTasks\(data\.tasks/);
   assert.match(workspace, /setSettlements\(data\.settlements/);
+  const refresh = workspace.slice(
+    workspace.indexOf("async function reloadSettlements"),
+    workspace.indexOf("const openTaskCount"),
+  );
+  assert.doesNotMatch(refresh, /setFavorites|setRecords|setTasks/);
+  assert.match(workspace, /upsertRecordMutation/);
+  assert.match(workspace, /upsertTaskMutation/);
   assert.doesNotMatch(
     workspace,
     /Promise\.all\([\s\S]{0,700}\/api\/private\/(favorites|records|tasks|settlements)/,

@@ -8,7 +8,13 @@ import type {
   SettlementItem,
   TaskItem,
 } from "../../lib/workspace-contract";
+import { createLatestRequestGate } from "../../lib/latest-request";
 import { createPendingActionRegistry } from "../../lib/pending-actions";
+import { upsertRecordMutation } from "../../lib/record-mutation-state";
+import {
+  removeTaskMutation,
+  upsertTaskMutation,
+} from "../../lib/task-mutation-state";
 import {
   createRecord,
   createTask as createTaskRequest,
@@ -144,6 +150,7 @@ export function MyWorkspace({
   const taskCreateLock = useRef(false);
   const deadlineCreateLock = useRef(false);
   const manualCreateLock = useRef(false);
+  const settlementReloadGate = useRef(createLatestRequestGate());
   const taskActionRegistry = useRef(
     createPendingActionRegistry<TaskPendingAction>(),
   );
@@ -178,15 +185,18 @@ export function MyWorkspace({
     window.setTimeout(() => setNotice(null), 3500);
   }
 
-  async function reload() {
+  async function reloadSettlements() {
+    const version = settlementReloadGate.current.begin();
+
     try {
       const data = await getWorkspace();
-      setFavorites(data.favorites ?? []);
-      setRecords(data.records ?? []);
-      setTasks(data.tasks ?? []);
-      setSettlements(data.settlements ?? []);
+      if (settlementReloadGate.current.isLatest(version)) {
+        setSettlements(data.settlements ?? []);
+      }
     } catch {
-      showError("내 체험단 정보를 새로고침하지 못했습니다. 다시 시도해 주세요.");
+      if (settlementReloadGate.current.isLatest(version)) {
+        showError("정산 목록을 새로고침하지 못했습니다. 저장은 완료되었으니 잠시 뒤 다시 확인해 주세요.");
+      }
     }
   }
 
@@ -259,8 +269,9 @@ export function MyWorkspace({
 
   async function addFavoriteToRecords(campaignId: number) {
     try {
-      await createRecord({ campaignId });
-      await reload();
+      const result = await createRecord({ campaignId });
+      setRecords((items) => upsertRecordMutation(items, result.data.item));
+      void reloadSettlements();
       setNotice("내 체험단에 추가했습니다. 상태와 캠페인 마감을 확인해 주세요.");
       document.getElementById("records")?.scrollIntoView({
         behavior: "smooth",
@@ -283,8 +294,15 @@ export function MyWorkspace({
     setDeadlineCreatePending(true);
 
     try {
-      await createTaskRequest(input);
-      await reload();
+      const record = records.find((item) => item.id === input.recordId);
+      if (!record) throw new Error("Selected record is unavailable");
+      const result = await createTaskRequest(input);
+      setTasks((items) =>
+        upsertTaskMutation(items, result.data.item, {
+          record_title: record.title,
+          record_platform: record.platform,
+        }),
+      );
       return true;
     } catch {
       showError("마감을 추가하지 못했습니다. 입력값을 확인해 주세요.");
@@ -305,14 +323,22 @@ export function MyWorkspace({
     const data = new FormData(form);
 
     try {
-      await createTaskRequest({
-        recordId: data.get("recordId"),
+      const recordId = Number(data.get("recordId"));
+      const record = records.find((item) => item.id === recordId);
+      if (!record) throw new Error("Selected record is unavailable");
+      const result = await createTaskRequest({
+        recordId,
         taskType: data.get("taskType"),
         title: data.get("taskTitle"),
         dueAt: data.get("taskDueAt"),
       });
+      setTasks((items) =>
+        upsertTaskMutation(items, result.data.item, {
+          record_title: record.title,
+          record_platform: record.platform,
+        }),
+      );
       form.reset();
-      await reload();
     } catch {
       showError("할 일을 추가하지 못했습니다. 입력값을 확인해 주세요.");
     } finally {
@@ -325,8 +351,12 @@ export function MyWorkspace({
     if (!beginTaskAction(task.id, "toggle")) return;
 
     try {
-      await updateTaskRequest(task.id, { completed: !task.completed_at });
-      await reload();
+      const result = await updateTaskRequest(task.id, {
+        completed: !task.completed_at,
+      });
+      setTasks((items) =>
+        upsertTaskMutation(items, result.data.item, task),
+      );
     } catch {
       showError("할 일 상태를 변경하지 못했습니다. 다시 시도해 주세요.");
     } finally {
@@ -339,7 +369,7 @@ export function MyWorkspace({
 
     try {
       await deleteTaskRequest(id);
-      setTasks((items) => items.filter((item) => item.id !== id));
+      setTasks((items) => removeTaskMutation(items, id));
     } catch {
       showError("할 일을 삭제하지 못했습니다. 다시 시도해 주세요.");
     } finally {
@@ -357,7 +387,7 @@ export function MyWorkspace({
     const data = new FormData(form);
 
     try {
-      await createRecord({
+      const result = await createRecord({
         title: data.get("title"),
         platform: data.get("platform"),
         link: data.get("link"),
@@ -366,9 +396,10 @@ export function MyWorkspace({
         deadlineAt: data.get("deadlineAt"),
         note: data.get("note"),
       });
+      setRecords((items) => upsertRecordMutation(items, result.data.item));
       form.reset();
       setManualOpen(false);
-      await reload();
+      void reloadSettlements();
     } catch {
       showError("캠페인을 등록하지 못했습니다. 입력값을 확인해 주세요.");
     } finally {
@@ -379,8 +410,20 @@ export function MyWorkspace({
 
   async function updateRecord(item: RecordItem, status: string) {
     try {
-      await updateRecordRequest(item.id, { status });
-      await reload();
+      const result = await updateRecordRequest(item.id, { status });
+      setRecords((items) => upsertRecordMutation(items, result.data.item));
+      setSettlements((items) =>
+        items.map((settlement) =>
+          settlement.record_id === result.data.item.id
+            ? {
+                ...settlement,
+                record_title: result.data.item.title,
+                record_platform: result.data.item.platform,
+                record_status: result.data.item.status,
+              }
+            : settlement,
+        ),
+      );
     } catch {
       showError("상태를 저장하지 못했습니다. 다시 시도해 주세요.");
     }
@@ -627,7 +670,7 @@ export function MyWorkspace({
       </section>
 
       <div id="settlements" className="my-anchor-target">
-        <SettlementSection items={settlements} onSaved={reload} />
+        <SettlementSection items={settlements} onSaved={reloadSettlements} />
       </div>
 
       <section id="records" className="my-section my-anchor-target">
