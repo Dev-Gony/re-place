@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useCampaignVisibilityAdminEntry } from "./campaign-visibility-admin-entry";
+
 type NavItem = {
   href: string;
   label: string;
-  key: "discover" | "favorites" | "workspace" | "schedule" | "analysis";
+  key: "discover" | "favorites" | "workspace" | "schedule" | "analysis" | "admin";
 };
 
 const ITEMS: NavItem[] = [
@@ -16,6 +18,8 @@ const ITEMS: NavItem[] = [
   { href: "/calendar", label: "일정", key: "schedule" },
   { href: "/blog-analysis", label: "분석", key: "analysis" },
 ];
+
+const ADMIN_ITEM: NavItem = { href: "/admin/campaigns", label: "관리자", key: "admin" };
 
 function Icon({ type }: { type: NavItem["key"] }) {
   if (type === "discover") {
@@ -49,6 +53,14 @@ function Icon({ type }: { type: NavItem["key"] }) {
       </svg>
     );
   }
+  if (type === "admin") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3 5 6v5c0 4.6 2.9 8.2 7 10 4.1-1.8 7-5.4 7-10V6Z" />
+        <path d="M9.5 12.2 11.2 14l3.6-4" />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M5 19V10M10 19V5M15 19v-7M20 19V8" />
@@ -58,6 +70,8 @@ function Icon({ type }: { type: NavItem["key"] }) {
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const canManageCampaignVisibility = useCampaignVisibilityAdminEntry();
+  const items = canManageCampaignVisibility ? [...ITEMS, ADMIN_ITEM] : ITEMS;
 
   if (
     pathname.startsWith("/auth") ||
@@ -74,12 +88,21 @@ export function MobileBottomNav() {
     if (item.key === "workspace") return pathname === "/my";
     if (item.key === "schedule") return pathname === "/calendar";
     if (item.key === "analysis") return pathname === "/blog-analysis";
+    if (item.key === "admin") return pathname.startsWith("/admin/");
     return false;
   }
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="모바일 주요 메뉴">
-      {ITEMS.map((item) => {
+    <nav
+      className={"mobile-bottom-nav" + (canManageCampaignVisibility ? " has-admin" : "")}
+      style={
+        canManageCampaignVisibility
+          ? { gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }
+          : undefined
+      }
+      aria-label="모바일 주요 메뉴"
+    >
+      {items.map((item) => {
         const active = isActive(item);
         return (
           <Link

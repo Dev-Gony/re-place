@@ -59,3 +59,10 @@ test("repository policy batches branch updates and preview builds", () => {
   assert.match(plan, /Git blob\/tree\/commit 객체/);
   assert.match(plan, /기능 이슈당 Vercel Preview 1회/);
 });
+
+test("authorized admin entry conditionally expands the mobile navigation", () => {
+  assert.match(nav, /useCampaignVisibilityAdminEntry\(\)/);
+  assert.match(nav, /canManageCampaignVisibility \? \[\.\.\.ITEMS, ADMIN_ITEM\] : ITEMS/);
+  assert.match(nav, /href: "\/admin\/campaigns"/);
+  assert.match(nav, /gridTemplateColumns: "repeat\(6, minmax\(0, 1fr\)\)"/);
+});

@@ -38,6 +38,7 @@ RPL-060은 리뷰노트 캠페인을 공개 검색에서 서버 측으로 임시
 - [x] 기본 migration의 DB rule은 수정·삭제 영향 행을 0으로 만들고, 후속 hardening migration은 이를 오류 반환 trigger로 교체해 감사 로그를 보존한다.
 - [x] mutation은 same-origin, 입력·배치 제한, version 충돌 검사를 통과해야 한다.
 - [x] 상태와 감사 로그는 한 transaction에서 변경되며 공개 cache tag를 만료한다.
+- [x] A verified session with the active `campaign_visibility` scope sees a server-authorized admin entry in the desktop header, account menu, and mobile navigation; other sessions do not.
 - [ ] 운영 migration, role 부여, flag 활성화는 각각 별도 승인 후 수행한다.
 
 ## 활성화 순서
