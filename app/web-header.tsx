@@ -4,7 +4,7 @@ import { AuthStatus } from "./auth-status";
 import { CampaignVisibilityAdminLink } from "./campaign-visibility-admin-entry";
 
 type WebHeaderProps = {
-  active: "explore" | "my" | "calendar" | "analysis" | "admin";
+  active: "explore" | "my" | "calendar" | "analysis" | "check" | "admin";
 };
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { key: "my", href: "/my", label: "내 체험단" },
   { key: "calendar", href: "/calendar", label: "캘린더" },
   { key: "analysis", href: "/blog-analysis", label: "블로그 분석" },
+  { key: "check", href: "/check", label: "누락 진단" },
 ] as const;
 
 export function WebHeader({ active }: WebHeaderProps) {
