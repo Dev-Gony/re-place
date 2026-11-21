@@ -273,6 +273,16 @@ export function parseSheetDate(raw: string | undefined | null, todayKey: string)
     .trim();
   const todayYear = Number(todayKey.slice(0, 4));
 
+  // 엑셀에서 날짜 서식 없이 복사하면 일련번호(1900 날짜 체계)로 붙여넣어진다.
+  if (/^\d{5}$/.test(text)) {
+    const serial = Number(text);
+    if (serial >= 36_526 && serial <= 73_050) {
+      const date = new Date(Date.UTC(1899, 11, 30) + serial * 86_400_000);
+      return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+    }
+    return undefined;
+  }
+
   let year: number | null = null;
   let month: number;
   let day: number;
@@ -318,6 +328,7 @@ export function parseSheetDate(raw: string | undefined | null, todayKey: string)
 export function parseAmount(raw: string | undefined | null): number | null | undefined {
   if (isEmptyValue(raw)) return null;
   const text = String(raw)
+    .replace(/\([^)]*\)/g, "")
     .replace(/[,\s₩]/g, "")
     .replace(/^약/, "")
     .replace(/원(상당)?$/, "")
@@ -411,6 +422,10 @@ function duplicateKey(title: string, platform: string | null) {
   return `${title.toLowerCase().replace(/\s/g, "")}|${(platform || "").toLowerCase().replace(/\s/g, "")}`;
 }
 
+export function isDuplicateRow(row: LedgerRow) {
+  return row.findings.some((finding) => finding.kind === "duplicate");
+}
+
 export function diagnoseLedger(text: string, todayKey: string): LedgerDiagnosis {
   if (!text || !text.trim()) {
     return { ok: false, error: "붙여넣은 내용이 없어요. 시트에서 열 이름이 있는 첫 줄부터 복사해 주세요." };
@@ -419,7 +434,14 @@ export function diagnoseLedger(text: string, todayKey: string): LedgerDiagnosis 
     return { ok: false, error: "내용이 너무 길어요. 한 번에 500행 이하로 나눠서 넣어 주세요." };
   }
 
-  const table = parseTable(text).filter((cells) => cells.some((cell) => cell !== ""));
+  // 빈 줄은 건너뛰되 시트 기준 행 번호는 원래 줄 번호로 유지한다.
+  const parsed = parseTable(text);
+  const lineNumbers: number[] = [];
+  const table = parsed.filter((cells, index) => {
+    const keep = cells.some((cell) => cell !== "");
+    if (keep) lineNumbers.push(index + 1);
+    return keep;
+  });
   const header = findHeaderRow(table);
   if (!header) {
     return {
@@ -477,7 +499,7 @@ export function diagnoseLedger(text: string, todayKey: string): LedgerDiagnosis 
 
     const findings: LedgerFinding[] = [];
     const row: LedgerRow = {
-      sheetRow: headerIndex + offset + 2,
+      sheetRow: lineNumbers[headerIndex + 1 + offset],
       title,
       platform,
       deadline: deadline ?? null,
@@ -587,13 +609,15 @@ export function diagnoseLedger(text: string, todayKey: string): LedgerDiagnosis 
     rows.push(row);
   });
 
+  // 중복 의심 행은 같은 캠페인을 두 번 센 것일 수 있어 건수·금액 합계에서 뺀다.
   const active = rows.filter((row) => !row.cancelled);
+  const counted = active.filter((row) => !isDuplicateRow(row));
   const count = (kind: FindingKind) =>
-    active.filter((row) => row.findings.some((f) => f.kind === kind)).length;
+    counted.filter((row) => row.findings.some((f) => f.kind === kind)).length;
 
   let overdueOutstanding = 0;
   let pendingOutstanding = 0;
-  for (const row of active) {
+  for (const row of counted) {
     if (row.paidState === "paid") continue;
     if (typeof row.expectedCash !== "number" || row.expectedCash <= 0) continue;
     const outstanding = Math.max(row.expectedCash - (row.receivedCash ?? 0), 0);

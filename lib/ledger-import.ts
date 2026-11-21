@@ -1,7 +1,7 @@
 // RPL-063/064: 무료 진단 결과를 로그인 후 내 체험단으로 넘기는 브라우저 측 연결.
 // sessionStorage에만 잠시 보관하고 서버에는 사용자가 가져오기를 누를 때만 보낸다.
 
-import type { LedgerRow } from "./ledger-diagnosis";
+import { isDuplicateRow, type LedgerRow } from "./ledger-diagnosis";
 
 export const LEDGER_IMPORT_STORAGE_KEY = "replace:ledger-import:v1";
 export const LEDGER_IMPORT_MAX_ROWS = 200;
@@ -27,8 +27,9 @@ type StoredImport = {
   items: LedgerImportItem[];
 };
 
+/** 중복 의심 행은 같은 캠페인이 두 번 들어가지 않도록 가져오지 않는다. */
 export function toImportItems(rows: LedgerRow[]): LedgerImportItem[] {
-  return rows.slice(0, LEDGER_IMPORT_MAX_ROWS).map((row) => {
+  return rows.filter((row) => !isDuplicateRow(row)).slice(0, LEDGER_IMPORT_MAX_ROWS).map((row) => {
     const status: LedgerImportItem["status"] = row.cancelled
       ? "cancelled"
       : row.publishState !== "none"

@@ -157,9 +157,9 @@ export const PERSONA_SAMPLES: PersonaSample[] = [
     expected: {
       overdueUnpublished: 1,
       dueSoonUnpublished: 1,
-      paymentOverdue: 2,
-      overdueOutstanding: 100_000,
-      pendingOutstanding: 300_000,
+      paymentOverdue: 1,
+      overdueOutstanding: 50_000,
+      pendingOutstanding: 250_000,
       cancelledRows: 0,
       needsReview: 1,
       duplicates: 1,

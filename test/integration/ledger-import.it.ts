@@ -15,7 +15,7 @@ import { queryDb } from "../../lib/db";
 import { importLedgerItems } from "../../lib/ledger-import-store";
 import { validateLedgerImport } from "../../lib/ledger-import-validate";
 import { toImportItems } from "../../lib/ledger-import";
-import { diagnoseLedger } from "../../lib/ledger-diagnosis";
+import { diagnoseLedger, isDuplicateRow } from "../../lib/ledger-diagnosis";
 import { PERSONA_SAMPLES } from "../../lib/ledger-samples";
 import { loadWorkspace } from "../../lib/workspace-data";
 import { computeLedgerAlerts } from "../../lib/ledger-alerts";
@@ -57,11 +57,12 @@ for (const persona of PERSONA_SAMPLES) {
     assert.ok(validation.ok);
     if (!validation.ok) return;
 
+    const expectedRows = diagnosis.rows.filter((row) => !isDuplicateRow(row)).length;
     const created = await importLedgerItems(owner, validation.items);
-    assert.equal(created.records.length, diagnosis.rows.length);
+    assert.equal(created.records.length, expectedRows);
 
     const workspace = await loadWorkspace(owner);
-    assert.equal(workspace.records.length, diagnosis.rows.length);
+    assert.equal(workspace.records.length, expectedRows);
     // 응답으로 돌려준 항목이 다시 읽은 workspace와 같은 모양인지 확인한다.
     for (const record of created.records) {
       const loaded = workspace.records.find((r) => r.id === record.id)!;

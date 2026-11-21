@@ -47,6 +47,12 @@ describe("RPL-064 import items from diagnosis", () => {
     assert.equal(missing.expectedCashAmount, 50_000);
   });
 
+  test("duplicate rows are not imported twice", () => {
+    const items = toImportItems(persona("small-seller").rows);
+    assert.equal(items.filter((item) => item.title === "리뷰어 하늘").length, 1);
+    assert.equal(items.length, 5);
+  });
+
   test("paid flag without amount counts the promise as received", () => {
     const items = toImportItems(persona("small-seller").rows);
     const paid = items.find((item) => item.title === "리뷰어 구름")!;

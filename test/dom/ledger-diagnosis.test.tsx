@@ -39,6 +39,8 @@ describe("RPL-063 ledger parsing", () => {
     assert.equal(parseSheetDate("-", TODAY), null);
     assert.equal(parseSheetDate("익월 10일", TODAY), undefined);
     assert.equal(parseSheetDate("2/30", TODAY), undefined);
+    assert.equal(parseSheetDate("46336", TODAY), "2026-11-10");
+    assert.equal(parseSheetDate("2026. 11. 10 오후 6:00", TODAY), "2026-11-10");
   });
 
   test("normalizes Korean amount notation", () => {
@@ -51,6 +53,7 @@ describe("RPL-063 ledger parsing", () => {
     assert.equal(parseAmount("-"), null);
     assert.equal(parseAmount(""), null);
     assert.equal(parseAmount("협의"), undefined);
+    assert.equal(parseAmount("5만원 (세전)"), 50_000);
   });
 
   test("reads paid flags", () => {
@@ -139,5 +142,38 @@ describe("RPL-063 persona samples", () => {
     const earphones = result.rows.find((row) => row.title === "무선 이어폰")!;
     assert.equal(earphones.paidState, "paid");
     assert.deepEqual(earphones.findings, []);
+  });
+});
+
+describe("RPL-065 messy sheet variants", () => {
+  const run = (text: string) => {
+    const result = diagnoseLedger(text, TODAY);
+    assert.equal(result.ok, true);
+    if (!result.ok) throw new Error("diagnosis failed");
+    return result;
+  };
+
+  test("finds the header below title rows and blank lines", () => {
+    const result = run("2026 하반기 체험단 관리\n\n업체명\t플랫폼\t포스팅 마감\t포스팅 URL\n파스타\t리뷰노트\t11/18\t\n카페\t미블\t11/30\thttps://blog.naver.com/a/1");
+    assert.equal(result.summary.overdueUnpublished, 1);
+    assert.equal(result.rows[0].sheetRow, 4);
+  });
+
+  test("reads English headers", () => {
+    const result = run("Campaign,Platform,Deadline,Link,Fee,Pay date,Received\nCream,Insta,2026-11-10,,50000,2026-11-15,0");
+    assert.equal(result.summary.overdueUnpublished, 1);
+    assert.equal(result.summary.overdueOutstanding, 50_000);
+  });
+
+  test("reads Excel serial dates, date-time cells and amounts with notes", () => {
+    const result = run("캠페인\t마감\t원고료\t지급일\n크림\t46336\t5만원 (세전)\t2026. 11. 15 오후 6:00");
+    assert.equal(result.summary.overdueUnpublished, 1);
+    assert.equal(result.summary.overdueOutstanding, 50_000);
+  });
+
+  test("known gap: free-form headers are reported as missing columns instead of guessed", () => {
+    const result = run("가게\t어디\t언제까지\t올린 주소\t돈\t언제 줌\n파스타\t리뷰노트\t11/18\t\t5만\t11/20");
+    assert.deepEqual(result.missingFields, ["deadline", "expectedCash", "paymentDue"]);
+    assert.equal(result.summary.overdueUnpublished, 0);
   });
 });

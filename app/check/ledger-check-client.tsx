@@ -272,7 +272,8 @@ export function LedgerCheckClient() {
             <p className="ledger-check-footnote">
               문제 없음 {cleanRows.length}건
               {cancelledRows.length > 0 && ` · 취소·미선정으로 제외 ${cancelledRows.length}건`}
-              {result.summary.duplicates > 0 && ` · 중복 의심 ${result.summary.duplicates}건`}
+              {result.summary.duplicates > 0 &&
+                ` · 중복 의심 ${result.summary.duplicates}건 (합계와 가져오기에서 제외)`}
             </p>
 
             <div className="ledger-check-cta">
