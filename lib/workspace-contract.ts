@@ -26,6 +26,8 @@ export type RecordItem = {
   region: string | null;
   deadline_at: string | null;
   note: string | null;
+  /** RPL-064: 실제 발행한 글·영상 URL. 캠페인 원문 `link`와 다르다. */
+  published_url: string | null;
 };
 
 export type TaskItem = {
@@ -57,6 +59,8 @@ export type SettlementItem = {
   actual_reimbursement_received_amount: number | null;
   cash_received_at: string | null;
   reimbursement_received_at: string | null;
+  /** RPL-064: 현금 원고료·페이백을 받기로 한 날짜 */
+  cash_payment_due_at: string | null;
   note: string | null;
   source_cash_amount: number | null;
   source_provided_value_amount: number | null;
@@ -75,6 +79,7 @@ export type SettlementMutationItem = Pick<
   | "actual_reimbursement_received_amount"
   | "cash_received_at"
   | "reimbursement_received_at"
+  | "cash_payment_due_at"
   | "note"
 >;
 

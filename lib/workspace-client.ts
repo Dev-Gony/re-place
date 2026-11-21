@@ -4,6 +4,7 @@ import type {
   RecordItem,
   SettlementItem,
   SettlementMutationItem,
+  TaskItem,
   TaskMutationItem,
   WorkspaceSnapshot,
 } from "./workspace-contract";
@@ -163,6 +164,21 @@ export function deleteTask(id: number) {
     `/api/v1/me/tasks/${id}`,
     { method: "DELETE" },
   );
+}
+
+export function importLedgerRecords(items: unknown[]) {
+  return requestJson<
+    MutationEnvelope<{
+      imported: number;
+      records: RecordItem[];
+      tasks: TaskItem[];
+      settlements: SettlementItem[];
+      skipped: number[];
+    }>
+  >("/api/v1/me/records/import", {
+    method: "POST",
+    body: JSON.stringify({ items }),
+  });
 }
 
 export function saveSettlement(

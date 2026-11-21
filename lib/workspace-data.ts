@@ -20,7 +20,8 @@ export async function loadWorkspace(owner: string): Promise<WorkspaceSnapshot> {
       ),
       queryDb<RecordItem>(
         `select id, campaign_id, source_type, status, title, platform, link,
-                reward, region, deadline_at::text as deadline_at, note
+                reward, region, deadline_at::text as deadline_at, note,
+                published_url
            from user_campaign_records
           where auth_user_id = $1
           order by
@@ -60,6 +61,7 @@ export async function loadWorkspace(owner: string): Promise<WorkspaceSnapshot> {
             s.actual_reimbursement_received_amount,
             s.cash_received_at::text as cash_received_at,
             s.reimbursement_received_at::text as reimbursement_received_at,
+            s.cash_payment_due_at::text as cash_payment_due_at,
             s.note,
             c.cash_fee_amount as source_cash_amount,
             c.provided_value_amount as source_provided_value_amount,

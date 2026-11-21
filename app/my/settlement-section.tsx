@@ -132,6 +132,9 @@ function SettlementEditor({
     item.actual_reimbursement_received_amount?.toString() ?? "",
   );
   const [cashReceivedAt, setCashReceivedAt] = useState(dateInput(item.cash_received_at));
+  const [cashPaymentDueAt, setCashPaymentDueAt] = useState(
+    dateInput(item.cash_payment_due_at),
+  );
   const [reimbursementReceivedAt, setReimbursementReceivedAt] = useState(
     dateInput(item.reimbursement_received_at),
   );
@@ -181,6 +184,7 @@ function SettlementEditor({
         actualReimbursementReceivedAmount: actualReimbursement,
         cashReceivedAt,
         reimbursementReceivedAt,
+        cashPaymentDueAt,
         note,
       });
 
@@ -245,6 +249,14 @@ function SettlementEditor({
             value={actualCash}
             placeholder="미입력"
             onChange={(event) => setActualCash(event.target.value)}
+          />
+        </label>
+        <label>
+          <span>현금 지급 예정일</span>
+          <input
+            type="date"
+            value={cashPaymentDueAt}
+            onChange={(event) => setCashPaymentDueAt(event.target.value)}
           />
         </label>
         <label>

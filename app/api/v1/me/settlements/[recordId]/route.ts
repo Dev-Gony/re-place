@@ -61,6 +61,18 @@ export async function PUT(
     return v1Error("INVALID_INPUT", "Invalid settlement date", 400);
   }
 
+  // RPL-064: 지급 예정일을 보내지 않는 기존 클라이언트는 저장된 값을 유지한다.
+  const hasCashPaymentDueAt =
+    !!body &&
+    typeof body === "object" &&
+    Object.prototype.hasOwnProperty.call(body, "cashPaymentDueAt");
+  const cashPaymentDueAt = hasCashPaymentDueAt
+    ? normalizeOptionalDeadline(body.cashPaymentDueAt)
+    : null;
+  if (cashPaymentDueAt === undefined) {
+    return v1Error("INVALID_INPUT", "Invalid settlement date", 400);
+  }
+
   const note = normalizeOptionalText(body?.note, 4000);
 
   const result = await queryDb(
@@ -75,10 +87,12 @@ export async function PUT(
          actual_reimbursement_received_amount,
          cash_received_at,
          reimbursement_received_at,
-         note
+         note,
+         cash_payment_due_at
        )
        select
-         $1, id, $3, $4, $5, $6, $7, $8, $9::timestamptz, $10::timestamptz, $11
+         $1, id, $3, $4, $5, $6, $7, $8, $9::timestamptz, $10::timestamptz, $11,
+         $13::timestamptz
          from user_campaign_records
         where auth_user_id = $1
           and id = $2
@@ -93,6 +107,10 @@ export async function PUT(
          cash_received_at = excluded.cash_received_at,
          reimbursement_received_at = excluded.reimbursement_received_at,
          note = excluded.note,
+         cash_payment_due_at = case
+           when $12::boolean then excluded.cash_payment_due_at
+           else user_campaign_settlements.cash_payment_due_at
+         end,
          updated_at = now()
        returning *`,
     [
@@ -102,6 +120,8 @@ export async function PUT(
       cashReceivedAt,
       reimbursementReceivedAt,
       note,
+      hasCashPaymentDueAt,
+      cashPaymentDueAt,
     ],
   );
 

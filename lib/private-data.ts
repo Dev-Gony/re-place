@@ -126,3 +126,26 @@ export function normalizeOptionalDeadline(value: unknown) {
 
   return normalizeDeadline(value) ?? undefined;
 }
+
+/**
+ * RPL-064: 발행 URL은 http(s)만 허용한다. 서버는 이 URL을 요청하지 않는다.
+ * 빈 값은 null, 허용하지 않는 값은 undefined를 돌려준다.
+ */
+export function normalizePublishedUrl(value: unknown) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > 1000 || /\s/.test(trimmed)) return undefined;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    if (!url.hostname.includes(".")) return undefined;
+    if (url.username || url.password) return undefined;
+    const normalized = url.toString();
+    return normalized.length <= 1000 ? normalized : undefined;
+  } catch {
+    return undefined;
+  }
+}

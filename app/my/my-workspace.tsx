@@ -28,6 +28,7 @@ import { MonthCalendar } from "./month-calendar";
 import { MyCampaignBoard } from "./my-campaign-board";
 import { ContentDeadlineBoard } from "./content-deadline-board";
 import { FavoriteList } from "./favorite-list";
+import { LedgerAlertsPanel, LedgerImportPanel } from "./ledger-panels";
 import { SettlementSection } from "./settlement-section";
 
 export type { FavoriteItem, RecordItem, TaskItem };
@@ -424,9 +425,25 @@ export function MyWorkspace({
     }
   }
 
-  async function updateRecord(item: RecordItem, status: string) {
+  function mergeImported(created: {
+    records: RecordItem[];
+    tasks: TaskItem[];
+    settlements: SettlementItem[];
+  }) {
+    setRecords((items) => [...created.records, ...items]);
+    setTasks((items) => [...items, ...created.tasks]);
+    setSettlements((items) => [...created.settlements, ...items]);
+  }
+
+  async function updateRecord(
+    item: RecordItem,
+    status: string,
+    publishedUrl?: string,
+  ) {
     try {
-      const result = await updateRecordRequest(item.id, { status });
+      const input: Record<string, unknown> = { status };
+      if (publishedUrl !== undefined) input.publishedUrl = publishedUrl;
+      const result = await updateRecordRequest(item.id, input);
       setRecords((items) => upsertRecordMutation(items, result.data.item));
       setSettlements((items) =>
         items.map((settlement) =>
@@ -486,6 +503,16 @@ export function MyWorkspace({
           {notice}
         </div>
       )}
+
+      <LedgerImportPanel onImported={mergeImported} />
+
+      <LedgerAlertsPanel
+        records={records}
+        tasks={tasks}
+        settlements={settlements}
+        todayKey={todayKey}
+        onOpenDetail={openDetail}
+      />
 
       <FavoriteList
         initialItems={initialFavorites}
@@ -822,16 +849,22 @@ function RecordEditor({
   onDelete,
 }: {
   item: RecordItem;
-  onSave: (item: RecordItem, status: string) => Promise<void>;
+  onSave: (item: RecordItem, status: string, publishedUrl?: string) => Promise<void>;
   onDelete: (id: number) => void;
 }) {
   const [status, setStatus] = useState(item.status);
+  const [publishedUrl, setPublishedUrl] = useState(item.published_url ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
     try {
-      await onSave(item, status);
+      const nextUrl = publishedUrl.trim();
+      await onSave(
+        item,
+        status,
+        nextUrl === (item.published_url ?? "") ? undefined : nextUrl,
+      );
     } finally {
       setSaving(false);
     }
@@ -866,6 +899,18 @@ function RecordEditor({
             <option value={value} key={value}>{label}</option>
           ))}
         </select>
+      </label>
+
+      <label className="my-inline-field my-published-field">
+        <span>발행 URL</span>
+        <input
+          type="url"
+          inputMode="url"
+          value={publishedUrl}
+          maxLength={1000}
+          placeholder="https://blog.naver.com/..."
+          onChange={(event) => setPublishedUrl(event.target.value)}
+        />
       </label>
 
       <div className="my-record-actions">
