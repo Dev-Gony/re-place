@@ -18,6 +18,7 @@
 - [PWA·모바일 클라이언트 기반](PWA_CLIENT.md)
 - [V2 종료 검증 체크리스트](V2_COMPLETION.md)
 - [V3 블로그 분석 지표 계약](BLOG_ANALYSIS_SCORE.md)
+- [CampLedger v1 가설·페르소나·갭 (RPL-062)](specs/RPL-062-camp-ledger-edge.md)
 
 ## 제품 단계
 
