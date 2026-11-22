@@ -64,6 +64,7 @@ function creationResponse(id: number, title: string): JsonResponse {
     region: "서울",
     deadline_at: "2026-10-31T00:00:00.000Z",
     note: null,
+    published_url: null,
   };
   const settlement: SettlementItem = {
     record_id: item.id,
@@ -78,6 +79,7 @@ function creationResponse(id: number, title: string): JsonResponse {
     actual_reimbursement_received_amount: null,
     cash_received_at: null,
     reimbursement_received_at: null,
+    cash_payment_due_at: null,
     note: null,
     source_cash_amount: id,
     source_provided_value_amount: null,

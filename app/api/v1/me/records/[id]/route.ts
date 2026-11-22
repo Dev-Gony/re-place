@@ -2,6 +2,7 @@ import { queryDb } from "../../../../../../lib/db";
 import {
   normalizeOptionalDeadline,
   normalizeOptionalText,
+  normalizePublishedUrl,
 } from "../../../../../../lib/private-data";
 import {
   currentOwnerId,
@@ -62,11 +63,23 @@ export async function PATCH(
     return v1Error("INVALID_INPUT", "deadlineAt must be a valid date", 400);
   }
 
+  const hasPublishedUrl = Object.prototype.hasOwnProperty.call(
+    body,
+    "publishedUrl",
+  );
+  const publishedUrl = hasPublishedUrl
+    ? normalizePublishedUrl(body.publishedUrl)
+    : null;
+  if (publishedUrl === undefined) {
+    return v1Error("INVALID_INPUT", "publishedUrl must be an http(s) URL", 400);
+  }
+
   const result = await queryDb(
     `update user_campaign_records
         set status = $3,
             note = case when $4::boolean then $5 else note end,
             deadline_at = case when $6::boolean then $7::timestamptz else deadline_at end,
+            published_url = case when $8::boolean then $9 else published_url end,
             updated_at = now()
       where auth_user_id = $1
         and id = $2
@@ -79,6 +92,8 @@ export async function PATCH(
       note,
       hasDeadlineAt,
       deadlineAt ?? null,
+      hasPublishedUrl,
+      publishedUrl,
     ],
   );
 

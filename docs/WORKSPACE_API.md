@@ -107,3 +107,15 @@ The existing `/api/private/*` write endpoints remain available as backward-compa
 ## Future mobile step
 
 A standalone mobile client should add an app-appropriate authentication mechanism in a later version without changing the workspace payload shape. The v1 payload is intentionally independent from React or Next.js UI components.
+
+## RPL-064 추가 필드와 가져오기
+
+`schemaVersion`은 1을 유지한다. 필드 추가만 있고 기존 필드의 의미는 바뀌지 않는다.
+
+- `records[].published_url`: 실제 발행한 글·영상 URL (http/https). 캠페인 원문 `link`와 다르다.
+- `settlements[].cash_payment_due_at`: 현금 원고료·페이백을 받기로 한 날짜.
+- `PATCH /api/v1/me/records/:id`: 선택 필드 `publishedUrl`. 보내지 않으면 유지, 빈 값이면 삭제.
+- `PUT /api/v1/me/settlements/:recordId`: 선택 필드 `cashPaymentDueAt`. 보내지 않으면 저장값 유지.
+- `POST /api/v1/me/records/import`: `{ items }` 최대 200건. 형식이 틀린 행은 `skipped`로 돌려주고, 만든 `records`·`tasks`·`settlements`를 workspace 계약 형태로 돌려준다. 하나라도 저장에 실패하면 전체 롤백한다.
+
+배포 전 `db/migrations/20261121_ledger_tracking.sql`을 먼저 적용해야 한다.

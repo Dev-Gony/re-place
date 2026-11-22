@@ -18,6 +18,10 @@
 - [PWA·모바일 클라이언트 기반](PWA_CLIENT.md)
 - [V2 종료 검증 체크리스트](V2_COMPLETION.md)
 - [V3 블로그 분석 지표 계약](BLOG_ANALYSIS_SCORE.md)
+- [CampLedger v1 가설·페르소나·갭 (RPL-062)](specs/RPL-062-camp-ledger-edge.md)
+- [CampLedger 무료 진단 /check (RPL-063)](specs/RPL-063-ledger-free-check.md)
+- [CampLedger 가져오기·놓친 항목 (RPL-064)](specs/RPL-064-ledger-import-tracking.md)
+- [CampLedger 페르소나 검증 리포트 (RPL-065)](specs/RPL-065-persona-validation.md)
 
 ## 제품 단계
 

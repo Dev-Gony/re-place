@@ -3,6 +3,7 @@ import {
   getCampaignSnapshot,
   normalizeOptionalDeadline,
   normalizeOptionalText,
+  normalizePublishedUrl,
 } from "../../../../../lib/private-data";
 import {
   currentOwnerId,
@@ -26,6 +27,7 @@ type RecordCreationRow = RecordItem & {
   settlement_actual_reimbursement_received_amount: number | null;
   settlement_cash_received_at: string | null;
   settlement_reimbursement_received_at: string | null;
+  settlement_cash_payment_due_at: string | null;
   settlement_note: string | null;
   source_cash_amount: number | null;
   source_provided_value_amount: number | null;
@@ -46,6 +48,7 @@ const RECORD_CREATION_SELECT = `
     r.region,
     r.deadline_at::text as deadline_at,
     r.note,
+    r.published_url,
     s.expected_cash_amount as settlement_expected_cash_amount,
     s.expected_provided_value_amount as settlement_expected_provided_value_amount,
     s.expected_points_amount as settlement_expected_points_amount,
@@ -54,6 +57,7 @@ const RECORD_CREATION_SELECT = `
     s.actual_reimbursement_received_amount as settlement_actual_reimbursement_received_amount,
     s.cash_received_at::text as settlement_cash_received_at,
     s.reimbursement_received_at::text as settlement_reimbursement_received_at,
+    s.cash_payment_due_at::text as settlement_cash_payment_due_at,
     s.note as settlement_note,
     c.cash_fee_amount as source_cash_amount,
     c.provided_value_amount as source_provided_value_amount,
@@ -79,6 +83,7 @@ function recordCreationPayload(row: RecordCreationRow) {
     region: row.region,
     deadline_at: row.deadline_at,
     note: row.note,
+    published_url: row.published_url,
   };
   const settlement: SettlementItem = {
     record_id: row.id,
@@ -96,6 +101,7 @@ function recordCreationPayload(row: RecordCreationRow) {
       row.settlement_actual_reimbursement_received_amount,
     cash_received_at: row.settlement_cash_received_at,
     reimbursement_received_at: row.settlement_reimbursement_received_at,
+    cash_payment_due_at: row.settlement_cash_payment_due_at,
     note: row.settlement_note,
     source_cash_amount: row.source_cash_amount,
     source_provided_value_amount: row.source_provided_value_amount,
@@ -179,6 +185,10 @@ export async function POST(request: Request) {
   if (deadlineAt === undefined) {
     return v1Error("INVALID_INPUT", "deadlineAt must be a valid date", 400);
   }
+  const publishedUrl = normalizePublishedUrl(body.publishedUrl);
+  if (publishedUrl === undefined) {
+    return v1Error("INVALID_INPUT", "publishedUrl must be an http(s) URL", 400);
+  }
 
   const snapshot = {
     title,
@@ -194,9 +204,9 @@ export async function POST(request: Request) {
     `with saved_record as (
        insert into user_campaign_records (
          auth_user_id, source_type, status, title, platform, link,
-         reward, region, deadline_at, note, campaign_snapshot
+         reward, region, deadline_at, note, campaign_snapshot, published_url
        )
-       values ($1, 'manual', 'saved', $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+       values ($1, 'manual', 'saved', $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
        returning *
      )
      ${RECORD_CREATION_SELECT}`,
@@ -210,6 +220,7 @@ export async function POST(request: Request) {
       deadlineAt,
       note,
       JSON.stringify(snapshot),
+      publishedUrl,
     ],
   );
 
