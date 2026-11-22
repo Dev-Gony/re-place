@@ -23,6 +23,14 @@ def html(rows):
     return '<script id="__NEXT_DATA__" type="application/json">' + json.dumps(data) + '</script>'
 
 
+_REAL_PARSE_ROWS = crawler.parse_rows
+
+
+def parse_rows_at_fixture_time(rows, **_kwargs):
+    # collect()는 실제 현재 시각으로 마감을 거른다. fixture 날짜가 지나도 결과가 같도록 기준 시각을 고정한다.
+    return _REAL_PARSE_ROWS(rows, now=NOW)
+
+
 class ReviewnotePublicTests(unittest.TestCase):
     def test_preserves_real_deadline_counts_points_and_source(self):
         campaign = crawler.parse_listing(html([ROW]), now=NOW)[0]
@@ -156,7 +164,8 @@ class ReviewnotePublicTests(unittest.TestCase):
             {'page': 2, 'has_more': False, 'total_pages': 3, 'total_count': 0, 'objects': []},
             {'page': 0, 'has_more': False, 'objects': [clip]},
         ]
-        with patch.object(crawler, 'fetch_page', side_effect=pages) as fetch, patch.object(crawler.time, 'sleep') as sleep:
+        with patch.object(crawler, 'fetch_page', side_effect=pages) as fetch, patch.object(crawler.time, 'sleep') as sleep, \
+                patch.object(crawler, 'parse_rows', side_effect=parse_rows_at_fixture_time):
             campaigns = crawler.collect()
         self.assertEqual([x.source_campaign_id for x in campaigns], ['1462459', '2', '3'])
         self.assertEqual(len({x.collected_at for x in campaigns}), 1)
@@ -169,7 +178,8 @@ class ReviewnotePublicTests(unittest.TestCase):
             {'page': 1, 'has_more': False, 'objects': [{**ROW, 'applicantCount': 5}, {**ROW, 'id': 2}]},
             {'page': 0, 'has_more': False, 'objects': [{**ROW, 'id': 3, 'channel': 'BLOG_CLIP'}]},
         ]
-        with patch.object(crawler, 'fetch_page', side_effect=pages), patch.object(crawler.time, 'sleep'):
+        with patch.object(crawler, 'fetch_page', side_effect=pages), patch.object(crawler.time, 'sleep'), \
+                patch.object(crawler, 'parse_rows', side_effect=parse_rows_at_fixture_time):
             campaigns = crawler.collect()
         self.assertEqual(len(campaigns), 3)
         self.assertEqual(campaigns[0].apply_count, 5)
